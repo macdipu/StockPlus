@@ -41,14 +41,19 @@ ignore = ["S101"]  # assert is fine in tests
 "alembic/**" = ["N999"]
 # user-facing math text keeps its typographic symbols (×, −) exactly as the legacy output had them
 "src/dse/features/analysis/**" = ["RUF001", "RUF002", "RUF003"]
+"src/dse/features/scanner/**" = ["RUF001", "RUF002", "RUF003"]
 # legacy tests are kept verbatim (only their import lines changed) as the parity proof for the port
 "src/dse/features/analysis/tests/legacy/*.py" = ["ALL"]
+"src/dse/features/scanner/tests/legacy/*.py" = ["ALL"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
 [tool.ruff.format]
-exclude = ["src/dse/features/analysis/tests/legacy/*.py"]
+exclude = [
+  "src/dse/features/analysis/tests/legacy/*.py",
+  "src/dse/features/scanner/tests/legacy/*.py",
+]
 
 [tool.mypy]
 python_version = "3.11"
@@ -82,7 +87,12 @@ forbidden_modules = ["fastapi", "sqlalchemy", "redis", "httpx", "dse.core"]
 [[tool.importlinter.contracts]]
 name = "feature layers: presentation > infrastructure > application > domain"
 type = "layers"
-containers = ["dse.features.market_data", "dse.features.live_feed", "dse.features.analysis"]
+containers = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+]
 layers = ["presentation", "infrastructure", "application", "domain"]
 exhaustive = false
 
@@ -93,6 +103,7 @@ source_modules = [
   "dse.features.market_data.domain",
   "dse.features.live_feed.domain",
   "dse.features.analysis.domain",  # numpy/pandas are allowed here (ADR 0004)
+  "dse.features.scanner.domain",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "pydantic", "dse.core"]
 
@@ -103,6 +114,7 @@ source_modules = [
   "dse.features.market_data.application",
   "dse.features.live_feed.application",
   "dse.features.analysis.application",
+  "dse.features.scanner.application",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 
@@ -112,14 +124,14 @@ forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 name = "live_feed does not depend on market_data"
 type = "forbidden"
 source_modules = ["dse.features.live_feed"]
-forbidden_modules = ["dse.features.market_data", "dse.features.analysis"]
+forbidden_modules = ["dse.features.market_data", "dse.features.analysis", "dse.features.scanner"]
 ignore_imports = ["dse.features.live_feed.tests.** -> dse.main"]  # tests may boot the whole app
 
 [[tool.importlinter.contracts]]
 name = "market_data does not depend on live_feed"
 type = "forbidden"
 source_modules = ["dse.features.market_data"]
-forbidden_modules = ["dse.features.live_feed", "dse.features.analysis"]
+forbidden_modules = ["dse.features.live_feed", "dse.features.analysis", "dse.features.scanner"]
 ignore_imports = ["dse.features.market_data.tests.** -> dse.main"]
 
 [[tool.importlinter.contracts]]
@@ -135,4 +147,28 @@ ignore_imports = [
 
 [[tool.mypy.overrides]]
 module = "dse.features.analysis.tests.legacy.*"
+ignore_errors = true
+
+[[tool.importlinter.contracts]]
+name = "scanner reaches other features only through their application facade"
+type = "forbidden"
+source_modules = ["dse.features.scanner"]
+forbidden_modules = ["dse.features.market_data", "dse.features.live_feed", "dse.features.analysis"]
+allow_indirect_imports = true
+ignore_imports = [
+  "dse.features.scanner.application.** -> dse.features.analysis.application.facade",
+  "dse.features.scanner.infrastructure.gateways -> dse.features.analysis.application.facade",
+  "dse.features.scanner.infrastructure.gateways -> dse.features.market_data.application.facade",
+  "dse.features.scanner.infrastructure.gateways -> dse.features.live_feed.application.facade",
+  "dse.features.scanner.tests.** -> dse.features.analysis.application.facade",
+]
+
+[[tool.importlinter.contracts]]
+name = "analysis does not depend on scanner"
+type = "forbidden"
+source_modules = ["dse.features.analysis"]
+forbidden_modules = ["dse.features.scanner"]
+
+[[tool.mypy.overrides]]
+module = "dse.features.scanner.tests.legacy.*"
 ignore_errors = true

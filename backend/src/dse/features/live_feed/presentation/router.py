@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 
 from dse.core.http import envelope
+from dse.features.live_feed.application.use_cases import MoverKind
 from dse.features.live_feed.presentation.dependencies import LiveFeedContainer, container
 from dse.shared_kernel.errors import ServiceNotReadyError, ValidationFailedError
 from dse.shared_kernel.symbol import Symbol
@@ -39,6 +40,18 @@ async def get_quotes(c: Container, symbols: SymbolsQuery = None) -> dict[str, An
 @router.get("/market", summary="Session, indices, breadth, totals, top movers")
 async def get_market(c: Container) -> dict[str, Any]:
     return envelope((await c.get_market()).model_dump(mode="json"))
+
+
+@router.get("/market/movers", summary="Top gainers / losers / most active today")
+async def get_movers(
+    c: Container,
+    by: Annotated[MoverKind, Query()] = "gainers",
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    asset_types: Annotated[str, Query(description="Comma-separated, e.g. EQ,MF")] = "EQ",
+) -> dict[str, Any]:
+    kinds = [t.strip().upper() for t in asset_types.split(",") if t.strip()]
+    rows = await c.get_movers(by, limit, kinds or None)
+    return envelope([q.model_dump(mode="json") for q in rows], count=len(rows), by=by)
 
 
 @router.get(

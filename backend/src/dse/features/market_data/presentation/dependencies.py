@@ -14,7 +14,9 @@ from dse.features.market_data.application.use_cases import (
     EnsureFresh,
     GetAnnouncements,
     GetCandles,
+    GetHistorySignature,
     GetInstrumentProfile,
+    GetMarketHistory,
     SyncInstrument,
 )
 from dse.features.market_data.domain.ports import MarketDataSource, MarketDataUnitOfWork
@@ -51,7 +53,13 @@ class MarketDataContainer:
 
     @property
     def facade(self) -> MarketDataFacade:
-        return MarketDataFacade(self.get_candles, self.get_profile, self.get_announcements)
+        return MarketDataFacade(
+            self.get_candles,
+            self.get_profile,
+            self.get_announcements,
+            GetMarketHistory(self.uow),
+            GetHistorySignature(self.uow),
+        )
 
     @property
     def append_end_of_day(self) -> AppendEndOfDay:

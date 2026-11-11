@@ -9,9 +9,11 @@ import pytest
 from dse.features.live_feed.application.dto import PollOutcome, PublishedEvent
 from dse.features.live_feed.application.hub import FeedHub
 from dse.features.live_feed.application.use_cases import (
+    BroadcastEvent,
     EndOfDayTrigger,
     GetFeedStatus,
     GetMarket,
+    GetMovers,
     GetQuotes,
     PollSnapshot,
     RunFeed,
@@ -259,3 +261,32 @@ async def test_hub_reconnects_after_bus_failure() -> None:
         assert hub.connected
     finally:
         task.cancel()
+
+
+async def test_movers_rank_filter_and_require_trading(snapshot: LiveSnapshot) -> None:
+    store = MemoryStore()
+    await poller(FakeFeed(FetchResult(snapshot, "a")), store, MemoryBus(), TickLog())()
+    movers = GetMovers(store)
+    top = await movers("gainers", 5)
+    assert len(top) == 5
+    pcts = [q.percent for q in top]
+    assert pcts == sorted(pcts, reverse=True)  # type: ignore[type-var]
+    assert all(q.volume > 0 and q.asset_type == "EQ" for q in top)  # untraded and non-EQ are excluded
+    worst = await movers("losers", 5)
+    assert [q.percent for q in worst] == sorted(q.percent for q in worst)  # type: ignore[type-var]
+    assert (worst[0].percent or 0) <= 0 <= (top[0].percent or 0)
+    active = await movers("value", 3)
+    assert [q.value_mn for q in active] == sorted((q.value_mn for q in active), reverse=True)  # type: ignore[type-var]
+    both = await movers("volume", 400, ("EQ", "MF"))
+    assert {q.asset_type for q in both} == {"EQ", "MF"}
+    assert len(await movers("trades", 400, None)) >= len(both)
+    with pytest.raises(ServiceNotReadyError):
+        await GetMovers(MemoryStore())()
+
+
+async def test_broadcast_publishes_a_custom_event() -> None:
+    bus = MemoryBus()
+    await BroadcastEvent(bus, FakeClock())("universe", {"version": 3, "rows": 400})
+    [e] = bus.published
+    assert (e.event, e.symbol, e.data) == ("universe", None, {"version": 3, "rows": 400})
+    assert e.received_ms > 0

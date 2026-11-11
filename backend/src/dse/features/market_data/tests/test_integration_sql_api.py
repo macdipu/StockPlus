@@ -28,6 +28,8 @@ async def db() -> AsyncIterator[Database]:
     async with d.engine.begin() as c:
         await c.execute(text(f"TRUNCATE {TABLES}"))
     yield d
+    async with d.engine.begin() as c:  # leave the dev database as we found it (no leaked fixture series)
+        await c.execute(text(f"TRUNCATE {TABLES}"))
     await d.dispose()
 
 
@@ -92,3 +94,28 @@ def test_api_contract(page: CompanyPage) -> None:
 
         paths = client.get("/api/v1/openapi.json").json()["paths"]
         assert {"/api/v1/stocks/{symbol}", "/api/v1/stocks/{symbol}/candles"} <= set(paths)
+
+
+async def test_sql_bulk_history_and_signature(db: Database, page: CompanyPage) -> None:
+    async with SqlMarketDataUnitOfWork(db.sessions) as uow:
+        await uow.instruments.upsert(page.instrument, page.fetched_at)
+        await uow.fundamentals.save(ORION, page.fundamentals, page.fetched_at)
+        await uow.bars.upsert(page.bars)
+        other = [
+            replace(b, symbol=Symbol("OTHER"), close=b.close + 1, high=b.high + 1) for b in page.bars[-30:]
+        ]
+        await uow.bars.upsert(other)
+        await uow.commit()
+    async with SqlMarketDataUnitOfWork(db.sessions) as uow:
+        by_symbol = await uow.bars.latest_all(40)
+        assert set(by_symbol) == {"ORIONINFU", "OTHER"}
+        assert len(by_symbol["ORIONINFU"]) == 40
+        assert len(by_symbol["OTHER"]) == 30  # fewer than the cap
+        days = [b.day for b in by_symbol["ORIONINFU"]]
+        assert days == sorted(days)
+        assert days[-1] == page.bars[-1].day  # newest kept, oldest first
+        assert by_symbol["ORIONINFU"][-1] == page.bars[-1]  # exact round trip
+        assert await uow.bars.signature() == (290, page.bars[-1].day)
+        assert await uow.fundamentals.count() == 1
+        assert list(await uow.fundamentals.all()) == ["ORIONINFU"]
+        assert [i.symbol.value for i in await uow.instruments.all()] == ["ORIONINFU"]

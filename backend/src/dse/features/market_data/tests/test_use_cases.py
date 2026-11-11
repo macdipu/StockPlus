@@ -8,7 +8,9 @@ from dse.features.market_data.application.use_cases import (
     BackfillUniverse,
     EnsureFresh,
     GetCandles,
+    GetHistorySignature,
     GetInstrumentProfile,
+    GetMarketHistory,
     SyncInstrument,
 )
 from dse.features.market_data.domain.entities import BarSource, CompanyPage, MarketSnapshot
@@ -98,3 +100,39 @@ async def test_end_of_day_skips_while_open(store: Store, page: CompanyPage, snap
     report = await AppendEndOfDay(lambda: FakeUow(store), src)()
     assert report.bars_written == 0
     assert report.skipped_reason == "market open"
+
+
+async def test_market_history_returns_every_instrument_with_its_fundamentals(
+    store: Store, page: CompanyPage
+) -> None:
+    _, sync, _ = wire(store, page)
+    await sync(ORION)
+    hist = await GetMarketHistory(lambda: FakeUow(store))(bars=50)
+    assert [h.symbol for h in hist] == ["ORIONINFU"]
+    h = hist[0]
+    assert len(h.bars) == 50
+    assert h.bars[-1].day == page.bars[-1].day  # the most recent 50, oldest first
+    assert h.bars[0].day < h.bars[-1].day
+    assert h.name == page.instrument.name
+    assert h.fundamentals is not None
+    assert h.fundamentals.eps_ttm == pytest.approx(1.43)
+    assert h.fundamentals.pe == pytest.approx(h.bars[-1].close / 1.43)  # P/E at the last close
+
+
+async def test_history_signature_changes_when_history_does(
+    store: Store, page: CompanyPage, snapshot: MarketSnapshot
+) -> None:
+    sig = GetHistorySignature(lambda: FakeUow(store))
+    empty = await sig()
+    assert (empty.bars, empty.last_bar_day, empty.fundamentals) == (0, None, 0)
+    last = page.bars[-1]
+    closed = replace(
+        snapshot, is_open=False, trading_day=True, session_date=last.day.replace(year=last.day.year + 1)
+    )
+    src, sync, _ = wire(store, page, closed)
+    await sync(ORION)
+    first = await sig()
+    assert (first.bars, first.last_bar_day, first.fundamentals) == (260, last.day, 1)
+    assert await sig() == first  # reading never changes it
+    await AppendEndOfDay(lambda: FakeUow(store), src)()
+    assert await sig() != first  # the end-of-day bars changed history

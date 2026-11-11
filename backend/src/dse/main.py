@@ -25,8 +25,12 @@ from dse.features.live_feed.presentation.router import router as live_feed_route
 from dse.features.market_data.infrastructure.dse_source import DseHttpSource
 from dse.features.market_data.presentation.dependencies import MarketDataContainer
 from dse.features.market_data.presentation.router import router as market_data_router
+from dse.features.scanner.application.view import UniverseView
+from dse.features.scanner.infrastructure.redis_store import RedisUniverseStore
+from dse.features.scanner.presentation.dependencies import ScannerContainer
+from dse.features.scanner.presentation.router import router as scanner_router
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -49,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.market_data = MarketDataContainer(db, source, clock)
         hub = FeedHub(RedisEventStream(redis), queue_size=settings.live.subscriber_queue)
         app.state.live_feed = LiveFeedContainer(RedisLiveStateStore(redis), hub, clock, settings.live)
+        app.state.scanner = ScannerContainer(UniverseView(RedisUniverseStore(redis)))
         app.state.analysis = AnalysisContainer(
             FacadeAnalysisInputs(app.state.market_data.facade, app.state.live_feed.facade)
         )
@@ -88,6 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     v1.include_router(market_data_router)
     v1.include_router(live_feed_router)
     v1.include_router(analysis_router)
+    v1.include_router(scanner_router)
     app.include_router(v1)
     return app
 

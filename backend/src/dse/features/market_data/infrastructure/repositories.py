@@ -2,7 +2,7 @@
 
 import dataclasses
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import String, column, func, select, update, values
@@ -69,6 +69,13 @@ class SqlInstrumentRepository:
     async def count(self) -> int:
         return int(await self._s.scalar(select(func.count()).select_from(InstrumentRow)) or 0)
 
+    async def all(self) -> list[Instrument]:
+        rows = (await self._s.scalars(select(InstrumentRow).order_by(InstrumentRow.symbol))).all()
+        return [
+            Instrument(Symbol(r.symbol), r.name, r.sector, r.category, r.board, r.asset_type, r.isin)
+            for r in rows
+        ]
+
     async def set_asset_types(self, types: Mapping[str, str]) -> int:
         if not types:
             return 0
@@ -101,6 +108,13 @@ def _fund_from_json(d: dict[str, Any]) -> Fundamentals:
 class SqlFundamentalsRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
+
+    async def all(self) -> dict[str, Fundamentals]:
+        rows = (await self._s.execute(select(FundamentalsRow.symbol, FundamentalsRow.data))).all()
+        return {sym: _fund_from_json(data) for sym, data in rows}
+
+    async def count(self) -> int:
+        return int(await self._s.scalar(select(func.count()).select_from(FundamentalsRow)) or 0)
 
     async def get(self, symbol: Symbol) -> Fundamentals | None:
         r = await self._s.get(FundamentalsRow, symbol.value)
@@ -169,6 +183,37 @@ class SqlBarRepository:
 
     async def count(self) -> int:
         return int(await self._s.scalar(select(func.count()).select_from(DailyBarRow)) or 0)
+
+    async def latest_all(self, limit: int) -> dict[str, list[DailyBar]]:
+        rank = (
+            func.row_number()
+            .over(partition_by=DailyBarRow.symbol, order_by=DailyBarRow.day.desc())
+            .label("rn")
+        )
+        ranked = select(
+            DailyBarRow.symbol,
+            DailyBarRow.day,
+            DailyBarRow.open,
+            DailyBarRow.high,
+            DailyBarRow.low,
+            DailyBarRow.close,
+            DailyBarRow.volume,
+            DailyBarRow.trades,
+            DailyBarRow.source,
+            rank,
+        ).subquery()
+        q = select(*[c for c in ranked.c if c.key != "rn"]).where(ranked.c.rn <= limit)
+        rows = (await self._s.execute(q.order_by(ranked.c.symbol, ranked.c.day))).all()
+        symbols: dict[str, Symbol] = {}
+        out: dict[str, list[DailyBar]] = {}
+        for sym, day, o, h, lo, c, vol, trades, source in rows:
+            s = symbols.setdefault(sym, Symbol(sym))
+            out.setdefault(sym, []).append(DailyBar(s, day, o, h, lo, c, vol, trades, source))
+        return out
+
+    async def signature(self) -> tuple[int, date | None]:
+        row = (await self._s.execute(select(func.count(), func.max(DailyBarRow.day)))).one()
+        return int(row[0]), row[1]
 
 
 class SqlAnnouncementRepository:

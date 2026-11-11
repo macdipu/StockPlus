@@ -18,3 +18,38 @@ class AnalysisInput:
     as_of: str
     value_mn: float | None = None
     news: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class QuoteInput:
+    """A live quote, as the universe build needs it (all fields optional except volume)."""
+
+    ltp: float | None = None
+    ycp: float | None = None
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    close: float | None = None
+    volume: float = 0.0
+    value_mn: float | None = None
+    trades: float | None = None
+    percent: float | None = None
+    sector: str | None = None
+    category: str | None = None
+    asset_type: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class UniverseInput:
+    """One instrument's history + fundamentals + (optional) live quote."""
+
+    symbol: str
+    bars: tuple[Bar, ...]
+    fundamentals: dict[str, Any]  # name, sector, category, eps_ttm, nav, dividend_yield_pct, sponsor_pct,
+    quote: QuoteInput | None = None  # free_float_pct, market_cap, week_high_52, week_low_52
+
+
+@dataclass(frozen=True, slots=True)
+class UniverseRows:
+    rows: list[dict[str, Any]]
+    errors: dict[str, str]

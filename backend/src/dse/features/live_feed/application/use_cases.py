@@ -8,7 +8,7 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import Awaitable, Callable, Sequence
-from typing import Any
+from typing import Any, Literal
 
 from dse.features.live_feed.application.dto import (
     FeedCounters,
@@ -240,3 +240,47 @@ class GetFeedStatus:
 
     async def __call__(self) -> FeedStatusDto:
         return feed_status_dto(await self._store.load_counters(), epoch_ms(self._clock), self._stale_ms)
+
+
+MoverKind = Literal["gainers", "losers", "value", "volume", "trades"]
+_MOVER_KEY: dict[str, str] = {
+    "gainers": "percent",
+    "losers": "percent",
+    "value": "value_mn",
+    "volume": "volume",
+    "trades": "trades",
+}
+
+
+class GetMovers:
+    """Top gainers / losers / most active among instruments that have traded today."""
+
+    def __init__(self, store: LiveStateStore) -> None:
+        self._store = store
+
+    async def __call__(
+        self, by: MoverKind = "gainers", limit: int = 20, asset_types: Sequence[str] | None = ("EQ",)
+    ) -> list[QuoteDto]:
+        market = await self._store.market()
+        if market is None:
+            raise ServiceNotReadyError("The live feed has not received a snapshot yet.")
+        quotes = [
+            q
+            for q in await self._store.quotes()
+            if q.volume > 0 and (asset_types is None or q.asset_type in asset_types)
+        ]
+        key = _MOVER_KEY[by]
+        quotes.sort(key=lambda q: getattr(q, key) or 0, reverse=by != "losers")
+        return [quote_dto(q, market.trade_time) for q in quotes[:limit]]
+
+
+class BroadcastEvent:
+    """Let another feature tell SSE clients something happened (e.g. the scanner universe was rebuilt)."""
+
+    def __init__(self, publisher: EventPublisher, clock: Clock) -> None:
+        self._publisher, self._clock = publisher, clock
+
+    async def __call__(self, event: str, data: dict[str, Any]) -> None:
+        await self._publisher.publish(
+            [FeedEvent(event=event, symbol=None, data=data, received_ms=epoch_ms(self._clock))]
+        )

@@ -81,6 +81,9 @@ class FakeUow:
             async def count(self) -> int:
                 return len(store.instruments)
 
+            async def all(self) -> list[Instrument]:
+                return [i for i, _ in sorted(store.instruments.values(), key=lambda t: str(t[0].symbol))]
+
             async def set_asset_types(self, types: Mapping[str, str]) -> int:
                 hits = {
                     s: t
@@ -103,6 +106,12 @@ class FakeUow:
             async def save(self, s: Symbol, f: Fundamentals, at: datetime) -> None:
                 outer._pending.append(lambda: store.fundamentals.__setitem__(s.value, f))
 
+            async def all(self) -> dict[str, Fundamentals]:
+                return dict(store.fundamentals)
+
+            async def count(self) -> int:
+                return len(store.fundamentals)
+
         class Bars:
             async def upsert(self, bars: Sequence[DailyBar]) -> int:
                 def apply() -> None:
@@ -122,6 +131,15 @@ class FakeUow:
 
             async def count(self) -> int:
                 return len(store.bars)
+
+            async def latest_all(self, limit: int) -> dict[str, list[DailyBar]]:
+                out: dict[str, list[DailyBar]] = {}
+                for (sym, _), b in sorted(store.bars.items(), key=lambda kv: kv[0]):
+                    out.setdefault(sym, []).append(b)
+                return {s: bars[-limit:] for s, bars in out.items()}
+
+            async def signature(self) -> tuple[int, date | None]:
+                return len(store.bars), max((d for _, d in store.bars), default=None)
 
         class News:
             async def upsert(self, items: Sequence[Announcement]) -> None:

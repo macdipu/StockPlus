@@ -9,6 +9,9 @@ from dse.features.market_data.application.dto import (
     BackfillReport,
     BarDto,
     EndOfDayReport,
+    HistoryBarDto,
+    HistorySignature,
+    InstrumentHistoryDto,
     ProfileDto,
     SyncReport,
 )
@@ -176,3 +179,49 @@ class AppendEndOfDay:
                 asset_types_updated=typed,
             )
         return EndOfDayReport(session_date=snap.session_date, bars_written=n, asset_types_updated=typed)
+
+
+class GetMarketHistory:
+    """Every instrument with stored bars: its last `bars` sessions plus fundamentals (the universe input)."""
+
+    def __init__(self, uow: UowFactory) -> None:
+        self._uow = uow
+
+    async def __call__(self, bars: int = 400) -> list[InstrumentHistoryDto]:
+        async with self._uow() as uow:
+            by_symbol = await uow.bars.latest_all(bars)
+            instruments = {str(i.symbol): i for i in await uow.instruments.all()}
+            funds = await uow.fundamentals.all()
+        out = []
+        for sym in sorted(by_symbol):
+            inst = instruments.get(sym)
+            series = tuple(
+                HistoryBarDto(
+                    b.day, float(b.open), float(b.high), float(b.low), float(b.close), b.volume, b.trades
+                )
+                for b in by_symbol[sym]
+            )
+            f = funds.get(sym)
+            out.append(
+                InstrumentHistoryDto(
+                    symbol=sym,
+                    name=inst.name if inst else sym,
+                    sector=inst.sector if inst else None,
+                    category=inst.category if inst else None,
+                    board=inst.board if inst else None,
+                    asset_type=inst.asset_type if inst else None,
+                    bars=series,
+                    fundamentals=fundamentals_dto(f, series[-1].close) if f and series else None,
+                )
+            )
+        return out
+
+
+class GetHistorySignature:
+    def __init__(self, uow: UowFactory) -> None:
+        self._uow = uow
+
+    async def __call__(self) -> HistorySignature:
+        async with self._uow() as uow:
+            n, last = await uow.bars.signature()
+            return HistorySignature(bars=n, last_bar_day=last, fundamentals=await uow.fundamentals.count())

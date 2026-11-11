@@ -8,7 +8,7 @@ from dse.core.config import LiveSettings
 from dse.features.live_feed.application.facade import LiveFeedFacade
 from dse.features.live_feed.application.hub import FeedHub
 from dse.features.live_feed.application.ports import LiveStateStore
-from dse.features.live_feed.application.use_cases import GetFeedStatus, GetMarket, GetQuotes
+from dse.features.live_feed.application.use_cases import GetFeedStatus, GetMarket, GetMovers, GetQuotes
 from dse.shared_kernel.clock import Clock
 
 
@@ -24,6 +24,10 @@ class LiveFeedContainer:
     @property
     def get_quotes(self) -> GetQuotes:
         return GetQuotes(self.store)
+
+    @property
+    def get_movers(self) -> GetMovers:
+        return GetMovers(self.store)
 
     @property
     def get_market(self) -> GetMarket:

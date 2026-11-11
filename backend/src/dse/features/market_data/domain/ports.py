@@ -1,7 +1,7 @@
 """Ports the market-data application needs. Implemented in infrastructure; faked in tests."""
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import date, datetime
 from types import TracebackType
 from typing import Protocol
 
@@ -33,6 +33,8 @@ class InstrumentRepository(Protocol):
 
     async def count(self) -> int: ...
 
+    async def all(self) -> list[Instrument]: ...
+
     async def set_asset_types(self, types: Mapping[str, str]) -> int:
         """Record each known instrument's asset type (only the live snapshot carries it). Unknown symbols
         are ignored: an instrument row is only created by a page sync. Returns rows changed."""
@@ -43,6 +45,10 @@ class FundamentalsRepository(Protocol):
     async def get(self, symbol: Symbol) -> Fundamentals | None: ...
 
     async def save(self, symbol: Symbol, fundamentals: Fundamentals, as_of: datetime) -> None: ...
+
+    async def all(self) -> dict[str, Fundamentals]: ...
+
+    async def count(self) -> int: ...
 
 
 class BarRepository(Protocol):
@@ -55,6 +61,14 @@ class BarRepository(Protocol):
         ...
 
     async def count(self) -> int: ...
+
+    async def latest_all(self, limit: int) -> dict[str, list[DailyBar]]:
+        """The most recent `limit` bars of EVERY instrument, ascending by date (one query)."""
+        ...
+
+    async def signature(self) -> tuple[int, date | None]:
+        """(bar count, newest bar date): changes iff stored history changed. Cheap."""
+        ...
 
 
 class AnnouncementRepository(Protocol):

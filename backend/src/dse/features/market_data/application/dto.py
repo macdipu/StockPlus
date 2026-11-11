@@ -3,6 +3,7 @@
 Presentation serialises these; it never sees entities.
 """
 
+from dataclasses import dataclass
 from datetime import date, datetime
 
 from pydantic import BaseModel
@@ -100,3 +101,37 @@ class EndOfDayReport(BaseModel):
     bars_written: int
     skipped_reason: str | None = None
     asset_types_updated: int = 0
+
+
+# Bulk (whole-market) shapes are plain dataclasses: ~100k bars are built per universe refresh and pydantic
+# validation of each would dominate the cost.
+@dataclass(frozen=True, slots=True)
+class HistoryBarDto:
+    day: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    trades: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class InstrumentHistoryDto:
+    symbol: str
+    name: str
+    sector: str | None
+    category: str | None
+    board: str | None
+    asset_type: str | None
+    bars: tuple[HistoryBarDto, ...]
+    fundamentals: FundamentalsDto | None
+
+
+@dataclass(frozen=True, slots=True)
+class HistorySignature:
+    """Changes iff stored history or fundamentals changed (lets a caller cache the bulk load)."""
+
+    bars: int
+    last_bar_day: date | None
+    fundamentals: int
