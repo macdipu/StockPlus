@@ -86,6 +86,8 @@ async def test_end_of_day_never_overwrites_page_bars(
     await sync(ORION)
     report = await AppendEndOfDay(lambda: FakeUow(store), src)()
     assert report.bars_written > 300
+    assert report.asset_types_updated == 1  # the only instrument we hold a row for learns its type
+    assert store.instruments["ORIONINFU"][0].asset_type == "EQ"
     assert store.bars[("ORIONINFU", last.day)].source == BarSource.PAGE  # official bar kept
     other = next(k for k in store.bars if k[0] != "ORIONINFU")
     assert store.bars[other].source == BarSource.SNAPSHOT

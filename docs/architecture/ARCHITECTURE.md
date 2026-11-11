@@ -5,11 +5,16 @@ Status: **accepted plan, migration in progress** · Baseline commit `7508812` (l
 | Phase | State |
 |---|---|
 | 0 Foundation | ✅ done (`bc56726`) |
-| 1 market_data | ✅ done — see below |
-| 2–7 | not started |
+| 1 market_data | ✅ done (`05749b1`) — see below |
+| 2 live_feed | ✅ done — see below |
+| 3–7 | not started |
 
 **Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
-Known gaps carried forward: `instruments.asset_type` is only known from the live snapshot (filled in Phase 2); candles carry no moving averages yet (Phase 3 analysis); EOD runs from the CLI until the worker exists (Phase 2).
+Known gaps carried forward: candles carry no moving averages yet (Phase 3 analysis).
+
+**Phase 2 notes.** `live_feed` feature: domain (`LiveQuote`, `SessionState.is_after_close`, `LiveSnapshot.changes_since`, `PollPolicy`), use cases (`PollSnapshot` with ETag + at-least-once delivery, `RunFeed` loop with backoff, `EndOfDayTrigger`, `GetQuotes`/`GetMarket`/`GetFeedStatus`), per-replica `FeedHub` fan-out (bounded drop-oldest queues), Redis adapters (`live:quotes` hash of deltas, `live:market`, `live:counters`, global `live:seq` event ids, `live:events` channel), `SqlTickRepository` + migration `0003_live_feed`, `/api/v1/quotes`, `/market`, `/feed/status`, `/stream` (SSE). `dse.worker` is the second composition root (`--check` = healthcheck); after the close it runs market_data's `AppendEndOfDay` once per session (Redis `SET NX` guard), which now also fills `instruments.asset_type` (Phase 1 gap closed). Compose: one-shot `migrate`, `api` ×2 (host 8001–8002), one `worker`.
+Exit criterion verified two ways: integration test boots two uvicorn servers and asserts the same quote event (same id, same payload) on both SSE streams; and live against DSE, both compose replicas streamed the identical 170 events (ids 1–170) over one upstream tick, ~4 ms worker→bus.
+Decisions: payload fields are snake_case like Phase 1 (legacy camelCase `assetType`/`tradeTime` change with the Phase 6 frontend); no `analysis`/`universe` stream events yet (Phases 3/4 add them as worker hooks); SSE does not replay on `Last-Event-ID` (ADR 0006 amendment). Ticks have no retention policy yet (~100k rows/trading day).
 
 Migration strategy: **strangler fig**. The new modular monolith (`backend/`, `frontend/`) is built next to
 the legacy app (repo root). Features move one at a time behind the same `/api/v1` contract. The legacy app

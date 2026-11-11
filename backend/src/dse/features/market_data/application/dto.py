@@ -99,3 +99,4 @@ class EndOfDayReport(BaseModel):
     session_date: date | None
     bars_written: int
     skipped_reason: str | None = None
+    asset_types_updated: int = 0

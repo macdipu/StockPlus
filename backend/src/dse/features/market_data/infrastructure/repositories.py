@@ -1,11 +1,11 @@
 """SQLAlchemy implementations of the market-data repository ports."""
 
 import dataclasses
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import String, column, func, select, update, values
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,6 +68,19 @@ class SqlInstrumentRepository:
 
     async def count(self) -> int:
         return int(await self._s.scalar(select(func.count()).select_from(InstrumentRow)) or 0)
+
+    async def set_asset_types(self, types: Mapping[str, str]) -> int:
+        if not types:
+            return 0
+        v = values(column("s", String), column("t", String), name="v").data(sorted(types.items()))
+        stmt = (
+            update(InstrumentRow)
+            .where(InstrumentRow.symbol == v.c.s, InstrumentRow.asset_type.is_distinct_from(v.c.t))
+            .values(asset_type=v.c.t, updated_at=func.now())
+            .execution_options(synchronize_session=False)
+        )
+        result = await self._s.execute(stmt)
+        return int(getattr(result, "rowcount", 0) or 0)
 
 
 def _fund_to_json(f: Fundamentals) -> dict[str, Any]:

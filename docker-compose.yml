@@ -21,16 +21,36 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 10
-  api:
+  migrate:                            # one-shot: replicas must never race on `alembic upgrade`
     build: ./backend
-    environment:
+    command: ["alembic", "upgrade", "head"]
+    environment: &backend-env
       DSE_ENV: development
       DSE_DATABASE__URL: postgresql+asyncpg://dse:dse@db:5432/dse
       DSE_REDIS__URL: redis://redis:6379/0
       DSE_SECURITY__JWT_SECRET: ${DSE_SECURITY__JWT_SECRET:-dev-only-insecure-secret}
-    ports: ["8001:8000"]
+    healthcheck: {disable: true}
     depends_on:
       db: {condition: service_healthy}
+  api:                                # stateless; scale freely (ADR 0002). Replicas on host 8001, 8002
+    build: ./backend
+    environment: *backend-env
+    ports: ["8001-8002:8000"]
+    deploy: {replicas: 2}
+    depends_on: &after-migrate
+      migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
+  worker:                             # exactly ONE: polls DSE, writes Redis + Postgres, publishes events
+    build: ./backend
+    command: ["python", "-m", "dse.worker"]
+    environment: *backend-env
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "python", "-m", "dse.worker", "--check"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    depends_on: *after-migrate
 volumes:
   pgdata:

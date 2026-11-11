@@ -162,10 +162,17 @@ class AppendEndOfDay:
     async def __call__(self) -> EndOfDayReport:
         snap = await self._source.market_snapshot()
         bars = snap.end_of_day_bars()
+        types = {s: q.asset_type for s, q in snap.quotes.items() if q.asset_type}
+        async with self._uow() as uow:
+            typed = await uow.instruments.set_asset_types(types)
+            n = await uow.bars.upsert(bars) if bars else 0
+            await uow.commit()
         if not bars:
             reason = "market open" if snap.is_open else "not a trading day or nothing traded"
-            return EndOfDayReport(session_date=snap.session_date, bars_written=0, skipped_reason=reason)
-        async with self._uow() as uow:
-            n = await uow.bars.upsert(bars)
-            await uow.commit()
-        return EndOfDayReport(session_date=snap.session_date, bars_written=n)
+            return EndOfDayReport(
+                session_date=snap.session_date,
+                bars_written=0,
+                skipped_reason=reason,
+                asset_types_updated=typed,
+            )
+        return EndOfDayReport(session_date=snap.session_date, bars_written=n, asset_types_updated=typed)

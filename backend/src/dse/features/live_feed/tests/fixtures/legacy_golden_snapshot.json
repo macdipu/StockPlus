@@ -1,0 +1,153 @@
+{
+ "count": 398,
+ "tradeTime": "Nov 11, 2026 at 11:40 AM",
+ "session": {
+  "isOpen": true,
+  "phase": "open",
+  "tradingDay": true,
+  "opening": "10:00",
+  "closing": "14:00",
+  "date": "2026-11-11",
+  "sessionDate": "2026-11-10",
+  "today": {
+   "date": "2026-11-11",
+   "preOpening": "09:55",
+   "opening": "10:00",
+   "closing": "14:00",
+   "postClosing": "14:10"
+  },
+  "next": {
+   "date": "2026-11-12",
+   "preOpening": "09:55",
+   "opening": "10:00",
+   "closing": "14:00",
+   "postClosing": "14:10"
+  }
+ },
+ "quotes": {
+  "ORIONINFU": {
+   "ltp": 217.3,
+   "ycp": 207,
+   "open": 207,
+   "high": 219.9,
+   "low": 207,
+   "close": null,
+   "volume": 107812,
+   "value": 23.205,
+   "trades": 1564,
+   "percent": 4.9758454106280245,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "PharmaChem",
+   "assetType": "EQ",
+   "symbol": "ORIONINFU",
+   "change": 10.3,
+   "tradeTime": "Nov 11, 2026 at 11:40 AM"
+  },
+  "GP": {
+   "ltp": 224.9,
+   "ycp": 222.7,
+   "open": 222.8,
+   "high": 225.5,
+   "low": 222.8,
+   "close": null,
+   "volume": 21237,
+   "value": 4.775,
+   "trades": 337,
+   "percent": 0.9878760664571249,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "Telecom",
+   "assetType": "EQ",
+   "symbol": "GP",
+   "change": 2.2,
+   "tradeTime": "Nov 11, 2026 at 11:40 AM"
+  },
+  "BATBC": {
+   "ltp": 188.6,
+   "ycp": 189.6,
+   "open": 190,
+   "high": 191.6,
+   "low": 188.4,
+   "close": null,
+   "volume": 29967,
+   "value": 5.693,
+   "trades": 519,
+   "percent": -0.5274261603375527,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "FoodAllied",
+   "assetType": "EQ",
+   "symbol": "BATBC",
+   "change": -1.0,
+   "tradeTime": "Nov 11, 2026 at 11:40 AM"
+  },
+  "1JANATAMF": {
+   "ltp": 3.3,
+   "ycp": 3.2,
+   "open": 3.2,
+   "high": 3.3,
+   "low": 3.2,
+   "close": null,
+   "volume": 12702,
+   "value": 0.042,
+   "trades": 18,
+   "percent": 3.124999999999989,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "MutFund",
+   "assetType": "MF",
+   "symbol": "1JANATAMF",
+   "change": 0.1,
+   "tradeTime": "Nov 11, 2026 at 11:40 AM"
+  },
+  "SQURPHARMA": {
+   "ltp": 218.7,
+   "ycp": 219.3,
+   "open": 219.8,
+   "high": 219.9,
+   "low": 218.3,
+   "close": null,
+   "volume": 196073,
+   "value": 42.988,
+   "trades": 909,
+   "percent": -0.27359781121752064,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "PharmaChem",
+   "assetType": "EQ",
+   "symbol": "SQURPHARMA",
+   "change": -0.6,
+   "tradeTime": "Nov 11, 2026 at 11:40 AM"
+  }
+ },
+ "indices": [
+  {
+   "key": "DSEX",
+   "value": 5461.47306,
+   "change": 24.72841,
+   "percent": 0.45484,
+   "prev": 5436.744650000001
+  },
+  {
+   "key": "DS30",
+   "value": 2061.83648,
+   "change": 4.43105,
+   "percent": 0.21537,
+   "prev": 2057.40543
+  },
+  {
+   "key": "DSES",
+   "value": 1058.57798,
+   "change": 4.88961,
+   "percent": 0.46405,
+   "prev": 1053.68837
+  }
+ ],
+ "breadth": {
+  "advanced": 242,
+  "declined": 78,
+  "unchanged": 62,
+  "traded": 382
+ }
+}

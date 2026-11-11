@@ -29,6 +29,16 @@ class UpstreamSettings(BaseModel):
     min_page_interval_s: float = 2.5
 
 
+class LiveSettings(BaseModel):
+    poll_open_s: float = 10.0  # = upstream CDN max-age; faster only re-reads the cache
+    poll_closed_s: float = 60.0
+    min_poll_s: float = 5.0  # hard floor, whatever the env says
+    stale_after_s: float = 300.0
+    heartbeat_s: float = 15.0
+    subscriber_queue: int = 256
+    max_stream_symbols: int = 50
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="DSE_", env_nested_delimiter="__", env_file=".env", extra="ignore"
@@ -42,6 +52,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     security: SecuritySettings = SecuritySettings()
     upstream: UpstreamSettings = UpstreamSettings()
+    live: LiveSettings = LiveSettings()
 
     def assert_production_safe(self) -> None:
         """Fail fast instead of running production with development defaults."""

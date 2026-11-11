@@ -1,6 +1,6 @@
 """Ports the market-data application needs. Implemented in infrastructure; faked in tests."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from types import TracebackType
 from typing import Protocol
@@ -32,6 +32,11 @@ class InstrumentRepository(Protocol):
     async def synced_since(self, since: datetime) -> set[str]: ...
 
     async def count(self) -> int: ...
+
+    async def set_asset_types(self, types: Mapping[str, str]) -> int:
+        """Record each known instrument's asset type (only the live snapshot carries it). Unknown symbols
+        are ignored: an instrument row is only created by a page sync. Returns rows changed."""
+        ...
 
 
 class FundamentalsRepository(Protocol):

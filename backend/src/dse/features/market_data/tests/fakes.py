@@ -1,6 +1,7 @@
 """In-memory test doubles that satisfy the market-data ports."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import date, datetime
 from types import TracebackType
 from typing import Any, Self
@@ -79,6 +80,21 @@ class FakeUow:
 
             async def count(self) -> int:
                 return len(store.instruments)
+
+            async def set_asset_types(self, types: Mapping[str, str]) -> int:
+                hits = {
+                    s: t
+                    for s, t in types.items()
+                    if s in store.instruments and store.instruments[s][0].asset_type != t
+                }
+
+                def apply() -> None:
+                    for s, t in hits.items():
+                        inst, at = store.instruments[s]
+                        store.instruments[s] = (replace(inst, asset_type=t), at)
+
+                outer._pending.append(apply)
+                return len(hits)
 
         class Funds:
             async def get(self, s: Symbol) -> Fundamentals | None:

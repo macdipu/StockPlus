@@ -9,6 +9,7 @@ from fastapi import Request
 
 from dse.core.db import Database
 from dse.features.market_data.application.use_cases import (
+    AppendEndOfDay,
     EnsureFresh,
     GetAnnouncements,
     GetCandles,
@@ -46,6 +47,10 @@ class MarketDataContainer:
     @property
     def get_candles(self) -> GetCandles:
         return GetCandles(self.uow, self.ensure_fresh)
+
+    @property
+    def append_end_of_day(self) -> AppendEndOfDay:
+        return AppendEndOfDay(self.uow, self.source)
 
     @property
     def get_announcements(self) -> GetAnnouncements:
