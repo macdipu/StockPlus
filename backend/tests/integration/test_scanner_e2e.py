@@ -215,16 +215,9 @@ def publish_realistic_universe(golden: dict[str, Any], copies: int = 9) -> int:
 PERF_BUDGET_MS = 50
 
 
-def machine_is_oversubscribed() -> bool:
-    """A latency number taken while the box is swamped says nothing about the code."""
-    return os.getloadavg()[0] > (os.cpu_count() or 1)  # more runnable work than cores: timings are noise
-
-
 def test_scan_p95_is_under_50ms_on_a_realistic_universe(golden: dict[str, Any]) -> None:
-    if machine_is_oversubscribed():
-        pytest.skip(
-            f"load average {os.getloadavg()[0]:.0f} on {os.cpu_count()} cores: latency is not measurable"
-        )
+    """The budget is on CPU time per request, not wall-clock: how long the scan code needs, which barely moves
+    when other processes compete for the machine (wall-clock does, and then measures the scheduler)."""
     publish_realistic_universe(golden)
     requests: list[tuple[str, str, dict[str, Any] | None]] = [
         ("GET", "/api/v1/scanner/presets/short_term_setup", None),
@@ -258,28 +251,40 @@ def test_scan_p95_is_under_50ms_on_a_realistic_universe(golden: dict[str, Any]) 
                 for m, path, body in requests:
                     c.request(m, path, json=body)
 
-            def one_pass() -> list[float]:
+            def one_pass() -> list[tuple[float, float]]:
+                """(cpu_ms, wall_ms) per request; CPU time is process-wide, i.e. the app under test."""
                 out = []
                 for _ in range(60):
                     for m, path, body in requests:
-                        t = time.perf_counter()
+                        cpu0, wall0 = time.process_time(), time.perf_counter()
                         r = c.request(m, path, json=body)
-                        out.append((time.perf_counter() - t) * 1000)
+                        out.append(
+                            ((time.process_time() - cpu0) * 1000, (time.perf_counter() - wall0) * 1000)
+                        )
                         assert r.status_code == 200, (path, r.json()["detail"])
-                return sorted(out)
+                return out
 
-            # Best of three passes: a transient burst of CPU contention must not fail a latency guard, but
-            # code that is genuinely slow is slow in every pass.
+            # Best of three passes: a transient burst of contention must not fail a guard on code speed,
+            # but code that is genuinely slow is slow in every pass.
             passes = [one_pass() for _ in range(3)]
-        p95s = [pass_[int(len(pass_) * 0.95)] for pass_ in passes]
-        best = passes[p95s.index(min(p95s))]
-        p50, p99 = statistics.median(best), best[int(len(best) * 0.99)]
+
+        def p95(values: list[float]) -> float:
+            ordered = sorted(values)
+            return ordered[int(len(ordered) * 0.95)]
+
+        cpu_p95s = [p95([cpu for cpu, _ in p]) for p in passes]
+        wall_p95s = [p95([wall for _, wall in p]) for p in passes]
+        best = passes[cpu_p95s.index(min(cpu_p95s))]
+        cpu_sorted = sorted(cpu for cpu, _ in best)
+        p50, p99 = statistics.median(cpu_sorted), cpu_sorted[int(len(cpu_sorted) * 0.99)]
         print(
-            f"\nscan latency, {len(best)} requests on 432 instruments (best of 3 passes): p50={p50:.1f} ms "
-            f"p95={min(p95s):.1f} ms p99={p99:.1f} ms; pass p95s={[round(x, 1) for x in p95s]}; "
+            f"\nscan cost, {len(best)} requests on 432 instruments (best of 3 passes), CPU ms: "
+            f"p50={p50:.1f} p95={min(cpu_p95s):.1f} p99={p99:.1f}; "
+            f"wall-clock p95 per pass={[round(x, 1) for x in wall_p95s]} "
+            f"(load average {os.getloadavg()[0]:.0f}); "
             f"first request after a publish (frame rebuild) {cold_ms:.0f} ms"
         )
-        assert min(p95s) < PERF_BUDGET_MS, f"p95 {min(p95s):.1f} ms (budget {PERF_BUDGET_MS} ms)"
+        assert min(cpu_p95s) < PERF_BUDGET_MS, f"CPU p95 {min(cpu_p95s):.1f} ms (budget {PERF_BUDGET_MS} ms)"
         assert cold_ms < 1000
     finally:
         asyncio.run(flush())
