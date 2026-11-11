@@ -42,6 +42,16 @@ def test_production_requires_a_long_random_secret() -> None:
     Settings(env="development").assert_production_safe()  # dev keeps its convenient default
 
 
+def test_the_default_upstream_identity_is_honest() -> None:
+    from dse.core.config import DEFAULT_USER_AGENT, UpstreamSettings
+
+    ua = UpstreamSettings().user_agent
+    assert ua == DEFAULT_USER_AGENT
+    assert ua.startswith("dse-analyzer/")
+    assert not any(w in ua.lower() for w in ("mozilla", "chrome", "safari", "applewebkit", "gecko"))
+    assert "@" not in ua  # no personal contact baked into a default; the operator may add one
+
+
 def test_json_log_carries_request_id() -> None:
     token = request_id_var.set("rid-1")
     try:
