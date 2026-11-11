@@ -121,3 +121,27 @@ def test_health_and_readiness() -> None:
     assert r.json()["checks"] == {"db": "ok", "redis": "error: ConnectionError"}
     assert "server-timing" in r.headers
     assert r.headers["x-request-id"]
+
+
+async def test_cancel_and_wait_ends_a_task_that_swallows_the_first_cancel() -> None:
+    import asyncio
+
+    from dse.core.tasks import cancel_and_wait
+
+    swallowed = 0
+
+    async def stubborn() -> None:
+        nonlocal swallowed
+        while True:
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                swallowed += 1
+                if swallowed >= 2:
+                    raise
+
+    task = asyncio.create_task(stubborn())
+    await asyncio.sleep(0)
+    await asyncio.wait_for(cancel_and_wait(task, retry_s=0.05), 3)
+    assert task.cancelled()
+    assert swallowed == 2

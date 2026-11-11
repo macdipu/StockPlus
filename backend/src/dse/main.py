@@ -1,7 +1,6 @@
 """Composition root for the HTTP API. The only module that wires concrete infrastructure together."""
 
 import asyncio
-import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
@@ -17,6 +16,7 @@ from dse.core.errors import install_error_handlers
 from dse.core.http import health_router, request_context
 from dse.core.logging import configure_logging
 from dse.core.security import Argon2PasswordHasher, JwtCodec
+from dse.core.tasks import cancel_and_wait
 from dse.features.analysis.infrastructure.gateways import FacadeAnalysisInputs, FacadeHistorySource
 from dse.features.analysis.presentation.dependencies import AnalysisContainer
 from dse.features.analysis.presentation.router import router as analysis_router
@@ -95,9 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         hub_task = asyncio.create_task(hub.run(), name="live-feed-hub")
         yield
-        hub_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await hub_task
+        await cancel_and_wait(hub_task)
         await source.aclose()
         await redis.aclose()
         await db.dispose()

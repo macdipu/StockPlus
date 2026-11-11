@@ -94,6 +94,9 @@ class RedisEventPublisher:
         return published
 
 
+POLL_S = 0.5  # how long one pub/sub read may block (also the worst-case shutdown latency)
+
+
 class RedisEventStream:
     def __init__(self, redis: "Redis") -> None:
         self._r = redis
@@ -103,8 +106,11 @@ class RedisEventStream:
         await pubsub.subscribe(CHANNEL)
         on_subscribed()
         try:
-            async for msg in pubsub.listen():
-                if msg.get("type") != "message":
+            # Poll with a short timeout instead of `pubsub.listen()`: cancelling a read blocked inside
+            # redis-py can fail to complete, which hangs shutdown. A bounded wait always returns.
+            while True:
+                msg = await pubsub.get_message(timeout=POLL_S)
+                if msg is None or msg.get("type") != "message":
                     continue
                 for item in json.loads(msg["data"]):
                     yield PublishedEvent.model_validate(item)
