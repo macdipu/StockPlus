@@ -1,0 +1,44 @@
+{
+ "data": [
+  {
+   "sector": "PharmaChem",
+   "instruments": 2,
+   "advanced": 1,
+   "declined": 1,
+   "avg_change_pct": 1.4346,
+   "turnover_mn": 135.971,
+   "median_pe": 77.8011,
+   "avg_rsi": 48.0373,
+   "ret_1m": -6.9819,
+   "turnover_share_pct": 53.7178
+  },
+  {
+   "sector": "Bank",
+   "instruments": 1,
+   "advanced": 0,
+   "declined": 1,
+   "avg_change_pct": -0.3049,
+   "turnover_mn": 81.626,
+   "median_pe": 6.3701,
+   "avg_rsi": 46.2234,
+   "ret_1m": -1.059,
+   "turnover_share_pct": 32.2478
+  },
+  {
+   "sector": "FoodAllied",
+   "instruments": 1,
+   "advanced": 0,
+   "declined": 1,
+   "avg_change_pct": -1.1076,
+   "turnover_mn": 24.241,
+   "median_pe": 14.8026,
+   "avg_rsi": 24.123,
+   "ret_1m": -14.5786,
+   "turnover_share_pct": 9.5768
+  }
+ ],
+ "meta": {
+  "requestId": "07b3c63d4e6a491f",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

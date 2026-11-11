@@ -1,0 +1,114 @@
+{
+ "data": [
+  {
+   "date": "2026-11-05",
+   "open": 230.2,
+   "high": 231.0,
+   "low": 226.6,
+   "close": 226.9,
+   "volume": 251543.0,
+   "vpa": "Strong selling",
+   "vpa_bias": "bearish",
+   "spread_rel": 1.605839416058395,
+   "vol_rel": 4.143531101644939,
+   "close_pos": 0.06818181818182067
+  },
+  {
+   "date": "2026-11-08",
+   "open": 227.0,
+   "high": 228.2,
+   "low": 224.0,
+   "close": 224.8,
+   "volume": 178671.0,
+   "vpa": "Strong selling",
+   "vpa_bias": "bearish",
+   "spread_rel": 1.460869565217386,
+   "vol_rel": 2.513195715761645,
+   "close_pos": 0.19047619047619369
+  },
+  {
+   "date": "2026-11-09",
+   "open": 225.0,
+   "high": 225.3,
+   "low": 223.0,
+   "close": 223.2,
+   "volume": 133386.0,
+   "vpa": null,
+   "vpa_bias": null,
+   "spread_rel": 0.7770270270270303,
+   "vol_rel": 1.699338411499639,
+   "close_pos": 0.08695652173912506
+  },
+  {
+   "date": "2026-11-10",
+   "open": 223.7,
+   "high": 224.9,
+   "low": 221.9,
+   "close": 222.7,
+   "volume": 127567.0,
+   "vpa": null,
+   "vpa_bias": null,
+   "spread_rel": 1.0291595197255567,
+   "vol_rel": 1.5304015044043418,
+   "close_pos": 0.266666666666661
+  },
+  {
+   "date": "2026-11-11",
+   "open": 222.8,
+   "high": 225.7,
+   "low": 222.8,
+   "close": 225.3,
+   "volume": 50165.0,
+   "vpa": null,
+   "vpa_bias": null,
+   "spread_rel": 0.9602649006622436,
+   "vol_rel": 0.568289309273317,
+   "close_pos": 0.8620689655172481
+  }
+ ],
+ "meta": {
+  "requestId": "f903247add6244dc",
+  "disclaimer": "For research only, not investment advice.",
+  "legend": {
+   "Strong buying": {
+    "bias": "bullish",
+    "meaning": "Wide up bar on high volume closing near the high: demand in control"
+   },
+   "Strong selling": {
+    "bias": "bearish",
+    "meaning": "Wide down bar on high volume closing near the low: supply in control"
+   },
+   "Stopping volume": {
+    "bias": "bullish",
+    "meaning": "Down bar on very high volume that closed off its lows: selling absorbed"
+   },
+   "Upthrust": {
+    "bias": "bearish",
+    "meaning": "Push higher on very high volume rejected into a close near the low"
+   },
+   "Effort, no result": {
+    "bias": "neutral",
+    "meaning": "Very high volume with a narrow spread: absorption, watch next bar"
+   },
+   "No demand": {
+    "bias": "bearish",
+    "meaning": "Narrow up bar on low volume, less than the prior 2 bars: buyers absent"
+   },
+   "No supply": {
+    "bias": "bullish",
+    "meaning": "Narrow down bar on low volume, less than the prior 2 bars: sellers absent"
+   }
+  },
+  "thresholds": {
+   "N": 20.0,
+   "WIDE": 1.3,
+   "NARROW": 0.7,
+   "HIGH_VOL": 1.5,
+   "ULTRA_VOL": 2.2,
+   "LOW_VOL": 0.7,
+   "CLOSE_HIGH": 0.7,
+   "CLOSE_LOW": 0.3
+  },
+  "count": 5
+ }
+}

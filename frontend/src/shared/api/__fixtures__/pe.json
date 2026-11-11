@@ -1,0 +1,43 @@
+{
+ "data": {
+  "market": {
+   "instruments": 5,
+   "median_pe": 10.508395522388062,
+   "weighted_pe": 8.323463442254184
+  },
+  "by_sector": {
+   "Bank": {
+    "instruments": 1,
+    "median_pe": 6.370129870129872,
+    "weighted_pe": 6.370129870129872
+   },
+   "FoodAllied": {
+    "instruments": 1,
+    "median_pe": 14.80263157894737,
+    "weighted_pe": 14.80263157894737
+   },
+   "PharmaChem": {
+    "instruments": 2,
+    "median_pe": 77.80105014711627,
+    "weighted_pe": 6.360813300900891
+   },
+   "Telecom": {
+    "instruments": 1,
+    "median_pe": 10.508395522388062,
+    "weighted_pe": 10.508395522388062
+   }
+  },
+  "by_category": {
+   "A": {
+    "instruments": 5,
+    "median_pe": 10.508395522388062,
+    "weighted_pe": 8.323463442254184
+   }
+  },
+  "note": "P/E uses TTM EPS (positive earnings only); weighted = \u03a3 market cap / \u03a3 earnings."
+ },
+ "meta": {
+  "requestId": "299415d3eebb4c92",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

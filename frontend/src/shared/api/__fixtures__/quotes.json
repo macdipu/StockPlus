@@ -1,0 +1,47 @@
+{
+ "data": [
+  {
+   "symbol": "GP",
+   "ltp": 225.3,
+   "ycp": 222.7,
+   "open": 222.8,
+   "high": 225.7,
+   "low": 222.8,
+   "close": 225.3,
+   "change": 2.6,
+   "percent": 1.167489896722058,
+   "volume": 50165,
+   "value_mn": 11.283,
+   "trades": 767,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "Telecom",
+   "asset_type": "EQ",
+   "trade_time": "Nov 11, 2026 at 2:04 PM"
+  },
+  {
+   "symbol": "BATBC",
+   "ltp": 187.5,
+   "ycp": 189.6,
+   "open": 190.0,
+   "high": 191.6,
+   "low": 185.8,
+   "close": 187.5,
+   "change": -2.1,
+   "percent": -1.1075949367088578,
+   "volume": 129189,
+   "value_mn": 24.241,
+   "trades": 1781,
+   "category": "A",
+   "board": "PUBLIC",
+   "sector": "FoodAllied",
+   "asset_type": "EQ",
+   "trade_time": "Nov 11, 2026 at 2:04 PM"
+  }
+ ],
+ "meta": {
+  "requestId": "8b84d681de0749a5",
+  "disclaimer": "For research only, not investment advice.",
+  "count": 2
+ }
+}

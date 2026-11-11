@@ -1,0 +1,215 @@
+{
+ "data": {
+  "session": {
+   "day": "2026-11-11",
+   "is_open": false,
+   "trading_day": true,
+   "phase": "post-close",
+   "opening": "10:00",
+   "closing": "14:00"
+  },
+  "trade_time": "Nov 11, 2026 at 2:04 PM",
+  "indices": [
+   {
+    "key": "DSEX",
+    "value": 5445.05718,
+    "change": 8.31253,
+    "percent": 0.1529
+   },
+   {
+    "key": "DS30",
+    "value": 2059.37098,
+    "change": 1.96555,
+    "percent": 0.09554
+   },
+   {
+    "key": "DSES",
+    "value": 1055.40215,
+    "change": 1.71378,
+    "percent": 0.16265
+   }
+  ],
+  "totals": {
+   "trades": 209746,
+   "volume": 251272263,
+   "turnover": 7520.864,
+   "marketCap": 6682751023456
+  },
+  "breadth": {
+   "advanced": 181,
+   "declined": 151,
+   "unchanged": 56,
+   "traded": 388
+  },
+  "movers": {
+   "gainers": [
+    {
+     "code": "EPGL",
+     "ltp": 17.9,
+     "open": 16.3,
+     "high": 17.9,
+     "low": 16,
+     "percent": 9.815950920245385
+    },
+    {
+     "code": "SEMLFBSLGF",
+     "ltp": 7,
+     "open": 6.4,
+     "high": 7,
+     "low": 6.4,
+     "percent": 9.374999999999996
+    },
+    {
+     "code": "LANKABAFIN",
+     "ltp": 14.3,
+     "open": 13.3,
+     "high": 14.4,
+     "low": 13.2,
+     "percent": 7.518796992481203
+    },
+    {
+     "code": "ACFL",
+     "ltp": 24.6,
+     "open": 23,
+     "high": 24.6,
+     "low": 22.6,
+     "percent": 6.956521739130441
+    },
+    {
+     "code": "SAIHAMTEX",
+     "ltp": 51.9,
+     "open": 48.8,
+     "high": 52,
+     "low": 48.7,
+     "percent": 6.352459016393445
+    },
+    {
+     "code": "1STPRIMFMF",
+     "ltp": 43,
+     "open": 40.5,
+     "high": 43.7,
+     "low": 40.5,
+     "percent": 6.172839506172839
+    },
+    {
+     "code": "DOMINAGE",
+     "ltp": 64.3,
+     "open": 60.7,
+     "high": 65.2,
+     "low": 60.2,
+     "percent": 5.930807248764405
+    },
+    {
+     "code": "NFML",
+     "ltp": 14.8,
+     "open": 14,
+     "high": 14.9,
+     "low": 14,
+     "percent": 5.71428571428572
+    },
+    {
+     "code": "APEXFOODS",
+     "ltp": 306.8,
+     "open": 291,
+     "high": 311,
+     "low": 291,
+     "percent": 5.429553264604815
+    },
+    {
+     "code": "SQUARETEXT",
+     "ltp": 56.9,
+     "open": 54,
+     "high": 57.2,
+     "low": 54,
+     "percent": 5.370370370370368
+    }
+   ],
+   "losers": [
+    {
+     "code": "SUNLIFEINS",
+     "ltp": 48.1,
+     "open": 51.5,
+     "high": 51.5,
+     "low": 47.2,
+     "percent": -6.6019417475728135
+    },
+    {
+     "code": "SILCOPHL",
+     "ltp": 15.4,
+     "open": 16.1,
+     "high": 16.1,
+     "low": 15.3,
+     "percent": -4.347826086956528
+    },
+    {
+     "code": "DSHGARME",
+     "ltp": 117.6,
+     "open": 122.7,
+     "high": 122.7,
+     "low": 117.1,
+     "percent": -4.156479217603919
+    },
+    {
+     "code": "GHAIL",
+     "ltp": 12.3,
+     "open": 12.8,
+     "high": 12.8,
+     "low": 12.2,
+     "percent": -3.90625
+    },
+    {
+     "code": "SIPLC",
+     "ltp": 132.7,
+     "open": 137.8,
+     "high": 137.8,
+     "low": 131.8,
+     "percent": -3.7010159651669245
+    },
+    {
+     "code": "BANGAS",
+     "ltp": 115.5,
+     "open": 119.8,
+     "high": 119.8,
+     "low": 115,
+     "percent": -3.5893155258764584
+    },
+    {
+     "code": "KDSALTD",
+     "ltp": 43.1,
+     "open": 44.7,
+     "high": 44.7,
+     "low": 42.6,
+     "percent": -3.579418344519018
+    },
+    {
+     "code": "SHEPHERD",
+     "ltp": 11,
+     "open": 11.4,
+     "high": 11.5,
+     "low": 10.9,
+     "percent": -3.5087719298245648
+    },
+    {
+     "code": "BEXIMCO",
+     "ltp": 20.3,
+     "open": 21,
+     "high": 21.5,
+     "low": 20.1,
+     "percent": -3.33333333333333
+    },
+    {
+     "code": "ENVOYTEX",
+     "ltp": 81.5,
+     "open": 84.3,
+     "high": 84.3,
+     "low": 80.6,
+     "percent": -3.321470937129297
+    }
+   ]
+  }
+ },
+ "meta": {
+  "requestId": "c3e9045dec0343b8",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

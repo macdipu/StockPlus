@@ -1,0 +1,454 @@
+{
+ "data": {
+  "symbol": "GP",
+  "name": "Grameenphone Ltd.",
+  "as_of": "Nov 11, 2026 at 2:04 PM",
+  "price": {
+   "ltp": 225.3,
+   "prev_close": 222.7,
+   "change": 2.6,
+   "change_pct": 1.1675,
+   "open": 222.8,
+   "high": 225.7,
+   "low": 222.8,
+   "volume": 50165.0,
+   "trades": 767.0,
+   "value_mn": 11.283,
+   "live_bar": true,
+   "market_open": false,
+   "last_bar_date": "2026-11-11",
+   "first_bar_date": "2025-10-13",
+   "bars_available": 261
+  },
+  "signal": {
+   "action": "STRONG SELL",
+   "net_votes": -6,
+   "bullish_reasons": [],
+   "bearish_reasons": [
+    "close below EMA21",
+    "close below SMA50",
+    "close below SMA200",
+    "EMA 9 below EMA 21",
+    "MACD below signal",
+    "RSI 27 weak"
+   ],
+   "rule": "STRONG BUY: score\u22655 & R/R\u22651.5 \u00b7 BUY: net\u22653 & R/R\u22651.5 \u00b7 SELL: net\u2264\u22123 \u00b7 STRONG SELL: net\u2264\u22125 \u00b7 Z category: AVOID \u00b7 else HOLD"
+  },
+  "setup": {
+   "score": 1,
+   "max": 6,
+   "checks": [
+    {
+     "key": "above_ema21",
+     "label": "Close above EMA 21",
+     "pass": false
+    },
+    {
+     "key": "above_sma50",
+     "label": "Close above SMA 50",
+     "pass": false
+    },
+    {
+     "key": "rsi_50_70",
+     "label": "RSI(14) between 50 and 70",
+     "pass": false
+    },
+    {
+     "key": "volume_surge",
+     "label": "Volume \u2265 1.5\u00d7 20-day average",
+     "pass": false
+    },
+    {
+     "key": "bullish_candle",
+     "label": "Bullish candle pattern in the last 2 sessions",
+     "pass": false
+    },
+    {
+     "key": "not_z",
+     "label": "Not Z category",
+     "pass": true
+    }
+   ],
+   "plan": {
+    "entry": 225.3,
+    "entry_zone": [
+     223.8,
+     225.3
+    ],
+    "stop": 221.15,
+    "stop_basis": "support 221.90 \u2212 0.25 ATR",
+    "target": 238.05,
+    "target_basis": "next resistance",
+    "atr": 3.01,
+    "risk_pct": 1.842,
+    "reward_pct": 5.6591,
+    "rr": 3.0723,
+    "rr_ok": true
+   },
+   "flags": []
+  },
+  "probability": {
+   "horizon_sessions": 10,
+   "target_pct": 5.6591,
+   "stop_pct": 1.842,
+   "similar_setups": {
+    "n": 202,
+    "wins": 10,
+    "losses": 85,
+    "unresolved": 107,
+    "p_target_first": 0.0495,
+    "avg_fwd_return_pct": -0.5405,
+    "pct_positive_fwd": 40.099,
+    "expectancy_pct": -0.4949
+   },
+   "all_days_baseline": {
+    "n": 202,
+    "wins": 10,
+    "losses": 85,
+    "unresolved": 107,
+    "p_target_first": 0.0495,
+    "avg_fwd_return_pct": -0.5405,
+    "pct_positive_fwd": 40.099,
+    "expectancy_pct": -0.4949
+   },
+   "reliable": true,
+   "warning": null,
+   "method": "Of past sessions with setup score \u2265 1/6, share that touched +5.7% before \u22121.8% within 10 sessions. Same-bar hits count as losses. Samples overlap; small n is unreliable. Historical frequency, not a forecast."
+  },
+  "indicators": {
+   "sma20": 233.345,
+   "sma50": 238.224,
+   "sma200": 248.669,
+   "ema9": 227.4826,
+   "ema21": 232.0863,
+   "rsi14": 26.9517,
+   "macd": -4.4569,
+   "macd_signal": -3.3939,
+   "macd_hist": -1.063,
+   "bb_upper": 245.1135,
+   "bb_mid": 233.345,
+   "bb_lower": 221.5765,
+   "atr14": 3.0071,
+   "vol_avg20": 89220.1,
+   "vol_ratio": 0.5623
+  },
+  "candles": {
+   "last_candle": "Last candle is bullish (green): body 86% of its range, upper wick 14%, lower wick 0%, closing 86% of the way up the range.",
+   "patterns": [
+    {
+     "date": "2026-11-01",
+     "bars_ago": 8,
+     "pattern": "Bearish Marubozu",
+     "direction": "bearish",
+     "high": 238.3,
+     "low": 235.4
+    },
+    {
+     "date": "2026-11-02",
+     "bars_ago": 7,
+     "pattern": "Three Black Crows",
+     "direction": "bearish",
+     "high": 236.9,
+     "low": 229.0
+    },
+    {
+     "date": "2026-11-03",
+     "bars_ago": 6,
+     "pattern": "Inverted Hammer",
+     "direction": "bullish",
+     "high": 234.9,
+     "low": 228.8
+    },
+    {
+     "date": "2026-11-04",
+     "bars_ago": 5,
+     "pattern": "Doji",
+     "direction": "neutral",
+     "high": 232.0,
+     "low": 228.6
+    },
+    {
+     "date": "2026-11-05",
+     "bars_ago": 4,
+     "pattern": "Bearish Engulfing",
+     "direction": "bearish",
+     "high": 231.0,
+     "low": 226.6
+    },
+    {
+     "date": "2026-11-09",
+     "bars_ago": 2,
+     "pattern": "Three Black Crows",
+     "direction": "bearish",
+     "high": 225.3,
+     "low": 223.0
+    }
+   ],
+   "thresholds": {
+    "DOJI_BODY": 0.1,
+    "MARUBOZU_BODY": 0.9,
+    "LONG_SHADOW": 2.0,
+    "SHORT_SHADOW": 0.1,
+    "MIN_BODY": 0.03,
+    "LONG_BODY": 0.6,
+    "STAR_BODY": 0.3,
+    "SOLDIER_BODY": 0.5,
+    "SOLDIER_SHADOW": 0.25,
+    "TREND_BARS": 5
+   },
+   "last_sessions": [
+    {
+     "date": "2026-10-29",
+     "open": 238.5,
+     "high": 238.5,
+     "low": 237.0,
+     "close": 237.3,
+     "volume": 67443.0
+    },
+    {
+     "date": "2026-11-01",
+     "open": 238.3,
+     "high": 238.3,
+     "low": 235.4,
+     "close": 235.6,
+     "volume": 79989.0
+    },
+    {
+     "date": "2026-11-02",
+     "open": 236.4,
+     "high": 236.9,
+     "low": 229.0,
+     "close": 230.0,
+     "volume": 170242.0
+    }
+   ]
+  },
+  "levels": {
+   "price": 225.3,
+   "high_52w": 282.0,
+   "low_52w": 221.9,
+   "above": [
+    238.05,
+    244.18,
+    249.48
+   ],
+   "below": [
+    221.9
+   ]
+  },
+  "trend": {
+   "changes": {
+    "1W": -2.1286,
+    "1M": -6.5533,
+    "3M": -12.9107,
+    "1Y": -18.8693
+   },
+   "vs_ma": {
+    "EMA9": {
+     "value": 227.4826,
+     "pct": -0.9595
+    },
+    "EMA21": {
+     "value": 232.0863,
+     "pct": -2.924
+    },
+    "SMA20": {
+     "value": 233.345,
+     "pct": -3.4477
+    },
+    "SMA50": {
+     "value": 238.224,
+     "pct": -5.4251
+    },
+    "SMA200": {
+     "value": 248.669,
+     "pct": -9.3976
+    }
+   }
+  },
+  "valuation": {
+   "price": 225.3,
+   "rows": [
+    {
+     "method": "P/E 15x",
+     "inputs": "TTM EPS 21.44 (annualised 9M EPS x 4/3 (period 202609)) \u00d7 15",
+     "fair_value": 321.6,
+     "gap_pct": 42.743
+    },
+    {
+     "method": "P/E 20x",
+     "inputs": "TTM EPS 21.44 (annualised 9M EPS x 4/3 (period 202609)) \u00d7 20",
+     "fair_value": 428.8,
+     "gap_pct": 90.324
+    },
+    {
+     "method": "P/E 25x",
+     "inputs": "TTM EPS 21.44 (annualised 9M EPS x 4/3 (period 202609)) \u00d7 25",
+     "fair_value": 536.0,
+     "gap_pct": 137.905
+    },
+    {
+     "method": "P/B 1.5x",
+     "inputs": "NAV/share 41.49 \u00d7 1.5",
+     "fair_value": 62.235,
+     "gap_pct": -72.3768
+    },
+    {
+     "method": "P/B 2.0x",
+     "inputs": "NAV/share 41.49 \u00d7 2.0",
+     "fair_value": 82.98,
+     "gap_pct": -63.1691
+    },
+    {
+     "method": "P/B 3.0x",
+     "inputs": "NAV/share 41.49 \u00d7 3.0",
+     "fair_value": 124.47,
+     "gap_pct": -44.7537
+    },
+    {
+     "method": "Graham Number",
+     "inputs": "\u221a(22.5 \u00d7 EPS 21.44 \u00d7 NAV 41.49)",
+     "fair_value": 141.4736,
+     "gap_pct": -37.2066
+    },
+    {
+     "method": "Dividend discount",
+     "inputs": "D0 21.50 \u00d7 (1+4%) / (12% \u2212 4%)",
+     "fair_value": 279.5,
+     "gap_pct": 24.0568
+    },
+    {
+     "method": "DCF (bear)",
+     "inputs": "EPS 21.44, 5y @ 0%, then 2%, discount 14%",
+     "fair_value": 168.255,
+     "gap_pct": -25.3196
+    },
+    {
+     "method": "DCF (base)",
+     "inputs": "EPS 21.44, 5y @ 8%, then 3%, discount 12%",
+     "fair_value": 300.8197,
+     "gap_pct": 33.5196
+    },
+    {
+     "method": "DCF (bull)",
+     "inputs": "EPS 21.44, 5y @ 15%, then 4%, discount 11%",
+     "fair_value": 499.5808,
+     "gap_pct": 121.7403
+    }
+   ],
+   "notes": [
+    "Reverse DCF: price 225.30 implies 0.9% EPS growth/yr for 5y (then 3%, discount 12%)"
+   ],
+   "implied_growth": 0.0095,
+   "median_fair_value": 279.5
+  },
+  "fundamentals": {
+   "eps_ttm": 21.44,
+   "eps_ttm_basis": "annualised 9M EPS x 4/3 (period 202609)",
+   "eps_annual": null,
+   "eps_q1": 4.9,
+   "eps_q2": 5.62,
+   "eps_q3": 5.56,
+   "eps_half_year": 10.52,
+   "eps_nine_months": 16.08,
+   "eps_period_ends": {
+    "q1": "202603",
+    "q2": "202606",
+    "q3": "202609",
+    "half": "202606",
+    "nine": "202609"
+   },
+   "pe": 10.5084,
+   "pe_dse_trailing": 10.5,
+   "nav": 41.49,
+   "pb": 5.4302,
+   "face_value": 10.0,
+   "total_shares": 1350300022,
+   "market_cap": 300711814899.4,
+   "free_float_pct": 10.0071,
+   "dividend_per_share": 21.5,
+   "dividend_yield_pct": 8.34,
+   "last_dividend": {
+    "year": 2025,
+    "cash_pct": 215.0,
+    "stock_pct": 0.0
+   },
+   "dividends": [
+    {
+     "year": 2025,
+     "cash_pct": 215.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2024,
+     "cash_pct": 330.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2023,
+     "cash_pct": 125.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2022,
+     "cash_pct": 220.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2021,
+     "cash_pct": 250.0,
+     "stock_pct": 0.0
+    }
+   ],
+   "shareholding": {
+    "as_of": "Oct 31, 2026",
+    "sponsor_pct": 90.0,
+    "government_pct": 0.0,
+    "institution_pct": 6.86,
+    "foreign_pct": 0.11,
+    "public_pct": 3.03
+   },
+   "week_high_52": 282.0,
+   "week_low_52": 221.9,
+   "name": "Grameenphone Ltd.",
+   "sector": "Telecom",
+   "category": "A",
+   "board": "PUBLIC",
+   "isin": "BD0001GP0004",
+   "ltp": 225.3,
+   "prev_close": 222.7,
+   "dps": 21.5
+  },
+  "news": [
+   {
+    "id": "34268246",
+    "date": "2026-10-27",
+    "type": "Notice",
+    "title": "Election of Chairman",
+    "text": "The company has informed that the Board of Directors has elected Mr.  Fridtjof Rusten as the Chairman of the Board of Directors of the company with effect from October 26, 2026."
+   },
+   {
+    "id": "34268130",
+    "date": "2026-10-27",
+    "type": "Financials",
+    "title": "Q3 Financials",
+    "text": "(Q3 Un-audited): EPS was Tk. 5.56 for July-September 2026 as against Tk. 5.56 for July-September 2025; EPS was Tk. 16.08 for January-September 2026 as against Tk. 16.77 for January-September 2025. NOCFPS was Tk. 42.09 for January-September 2026 as against Tk. 38.55 for January-September 2025. NAV per share was Tk. 36.57 as on September 30, 2026 and Tk. 36.72 as on September 30, 2025."
+   }
+  ],
+  "summary": [
+   "Last candle is bullish (green): body 86% of its range, upper wick 14%, lower wick 0%, closing 86% of the way up the range.",
+   "Recent patterns: Three Black Crows (2026-11-09).",
+   "Price is above none and below EMA9, EMA21, SMA20, SMA50, SMA200 of its moving averages.",
+   "Change: 1W -2.1%, 1M -6.6%, 3M -12.9%, 1Y -18.9%.",
+   "RSI 27 (oversold); MACD is below its signal line; volume is 0.6\u00d7 its 20-day average.",
+   "Nearest support 221.90, nearest resistance 238.05 (52-week range 221.90\u2013282.00).",
+   "Signal: STRONG SELL. Historically, 10/202 similar setups (5%) reached the target before the stop within 10 sessions (target +5.7% vs stop \u22121.8%; all-days baseline 5%)."
+  ],
+  "disclaimer": "For research only, not investment advice."
+ },
+ "meta": {
+  "requestId": "f17b2abac5e14976",
+  "disclaimer": "For research only, not investment advice.",
+  "asOf": "Nov 11, 2026 at 2:04 PM"
+ }
+}

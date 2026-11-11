@@ -1,0 +1,22 @@
+{
+ "data": {
+  "symbol": "GP",
+  "buy_date": "2026-06-01",
+  "buy_price": 240.6,
+  "sell_date": "2026-11-11",
+  "sell_price": 225.3,
+  "quantity": 100.0,
+  "fee_pct": 0.4,
+  "cost": 24156.24,
+  "proceeds": 22439.88,
+  "profit": -1716.3600000000006,
+  "return_pct": -7.105244855987525,
+  "days": 163,
+  "annualised_pct": -15.214059876509967,
+  "note": "Price return after round-trip fees; dividends not included."
+ },
+ "meta": {
+  "requestId": "3b2fd2d88bcd4879",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

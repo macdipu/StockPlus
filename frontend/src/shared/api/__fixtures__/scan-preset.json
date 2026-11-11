@@ -1,0 +1,50 @@
+{
+ "data": [
+  {
+   "symbol": "BATBC",
+   "sector": "FoodAllied",
+   "category": "A",
+   "ltp": 187.5,
+   "change_pct": -1.1076,
+   "value_mn": 24.241,
+   "vol_ratio": 1.1628,
+   "rsi14": 24.123,
+   "setup_score": 1,
+   "vpa": null,
+   "patterns": [
+    "Bearish Engulfing"
+   ],
+   "pe": 14.8026,
+   "pct_from_52w_high": -35.985
+  },
+  {
+   "symbol": "GP",
+   "sector": "Telecom",
+   "category": "A",
+   "ltp": 225.3,
+   "change_pct": 1.1675,
+   "value_mn": 11.283,
+   "vol_ratio": 0.5623,
+   "rsi14": 26.9517,
+   "setup_score": 1,
+   "vpa": null,
+   "patterns": [],
+   "pe": 10.5084,
+   "pct_from_52w_high": -20.1064
+  }
+ ],
+ "meta": {
+  "requestId": "14ea6ac8ee3e41d2",
+  "disclaimer": "For research only, not investment advice.",
+  "matched": 2,
+  "scanned": 5,
+  "live": true,
+  "universe_version": 43,
+  "trade_time": "Nov 11, 2026 at 2:04 PM",
+  "preset": {
+   "key": "rsi_oversold",
+   "name": "RSI oversold",
+   "description": "RSI(14) below 30"
+  }
+ }
+}

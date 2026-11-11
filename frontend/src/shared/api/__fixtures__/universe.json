@@ -1,0 +1,16 @@
+{
+ "data": {
+  "ready": true,
+  "version": 43,
+  "rows": 5,
+  "built_at_ms": 1794384336811,
+  "build_ms": 1736,
+  "session_day": "2026-11-11",
+  "trade_time": "Nov 11, 2026 at 2:04 PM",
+  "errors": {}
+ },
+ "meta": {
+  "requestId": "3afd49c46e1d44c5",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

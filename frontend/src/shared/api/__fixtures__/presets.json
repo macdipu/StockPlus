@@ -1,0 +1,63 @@
+{
+ "data": [
+  {
+   "key": "golden_cross",
+   "name": "Golden cross",
+   "group": "Trend",
+   "description": "SMA 50 crossed above SMA 200 today",
+   "premarket": false,
+   "match": "all",
+   "rules": [
+    {
+     "field": "sma50",
+     "op": "crosses_above",
+     "value": null,
+     "field2": "sma200"
+    }
+   ],
+   "sort_field": "value_mn",
+   "sort_desc": true
+  },
+  {
+   "key": "death_cross",
+   "name": "Death cross",
+   "group": "Trend",
+   "description": "SMA 50 crossed below SMA 200 today",
+   "premarket": false,
+   "match": "all",
+   "rules": [
+    {
+     "field": "sma50",
+     "op": "crosses_below",
+     "value": null,
+     "field2": "sma200"
+    }
+   ],
+   "sort_field": "value_mn",
+   "sort_desc": true
+  },
+  {
+   "key": "ema_bull_cross",
+   "name": "EMA 9/21 bullish cross",
+   "group": "Trend",
+   "description": "EMA 9 crossed above EMA 21 today",
+   "premarket": false,
+   "match": "all",
+   "rules": [
+    {
+     "field": "ema9",
+     "op": "crosses_above",
+     "value": null,
+     "field2": "ema21"
+    }
+   ],
+   "sort_field": "value_mn",
+   "sort_desc": true
+  }
+ ],
+ "meta": {
+  "requestId": "3a013a5928774924",
+  "disclaimer": "For research only, not investment advice.",
+  "count": 41
+ }
+}

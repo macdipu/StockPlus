@@ -1,0 +1,32 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { ApiError } from "@/shared/api";
+import { stockApi } from "../services/stock-api";
+
+const key = (symbol: string, part: string, ...rest: unknown[]) => ["stock", symbol.toUpperCase(), part, ...rest] as const;
+
+export const analysisKey = (symbol: string) => key(symbol, "analysis");
+
+export const useAnalysis = (symbol: string) =>
+  useQuery({
+    queryKey: analysisKey(symbol),
+    queryFn: async () => (await stockApi.analysis(symbol)).data,
+    staleTime: 15_000,
+    retry: (count, e) => count < 2 && !(e instanceof ApiError && e.status === 404), // an unknown symbol will not appear
+  });
+
+export const useTechnicals = (symbol: string) =>
+  useQuery({ queryKey: key(symbol, "technicals"), queryFn: async () => (await stockApi.technicals(symbol)).data, staleTime: 60_000 });
+
+export const useVpa = (symbol: string) =>
+  useQuery({ queryKey: key(symbol, "vpa"), queryFn: () => stockApi.vpa(symbol), staleTime: 60_000 });
+
+/** Minute bars grow while the market runs, so poll gently. */
+export const useIntraday = (symbol: string) =>
+  useQuery({
+    queryKey: key(symbol, "intraday"),
+    queryFn: () => stockApi.intraday(symbol),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });

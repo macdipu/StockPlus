@@ -1,0 +1,31 @@
+{
+ "data": {
+  "symbols": [
+   "GP",
+   "BATBC",
+   "SQURPHARMA"
+  ],
+  "days": 120,
+  "matrix": [
+   [
+    1.0,
+    0.448,
+    0.436
+   ],
+   [
+    0.448,
+    1.0,
+    0.381
+   ],
+   [
+    0.436,
+    0.381,
+    1.0
+   ]
+  ]
+ },
+ "meta": {
+  "requestId": "1c338241632c4015",
+  "disclaimer": "For research only, not investment advice."
+ }
+}

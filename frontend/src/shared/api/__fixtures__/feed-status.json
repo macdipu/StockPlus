@@ -1,0 +1,26 @@
+{
+ "data": {
+  "ready": true,
+  "stale": false,
+  "market_open": false,
+  "trade_time": "Nov 11, 2026 at 2:04 PM",
+  "symbols": 630,
+  "poll_interval_s": 60.0,
+  "last_poll_age_ms": 25111,
+  "last_success_age_ms": 24555,
+  "last_change_age_ms": 24832,
+  "polls": 610,
+  "not_modified": 528,
+  "changes": 64,
+  "last_error": null
+ },
+ "meta": {
+  "requestId": "fb772d39632042a0",
+  "disclaimer": "For research only, not investment advice.",
+  "replica": {
+   "busConnected": true,
+   "subscribers": 0,
+   "lastEventId": 10456
+  }
+ }
+}

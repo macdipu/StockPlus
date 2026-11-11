@@ -40,6 +40,14 @@ services:
     depends_on: &after-migrate
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
+  frontend:                           # Next.js; proxies /api/* to the api replicas (Docker DNS round-robins them)
+    build:
+      context: ./frontend
+      args:
+        API_ORIGIN: http://api:8000
+    ports: ["3000:3000"]
+    depends_on:
+      api: {condition: service_healthy}
   worker:                             # exactly ONE: polls DSE, writes Redis + Postgres, publishes events
     build: ./backend
     command: ["python", "-m", "dse.worker"]

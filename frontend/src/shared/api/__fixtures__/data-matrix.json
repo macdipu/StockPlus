@@ -1,0 +1,72 @@
+{
+ "data": [
+  {
+   "symbol": "BATBC",
+   "name": "British American Tobacco Bangladesh Company Limited",
+   "sector": "FoodAllied",
+   "category": "A",
+   "ltp": 187.5,
+   "change_pct": -1.1076,
+   "eps_ttm": 12.6667,
+   "pe": 14.8026,
+   "nav": 102.5,
+   "pb": 1.8293,
+   "dividend_yield_pct": 1.21,
+   "sponsor_pct": 72.91,
+   "free_float_pct": 26.4464,
+   "market_cap": 102384000000.0,
+   "graham": 170.9166,
+   "graham_gap_pct": -8.8445,
+   "ret_1m": -14.5786,
+   "ret_3m": -24.97,
+   "ret_1y": -24.2424
+  },
+  {
+   "symbol": "BRACBANK",
+   "name": "BRAC Bank PLC.",
+   "sector": "Bank",
+   "category": "A",
+   "ltp": 65.4,
+   "change_pct": -0.3049,
+   "eps_ttm": 10.2667,
+   "pe": 6.3701,
+   "nav": 51.56,
+   "pb": 1.2684,
+   "dividend_yield_pct": 2.38,
+   "sponsor_pct": 46.17,
+   "free_float_pct": 46.573,
+   "market_cap": 150195470035.2,
+   "graham": 109.1346,
+   "graham_gap_pct": 66.8725,
+   "ret_1m": -1.059,
+   "ret_3m": 1.2384,
+   "ret_1y": -3.2544
+  },
+  {
+   "symbol": "GP",
+   "name": "Grameenphone Ltd.",
+   "sector": "Telecom",
+   "category": "A",
+   "ltp": 225.3,
+   "change_pct": 1.1675,
+   "eps_ttm": 21.44,
+   "pe": 10.5084,
+   "nav": 41.49,
+   "pb": 5.4302,
+   "dividend_yield_pct": 8.34,
+   "sponsor_pct": 90.0,
+   "free_float_pct": 10.0071,
+   "market_cap": 300711814899.4,
+   "graham": 141.4736,
+   "graham_gap_pct": -37.2066,
+   "ret_1m": -6.5533,
+   "ret_3m": -12.9107,
+   "ret_1y": -18.8693
+  }
+ ],
+ "meta": {
+  "requestId": "21da5e5400514ff2",
+  "disclaimer": "For research only, not investment advice.",
+  "count": 5
+ }
+}
