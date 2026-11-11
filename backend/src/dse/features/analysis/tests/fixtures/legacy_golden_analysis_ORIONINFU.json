@@ -1,0 +1,590 @@
+{
+ "as_stored": {
+  "symbol": "ORIONINFU",
+  "price": {
+   "ltp": 217.3
+  },
+  "indicators": {
+   "sma20": 229.785,
+   "sma50": 230.696,
+   "sma200": 298.5455,
+   "ema9": 221.3391,
+   "ema21": 228.1262,
+   "rsi14": 39.8209,
+   "macd": -6.5691,
+   "macd_signal": -5.2323,
+   "macd_hist": -1.3368,
+   "bb_upper": 256.0593,
+   "bb_mid": 229.785,
+   "bb_lower": 203.5107,
+   "atr14": 15.9888,
+   "vol_avg20": 205103.25,
+   "vol_ratio": 2.2349
+  },
+  "candles": {
+   "last_candle": "Last candle is bearish (red): body 33% of its range, upper wick 0%, lower wick 67%, closing 67% of the way up the range.",
+   "patterns": [
+    {
+     "date": "2026-10-28",
+     "bars_ago": 9,
+     "pattern": "Bearish Engulfing",
+     "direction": "bearish",
+     "high": 235.0,
+     "low": 225.1
+    },
+    {
+     "date": "2026-11-05",
+     "bars_ago": 3,
+     "pattern": "Bullish Marubozu",
+     "direction": "bullish",
+     "high": 238.4,
+     "low": 224.4
+    }
+   ]
+  },
+  "levels": {
+   "price": 207.0,
+   "high_52w": 402.0,
+   "low_52w": 159.0,
+   "above": [
+    219.5,
+    225.3,
+    238.0
+   ],
+   "below": [
+    203.2,
+    159.0
+   ]
+  },
+  "trend": {
+   "changes": {
+    "1W": 0.9264,
+    "1M": -18.7598,
+    "3M": -23.0769,
+    "1Y": -46.7593
+   },
+   "vs_ma": {
+    "EMA9": {
+     "value": 221.3391,
+     "pct": -6.4784
+    },
+    "EMA21": {
+     "value": 228.1262,
+     "pct": -9.2608
+    },
+    "SMA20": {
+     "value": 229.785,
+     "pct": -9.9158
+    },
+    "SMA50": {
+     "value": 230.696,
+     "pct": -10.2715
+    },
+    "SMA200": {
+     "value": 298.5455,
+     "pct": -30.6638
+    }
+   }
+  },
+  "valuation": {
+   "price": 217.3,
+   "rows": [
+    {
+     "method": "P/E 15x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 15",
+     "fair_value": 21.45,
+     "gap_pct": -90.1289
+    },
+    {
+     "method": "P/E 20x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 20",
+     "fair_value": 28.6,
+     "gap_pct": -86.8385
+    },
+    {
+     "method": "P/E 25x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 25",
+     "fair_value": 35.75,
+     "gap_pct": -83.5481
+    },
+    {
+     "method": "P/B 1.5x",
+     "inputs": "NAV/share 16.02 \u00d7 1.5",
+     "fair_value": 24.03,
+     "gap_pct": -88.9416
+    },
+    {
+     "method": "P/B 2.0x",
+     "inputs": "NAV/share 16.02 \u00d7 2.0",
+     "fair_value": 32.04,
+     "gap_pct": -85.2554
+    },
+    {
+     "method": "P/B 3.0x",
+     "inputs": "NAV/share 16.02 \u00d7 3.0",
+     "fair_value": 48.06,
+     "gap_pct": -77.8831
+    },
+    {
+     "method": "Graham Number",
+     "inputs": "\u221a(22.5 \u00d7 EPS 1.43 \u00d7 NAV 16.02)",
+     "fair_value": 22.7034,
+     "gap_pct": -89.5521
+    },
+    {
+     "method": "Dividend discount",
+     "inputs": "D0 2.00 \u00d7 (1+4%) / (12% \u2212 4%)",
+     "fair_value": 26.0,
+     "gap_pct": -88.035
+    },
+    {
+     "method": "DCF (bear)",
+     "inputs": "EPS 1.43, 5y @ 0%, then 2%, discount 14%",
+     "fair_value": 11.2222,
+     "gap_pct": -94.8356
+    },
+    {
+     "method": "DCF (base)",
+     "inputs": "EPS 1.43, 5y @ 8%, then 3%, discount 12%",
+     "fair_value": 20.064,
+     "gap_pct": -90.7667
+    },
+    {
+     "method": "DCF (bull)",
+     "inputs": "EPS 1.43, 5y @ 15%, then 4%, discount 11%",
+     "fair_value": 33.3209,
+     "gap_pct": -84.6659
+    }
+   ],
+   "notes": [
+    "Reverse DCF: price 217.30 implies 80.9% EPS growth/yr for 5y (then 3%, discount 12%)"
+   ],
+   "implied_growth": 0.8088,
+   "median_fair_value": 26.0
+  },
+  "setup": {
+   "score": 2,
+   "max": 6,
+   "checks": [
+    {
+     "key": "above_ema21",
+     "label": "Close above EMA 21",
+     "pass": false
+    },
+    {
+     "key": "above_sma50",
+     "label": "Close above SMA 50",
+     "pass": false
+    },
+    {
+     "key": "rsi_50_70",
+     "label": "RSI(14) between 50 and 70",
+     "pass": false
+    },
+    {
+     "key": "volume_surge",
+     "label": "Volume \u2265 1.5\u00d7 20-day average",
+     "pass": true
+    },
+    {
+     "key": "bullish_candle",
+     "label": "Bullish candle pattern in the last 2 sessions",
+     "pass": false
+    },
+    {
+     "key": "not_z",
+     "label": "Not Z category",
+     "pass": true
+    }
+   ],
+   "plan": {
+    "entry": 207.0,
+    "entry_zone": [
+     199.01,
+     207.0
+    ],
+    "stop": 183.02,
+    "stop_basis": "entry \u2212 1.5 \u00d7 ATR (15.99)",
+    "target": 219.5,
+    "target_basis": "next resistance",
+    "atr": 15.99,
+    "risk_pct": 11.5845,
+    "reward_pct": 6.0386,
+    "rr": 0.5213,
+    "rr_ok": false
+   },
+   "flags": [
+    "Risk/reward 0.52 is below 1.5"
+   ]
+  },
+  "signal": {
+   "action": "STRONG SELL",
+   "net_votes": -7,
+   "bullish_reasons": [],
+   "bearish_reasons": [
+    "close below EMA21",
+    "close below SMA50",
+    "close below SMA200",
+    "EMA 9 below EMA 21",
+    "MACD below signal",
+    "RSI 40 weak",
+    "down day on 2.2\u00d7 volume"
+   ],
+   "rule": "STRONG BUY: score\u22655 & R/R\u22651.5 \u00b7 BUY: net\u22653 & R/R\u22651.5 \u00b7 SELL: net\u2264\u22123 \u00b7 STRONG SELL: net\u2264\u22125 \u00b7 Z category: AVOID \u00b7 else HOLD"
+  },
+  "probability": {
+   "horizon_sessions": 10,
+   "target_pct": 6.0386,
+   "stop_pct": 11.5845,
+   "similar_setups": {
+    "n": 85,
+    "wins": 21,
+    "losses": 17,
+    "unresolved": 47,
+    "p_target_first": 0.2471,
+    "avg_fwd_return_pct": -1.8803,
+    "pct_positive_fwd": 29.4118,
+    "expectancy_pct": -0.825
+   },
+   "all_days_baseline": {
+    "n": 201,
+    "wins": 51,
+    "losses": 38,
+    "unresolved": 112,
+    "p_target_first": 0.2537,
+    "avg_fwd_return_pct": -1.7712,
+    "pct_positive_fwd": 30.8458,
+    "expectancy_pct": -0.6579
+   },
+   "method": "Of past sessions with setup score \u2265 2/6, share that touched +6.0% before \u221211.6% within 10 sessions. Same-bar hits count as losses. Samples overlap; small n is unreliable. Historical frequency, not a forecast.",
+   "reliable": true
+  },
+  "summary": [
+   "Last candle is bearish (red): body 33% of its range, upper wick 0%, lower wick 67%, closing 67% of the way up the range.",
+   "No textbook candle pattern in the last 3 sessions.",
+   "Price is above none and below EMA9, EMA21, SMA20, SMA50, SMA200 of its moving averages.",
+   "Change: 1W +0.9%, 1M -18.8%, 3M -23.1%, 1Y -46.8%.",
+   "RSI 40 (bearish); MACD is below its signal line; volume is 2.2\u00d7 its 20-day average.",
+   "Nearest support 203.20, nearest resistance 219.50 (52-week range 159.00\u2013402.00).",
+   "Signal: STRONG SELL. Historically, 21/85 similar setups (25%) reached the target before the stop within 10 sessions (target +6.0% vs stop \u221211.6%; all-days baseline 25%)."
+  ],
+  "last_bar": {
+   "open": 214.9,
+   "high": 214.9,
+   "low": 191.0,
+   "close": 207.0,
+   "volume": 458389.0
+  },
+  "n_bars": 260
+ },
+ "with_live_bar": {
+  "symbol": "ORIONINFU",
+  "price": {
+   "ltp": 217.3
+  },
+  "indicators": {
+   "sma20": 228.23,
+   "sma50": 230.64,
+   "sma200": 297.7405,
+   "ema9": 220.5313,
+   "ema21": 227.142,
+   "rsi14": 44.8006,
+   "macd": -6.5656,
+   "macd_signal": -5.499,
+   "macd_hist": -1.0666,
+   "bb_upper": 253.5783,
+   "bb_mid": 228.23,
+   "bb_lower": 202.8817,
+   "atr14": 15.7681,
+   "vol_avg20": 200060.35,
+   "vol_ratio": 0.5389
+  },
+  "candles": {
+   "last_candle": "Last candle is bullish (green): body 80% of its range, upper wick 20%, lower wick 0%, closing 80% of the way up the range.",
+   "patterns": [
+    {
+     "date": "2026-11-05",
+     "bars_ago": 4,
+     "pattern": "Bullish Marubozu",
+     "direction": "bullish",
+     "high": 238.4,
+     "low": 224.4
+    },
+    {
+     "date": "2026-11-13",
+     "bars_ago": 0,
+     "pattern": "Bullish Engulfing",
+     "direction": "bullish",
+     "high": 219.9,
+     "low": 207.0
+    }
+   ]
+  },
+  "levels": {
+   "price": 217.3,
+   "high_52w": 402.0,
+   "low_52w": 159.0,
+   "above": [
+    219.5,
+    225.3,
+    238.0
+   ],
+   "below": [
+    203.2,
+    159.0
+   ]
+  },
+  "trend": {
+   "changes": {
+    "1W": -8.7741,
+    "1M": -9.9088,
+    "3M": -16.4552,
+    "1Y": -33.7096
+   },
+   "vs_ma": {
+    "EMA9": {
+     "value": 220.5313,
+     "pct": -1.4652
+    },
+    "EMA21": {
+     "value": 227.142,
+     "pct": -4.333
+    },
+    "SMA20": {
+     "value": 228.23,
+     "pct": -4.789
+    },
+    "SMA50": {
+     "value": 230.64,
+     "pct": -5.7839
+    },
+    "SMA200": {
+     "value": 297.7405,
+     "pct": -27.017
+    }
+   }
+  },
+  "valuation": {
+   "price": 217.3,
+   "rows": [
+    {
+     "method": "P/E 15x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 15",
+     "fair_value": 21.45,
+     "gap_pct": -90.1289
+    },
+    {
+     "method": "P/E 20x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 20",
+     "fair_value": 28.6,
+     "gap_pct": -86.8385
+    },
+    {
+     "method": "P/E 25x",
+     "inputs": "TTM EPS 1.43 (annual EPS (period 202606)) \u00d7 25",
+     "fair_value": 35.75,
+     "gap_pct": -83.5481
+    },
+    {
+     "method": "P/B 1.5x",
+     "inputs": "NAV/share 16.02 \u00d7 1.5",
+     "fair_value": 24.03,
+     "gap_pct": -88.9416
+    },
+    {
+     "method": "P/B 2.0x",
+     "inputs": "NAV/share 16.02 \u00d7 2.0",
+     "fair_value": 32.04,
+     "gap_pct": -85.2554
+    },
+    {
+     "method": "P/B 3.0x",
+     "inputs": "NAV/share 16.02 \u00d7 3.0",
+     "fair_value": 48.06,
+     "gap_pct": -77.8831
+    },
+    {
+     "method": "Graham Number",
+     "inputs": "\u221a(22.5 \u00d7 EPS 1.43 \u00d7 NAV 16.02)",
+     "fair_value": 22.7034,
+     "gap_pct": -89.5521
+    },
+    {
+     "method": "Dividend discount",
+     "inputs": "D0 2.00 \u00d7 (1+4%) / (12% \u2212 4%)",
+     "fair_value": 26.0,
+     "gap_pct": -88.035
+    },
+    {
+     "method": "DCF (bear)",
+     "inputs": "EPS 1.43, 5y @ 0%, then 2%, discount 14%",
+     "fair_value": 11.2222,
+     "gap_pct": -94.8356
+    },
+    {
+     "method": "DCF (base)",
+     "inputs": "EPS 1.43, 5y @ 8%, then 3%, discount 12%",
+     "fair_value": 20.064,
+     "gap_pct": -90.7667
+    },
+    {
+     "method": "DCF (bull)",
+     "inputs": "EPS 1.43, 5y @ 15%, then 4%, discount 11%",
+     "fair_value": 33.3209,
+     "gap_pct": -84.6659
+    }
+   ],
+   "notes": [
+    "Reverse DCF: price 217.30 implies 80.9% EPS growth/yr for 5y (then 3%, discount 12%)"
+   ],
+   "implied_growth": 0.8088,
+   "median_fair_value": 26.0
+  },
+  "setup": {
+   "score": 2,
+   "max": 6,
+   "checks": [
+    {
+     "key": "above_ema21",
+     "label": "Close above EMA 21",
+     "pass": false
+    },
+    {
+     "key": "above_sma50",
+     "label": "Close above SMA 50",
+     "pass": false
+    },
+    {
+     "key": "rsi_50_70",
+     "label": "RSI(14) between 50 and 70",
+     "pass": false
+    },
+    {
+     "key": "volume_surge",
+     "label": "Volume \u2265 1.5\u00d7 20-day average",
+     "pass": false
+    },
+    {
+     "key": "bullish_candle",
+     "label": "Bullish candle pattern in the last 2 sessions",
+     "pass": true
+    },
+    {
+     "key": "not_z",
+     "label": "Not Z category",
+     "pass": true
+    }
+   ],
+   "plan": {
+    "entry": 217.3,
+    "entry_zone": [
+     209.42,
+     217.3
+    ],
+    "stop": 199.26,
+    "stop_basis": "support 203.20 \u2212 0.25 ATR",
+    "target": 219.5,
+    "target_basis": "next resistance",
+    "atr": 15.77,
+    "risk_pct": 8.3019,
+    "reward_pct": 1.0124,
+    "rr": 0.122,
+    "rr_ok": false
+   },
+   "flags": [
+    "Risk/reward 0.12 is below 1.5"
+   ]
+  },
+  "signal": {
+   "action": "STRONG SELL",
+   "net_votes": -5,
+   "bullish_reasons": [
+    "Bullish Engulfing (2026-11-13)"
+   ],
+   "bearish_reasons": [
+    "close below EMA21",
+    "close below SMA50",
+    "close below SMA200",
+    "EMA 9 below EMA 21",
+    "MACD below signal",
+    "RSI 45 weak"
+   ],
+   "rule": "STRONG BUY: score\u22655 & R/R\u22651.5 \u00b7 BUY: net\u22653 & R/R\u22651.5 \u00b7 SELL: net\u2264\u22123 \u00b7 STRONG SELL: net\u2264\u22125 \u00b7 Z category: AVOID \u00b7 else HOLD"
+  },
+  "probability": {
+   "horizon_sessions": 10,
+   "target_pct": 1.0124,
+   "stop_pct": 8.3019,
+   "similar_setups": {
+    "n": 86,
+    "wins": 68,
+    "losses": 12,
+    "unresolved": 6,
+    "p_target_first": 0.7907,
+    "avg_fwd_return_pct": -1.9164,
+    "pct_positive_fwd": 29.0698,
+    "expectancy_pct": -0.3579
+   },
+   "all_days_baseline": {
+    "n": 202,
+    "wins": 167,
+    "losses": 25,
+    "unresolved": 10,
+    "p_target_first": 0.8267,
+    "avg_fwd_return_pct": -1.7871,
+    "pct_positive_fwd": 30.6931,
+    "expectancy_pct": -0.1905
+   },
+   "method": "Of past sessions with setup score \u2265 2/6, share that touched +1.0% before \u22128.3% within 10 sessions. Same-bar hits count as losses. Samples overlap; small n is unreliable. Historical frequency, not a forecast.",
+   "reliable": true
+  },
+  "summary": [
+   "Last candle is bullish (green): body 80% of its range, upper wick 20%, lower wick 0%, closing 80% of the way up the range.",
+   "Recent patterns: Bullish Engulfing (2026-11-13).",
+   "Price is above none and below EMA9, EMA21, SMA20, SMA50, SMA200 of its moving averages.",
+   "Change: 1W -8.8%, 1M -9.9%, 3M -16.5%, 1Y -33.7%.",
+   "RSI 45 (bearish); MACD is below its signal line; volume is 0.5\u00d7 its 20-day average.",
+   "Nearest support 203.20, nearest resistance 219.50 (52-week range 159.00\u2013402.00).",
+   "Signal: STRONG SELL. Historically, 68/86 similar setups (79%) reached the target before the stop within 10 sessions (target +1.0% vs stop \u22128.3%; all-days baseline 83%)."
+  ],
+  "last_bar": {
+   "open": 207.0,
+   "high": 219.9,
+   "low": 207.0,
+   "close": 217.3,
+   "volume": 107812.0
+  },
+  "n_bars": 261
+ },
+ "live_session_day": "2026-11-13",
+ "fundamentals_in": {
+  "ltp": 217.3,
+  "eps_ttm": 1.43,
+  "eps_ttm_basis": "annual EPS (period 202606)",
+  "nav": 16.02,
+  "dps": 2.0,
+  "week_high_52": 402,
+  "week_low_52": 159,
+  "prev_close": 207,
+  "category": "A"
+ },
+ "quote_in": {
+  "ltp": 217.3,
+  "ycp": 207,
+  "open": 207,
+  "high": 219.9,
+  "low": 207,
+  "close": null,
+  "volume": 107812,
+  "value": 23.205,
+  "trades": 1564,
+  "percent": 4.9758454106280245,
+  "category": "A",
+  "board": "PUBLIC",
+  "sector": "PharmaChem",
+  "assetType": "EQ",
+  "symbol": "ORIONINFU",
+  "change": 10.3,
+  "tradeTime": "Nov 11, 2026 at 11:40 AM"
+ }
+}

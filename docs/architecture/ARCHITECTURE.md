@@ -7,10 +7,11 @@ Status: **accepted plan, migration in progress** · Baseline commit `7508812` (l
 | 0 Foundation | ✅ done (`bc56726`) |
 | 1 market_data | ✅ done (`05749b1`) — see below |
 | 2 live_feed | ✅ done — see below |
-| 3–7 | not started |
+| 3 analysis | ✅ done — see below |
+| 4–7 | not started |
 
 **Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
-Known gaps carried forward: candles carry no moving averages yet (Phase 3 analysis).
+Known gaps carried forward: none from Phase 1 (moving averages are served by `analysis`, see Phase 3).
 
 **Phase 2 notes.** `live_feed` feature: domain (`LiveQuote`, `SessionState.is_after_close`, `LiveSnapshot.changes_since`, `PollPolicy`), use cases (`PollSnapshot` with ETag + at-least-once delivery, `RunFeed` loop with backoff, `EndOfDayTrigger`, `GetQuotes`/`GetMarket`/`GetFeedStatus`), per-replica `FeedHub` fan-out (bounded drop-oldest queues), Redis adapters (`live:quotes` hash of deltas, `live:market`, `live:counters`, global `live:seq` event ids, `live:events` channel), `SqlTickRepository` + migration `0003_live_feed`, `/api/v1/quotes`, `/market`, `/feed/status`, `/stream` (SSE). `dse.worker` is the second composition root (`--check` = healthcheck); after the close it runs market_data's `AppendEndOfDay` once per session (Redis `SET NX` guard), which now also fills `instruments.asset_type` (Phase 1 gap closed). Compose: one-shot `migrate`, `api` ×2 (host 8001–8002), one `worker`.
 Exit criterion verified two ways: integration test boots two uvicorn servers and asserts the same quote event (same id, same payload) on both SSE streams; and live against DSE, both compose replicas streamed the identical 170 events (ids 1–170) over one upstream tick, ~4 ms worker→bus.
@@ -19,6 +20,11 @@ Decisions: payload fields are snake_case like Phase 1 (legacy camelCase `assetTy
 Migration strategy: **strangler fig**. The new modular monolith (`backend/`, `frontend/`) is built next to
 the legacy app (repo root). Features move one at a time behind the same `/api/v1` contract. The legacy app
 keeps serving until the new one reaches parity, then it is deleted. No big-bang rewrite.
+
+**Phase 3 notes.** `analysis` feature. Domain = the legacy analytics moved over verbatim (`indicators`, `patterns`, `vpa`, `valuation`, `setup_score`, `signals`), with pattern detectors split into a `DETECTORS` strategy list, valuation constants moved out of `config.py`, plus two new modules: `frames` (stored bars + live bar → OHLCV frame) and `summary` (the plain-language composer, moved out of `report.py`, P5). Application: `build()` (pure, = legacy `service.build`), `AnalyzeInstrument`/`GetBrief`/`GetTechnicals`/`GetVpa`/`RankSymbols` (pandas runs in a worker thread), Markdown `render_brief`, `AnalysisFacade`. Infrastructure: `FacadeAnalysisInputs` assembles one instrument from the `market_data` and `live_feed` **facades only** (new import-linter contract allows exactly those two imports). Endpoints: `/stocks/{symbol}/analysis`, `/brief`, `/technicals`, `/vpa`, `/screener`. `market_data` facade gained `announcements`.
+Exit criterion verified three ways: the 31 legacy analysis tests run unchanged (only import lines edited, kept verbatim under `tests/legacy/`); a golden file produced by the **legacy pipeline on recorded ORIONINFU data** (260 bars, with and without a live bar) is reproduced by the new code for indicators, patterns, levels, trend, valuation, setup, signal, probability and summary; and an end-to-end test (real Postgres + Redis, recorded DSE page) serves every endpoint. Live against DSE: GP analysis in ~0.6 s cold, ~0.2 s warm, identical on both replicas.
+Decisions: moving averages are served at `/stocks/{symbol}/technicals` (`market_data` must not import `analysis`, so `/candles` stays raw OHLCV); `fundamentals` in `/analysis` now uses the Phase 1 `FundamentalsDto` shape (nested `shareholding`, `dividend_per_share`, …) instead of the legacy flat dict, and the Markdown brief's fundamentals list follows it; numpy/pandas float output is rounded to 4 dp by `clean()` exactly as legacy `_clean`. pandas resolved to 3.x (legacy ran 2.3): the legacy tests pass on both.
+Not ported (deliberately): the legacy per-tick `analysis` SSE event and the intraday (1-minute) VPA — both need tick data and per-subscriber recompute, so they belong with the Phase 4 worker hooks; HTML/plotly report rendering (`report.py` charts) — the Phase 6 frontend draws charts from `/technicals`.
 
 ---
 

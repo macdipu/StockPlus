@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from dse.core.db import Database
+from dse.features.market_data.application.facade import MarketDataFacade
 from dse.features.market_data.application.use_cases import (
     AppendEndOfDay,
     EnsureFresh,
@@ -47,6 +48,10 @@ class MarketDataContainer:
     @property
     def get_candles(self) -> GetCandles:
         return GetCandles(self.uow, self.ensure_fresh)
+
+    @property
+    def facade(self) -> MarketDataFacade:
+        return MarketDataFacade(self.get_candles, self.get_profile, self.get_announcements)
 
     @property
     def append_end_of_day(self) -> AppendEndOfDay:

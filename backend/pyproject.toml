@@ -13,10 +13,12 @@ dependencies = [
   "alembic>=1.13",
   "redis>=5.0",
   "httpx>=0.27",
+  "numpy>=2.0",
+  "pandas>=2.2",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.6", "mypy>=1.11", "pytest>=8", "pytest-asyncio>=0.23", "import-linter>=2.0"]
+dev = ["ruff>=0.6", "mypy>=1.11", "pytest>=8", "pytest-asyncio>=0.23", "import-linter>=2.0", "pandas-stubs>=2.2"]
 
 [build-system]
 requires = ["setuptools>=69"]
@@ -37,9 +39,16 @@ ignore = ["S101"]  # assert is fine in tests
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "PT011"]
 "alembic/**" = ["N999"]
+# user-facing math text keeps its typographic symbols (×, −) exactly as the legacy output had them
+"src/dse/features/analysis/**" = ["RUF001", "RUF002", "RUF003"]
+# legacy tests are kept verbatim (only their import lines changed) as the parity proof for the port
+"src/dse/features/analysis/tests/legacy/*.py" = ["ALL"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
+
+[tool.ruff.format]
+exclude = ["src/dse/features/analysis/tests/legacy/*.py"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -73,20 +82,28 @@ forbidden_modules = ["fastapi", "sqlalchemy", "redis", "httpx", "dse.core"]
 [[tool.importlinter.contracts]]
 name = "feature layers: presentation > infrastructure > application > domain"
 type = "layers"
-containers = ["dse.features.market_data", "dse.features.live_feed"]
+containers = ["dse.features.market_data", "dse.features.live_feed", "dse.features.analysis"]
 layers = ["presentation", "infrastructure", "application", "domain"]
 exhaustive = false
 
 [[tool.importlinter.contracts]]
 name = "domains are pure (no framework, ORM, HTTP, cache, or core)"
 type = "forbidden"
-source_modules = ["dse.features.market_data.domain", "dse.features.live_feed.domain"]
+source_modules = [
+  "dse.features.market_data.domain",
+  "dse.features.live_feed.domain",
+  "dse.features.analysis.domain",  # numpy/pandas are allowed here (ADR 0004)
+]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "pydantic", "dse.core"]
 
 [[tool.importlinter.contracts]]
 name = "application layer has no infrastructure or web dependencies"
 type = "forbidden"
-source_modules = ["dse.features.market_data.application", "dse.features.live_feed.application"]
+source_modules = [
+  "dse.features.market_data.application",
+  "dse.features.live_feed.application",
+  "dse.features.analysis.application",
+]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 
 [[tool.importlinter.contracts]]
@@ -95,12 +112,27 @@ forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 name = "live_feed does not depend on market_data"
 type = "forbidden"
 source_modules = ["dse.features.live_feed"]
-forbidden_modules = ["dse.features.market_data"]
+forbidden_modules = ["dse.features.market_data", "dse.features.analysis"]
 ignore_imports = ["dse.features.live_feed.tests.** -> dse.main"]  # tests may boot the whole app
 
 [[tool.importlinter.contracts]]
 name = "market_data does not depend on live_feed"
 type = "forbidden"
 source_modules = ["dse.features.market_data"]
-forbidden_modules = ["dse.features.live_feed"]
+forbidden_modules = ["dse.features.live_feed", "dse.features.analysis"]
 ignore_imports = ["dse.features.market_data.tests.** -> dse.main"]
+
+[[tool.importlinter.contracts]]
+name = "analysis reaches other features only through their application facade"
+type = "forbidden"
+source_modules = ["dse.features.analysis"]
+forbidden_modules = ["dse.features.market_data", "dse.features.live_feed"]
+allow_indirect_imports = true
+ignore_imports = [
+  "dse.features.analysis.infrastructure.gateways -> dse.features.market_data.application.facade",
+  "dse.features.analysis.infrastructure.gateways -> dse.features.live_feed.application.facade",
+]
+
+[[tool.mypy.overrides]]
+module = "dse.features.analysis.tests.legacy.*"
+ignore_errors = true
