@@ -6,9 +6,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from dse.core.config import Settings
-from dse.core.errors import NotFoundError, UpstreamUnavailableError, install_error_handlers
+from dse.core.errors import install_error_handlers
 from dse.core.http import health_router, request_context
 from dse.core.logging import JsonFormatter, request_id_var
+from dse.shared_kernel.errors import NotFoundError, UpstreamUnavailableError
 
 
 def test_settings_from_env_with_nesting(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,7 +72,7 @@ def test_errors_are_problem_json_with_request_id() -> None:
     assert r.headers["content-type"] == "application/problem+json"
     assert r.json() == {
         "type": "about:blank",
-        "title": "Not found",
+        "title": "Not Found",
         "status": 404,
         "detail": "no such symbol",
         "instance": "/missing",

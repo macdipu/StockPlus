@@ -5,10 +5,10 @@ import asyncio
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+# Import every feature's ORM models here so autogenerate sees them (added per migrated feature).
+import dse.features.market_data.infrastructure.orm  # noqa: F401
 from dse.core.config import get_settings
 from dse.core.db import Base
-
-# Import every feature's ORM models here so autogenerate sees them (added per migrated feature).
 
 target_metadata = Base.metadata
 

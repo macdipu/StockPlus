@@ -7,13 +7,17 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from dse.core.cache import create_redis
+from dse.core.clock import SystemClock
 from dse.core.config import Settings, get_settings
 from dse.core.db import Database
 from dse.core.errors import install_error_handlers
 from dse.core.http import health_router, request_context
 from dse.core.logging import configure_logging
+from dse.features.market_data.infrastructure.dse_source import DseHttpSource
+from dse.features.market_data.presentation.dependencies import MarketDataContainer
+from dse.features.market_data.presentation.router import router as market_data_router
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -22,11 +26,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging(settings.log_level)
     db = Database(settings.database)
     redis = create_redis(settings.redis)
+    clock = SystemClock()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        source = DseHttpSource(
+            settings.upstream.base_url,
+            clock,
+            timeout_s=settings.upstream.timeout_s,
+            min_page_interval_s=settings.upstream.min_page_interval_s,
+        )
         app.state.db, app.state.redis = db, redis
+        app.state.market_data = MarketDataContainer(db, source, clock)
         yield
+        await source.aclose()
         await redis.aclose()
         await db.dispose()
 
@@ -54,7 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     v1 = APIRouter(prefix=settings.api_prefix)
     v1.include_router(health_router(VERSION, {"database": db.ping, "redis": ping_redis}))
-    # feature routers are mounted here as each feature migrates (see docs/architecture §8)
+    v1.include_router(market_data_router)
     app.include_router(v1)
     return app
 

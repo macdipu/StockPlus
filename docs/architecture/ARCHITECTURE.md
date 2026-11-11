@@ -2,6 +2,15 @@
 
 Status: **accepted plan, migration in progress** · Baseline commit `7508812` (legacy app, 49 tests green)
 
+| Phase | State |
+|---|---|
+| 0 Foundation | ✅ done (`bc56726`) |
+| 1 market_data | ✅ done — see below |
+| 2–7 | not started |
+
+**Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
+Known gaps carried forward: `instruments.asset_type` is only known from the live snapshot (filled in Phase 2); candles carry no moving averages yet (Phase 3 analysis); EOD runs from the CLI until the worker exists (Phase 2).
+
 Migration strategy: **strangler fig**. The new modular monolith (`backend/`, `frontend/`) is built next to
 the legacy app (repo root). Features move one at a time behind the same `/api/v1` contract. The legacy app
 keeps serving until the new one reaches parity, then it is deleted. No big-bang rewrite.
