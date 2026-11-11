@@ -24,8 +24,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const watched = useWatchlist().symbols; // hooks are called unconditionally, then used below
   const stockHref = `/stock/${symbol ?? watched[0] ?? FALLBACK_SYMBOL}`;
   const tabs = [
+    { href: "/", label: "Dashboard", on: pathname === "/" },
     { href: stockHref, label: "Stock", on: pathname.startsWith("/stock") },
-    { href: "/market", label: "Market", on: pathname.startsWith("/market") },
     { href: "/scanner", label: "Scanner", on: pathname.startsWith("/scanner") },
     { href: "/data", label: "Data", on: pathname.startsWith("/data") },
     { href: "/tools", label: "Tools", on: pathname.startsWith("/tools") },

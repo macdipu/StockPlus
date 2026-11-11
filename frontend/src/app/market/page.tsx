@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { MarketPage } from "@/features/market";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Market" };
-
+/** The market overview is the dashboard at "/"; this path stays as an alias for old links. */
 export default function Page() {
-  return <MarketPage />;
+  redirect("/");
 }
