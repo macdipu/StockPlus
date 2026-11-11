@@ -57,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         source = DseHttpSource(
             settings.upstream.base_url,
             clock,
+            user_agent=settings.upstream.user_agent,
             timeout_s=settings.upstream.timeout_s,
             min_page_interval_s=settings.upstream.min_page_interval_s,
         )

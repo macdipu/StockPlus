@@ -9,13 +9,13 @@ import httpx
 from dse.features.market_data.domain.entities import CompanyPage, MarketSnapshot
 from dse.features.market_data.infrastructure.dse_parser import parse_company_page, parse_snapshot
 from dse.shared_kernel.clock import Clock
-from dse.shared_kernel.errors import NotFoundError, UpstreamUnavailableError
+from dse.shared_kernel.errors import NotFoundError, UpstreamForbiddenError, UpstreamUnavailableError
 from dse.shared_kernel.symbol import Symbol
 
 log = logging.getLogger("dse.source")
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/130.0.0.0 Safari/537.36"
+FORBIDDEN = (
+    "dse.com.bd answered 403 Forbidden: it refuses this client. Check DSE's terms of use, or ask the "
+    "exchange for authorised data access."
 )
 
 
@@ -25,6 +25,7 @@ class DseHttpSource:
         base_url: str,
         clock: Clock,
         *,
+        user_agent: str,
         timeout_s: float = 20.0,
         min_page_interval_s: float = 2.5,
         client: httpx.AsyncClient | None = None,
@@ -35,7 +36,7 @@ class DseHttpSource:
         self._client = client or httpx.AsyncClient(
             timeout=timeout_s,
             follow_redirects=True,
-            headers={"User-Agent": USER_AGENT, "Accept-Language": "en-US,en;q=0.9"},
+            headers={"User-Agent": user_agent},
         )
         self._page_lock = asyncio.Lock()
         self._last_page = 0.0
@@ -66,6 +67,8 @@ class DseHttpSource:
                 r = await self._get(f"{self._base}/company/{symbol}")
             finally:
                 self._last_page = time.monotonic()
+        if r.status_code == 403:
+            raise UpstreamForbiddenError(FORBIDDEN)
         if r.status_code == 404:
             raise NotFoundError(f"{symbol} is not a DSE trading code", symbol=str(symbol))
         if r.status_code != 200:
@@ -74,6 +77,8 @@ class DseHttpSource:
 
     async def market_snapshot(self) -> MarketSnapshot:
         r = await self._get(f"{self._base}/api/live/snapshot", Accept="application/json")
+        if r.status_code == 403:
+            raise UpstreamForbiddenError(FORBIDDEN)
         if r.status_code != 200:
             raise UpstreamUnavailableError(f"snapshot answered {r.status_code}")
         return parse_snapshot(r.json())

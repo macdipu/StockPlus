@@ -56,6 +56,7 @@ async def _run(args: argparse.Namespace) -> int:
     source = DseHttpSource(
         s.upstream.base_url,
         clock,
+        user_agent=s.upstream.user_agent,
         timeout_s=s.upstream.timeout_s,
         min_page_interval_s=s.upstream.min_page_interval_s,
     )

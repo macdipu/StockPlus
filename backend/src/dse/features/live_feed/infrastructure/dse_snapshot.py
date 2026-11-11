@@ -18,12 +18,12 @@ from dse.features.live_feed.domain.entities import (
     SessionState,
 )
 from dse.features.live_feed.domain.ports import FetchResult
-from dse.shared_kernel.errors import UpstreamUnavailableError
+from dse.shared_kernel.errors import UpstreamForbiddenError, UpstreamUnavailableError
 from dse.shared_kernel.symbol import Symbol
 
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/130.0.0.0 Safari/537.36"
+FORBIDDEN = (
+    "dse.com.bd answered 403 Forbidden: it refuses this client. Check DSE's terms of use, or ask the "
+    "exchange for authorised data access."
 )
 
 
@@ -102,13 +102,19 @@ def parse_live_snapshot(obj: dict[str, Any]) -> LiveSnapshot:
 
 
 class DseSnapshotFeed:
-    def __init__(self, base_url: str, *, timeout_s: float = 20.0, client: httpx.AsyncClient | None = None):
+    def __init__(
+        self,
+        base_url: str,
+        *,
+        user_agent: str,
+        timeout_s: float = 20.0,
+        client: httpx.AsyncClient | None = None,
+    ):
         self._url = base_url.rstrip("/") + "/api/live/snapshot"
-        base = base_url.rstrip("/") + "/"
         self._client = client or httpx.AsyncClient(
             timeout=timeout_s,
             follow_redirects=True,
-            headers={"User-Agent": USER_AGENT, "Accept": "application/json", "Referer": base},
+            headers={"User-Agent": user_agent, "Accept": "application/json"},
         )
 
     async def aclose(self) -> None:
@@ -122,6 +128,8 @@ class DseSnapshotFeed:
             raise UpstreamUnavailableError(f"snapshot request failed: {type(e).__name__}: {e}") from e
         if r.status_code == 304:
             return FetchResult(None, etag)
+        if r.status_code == 403:
+            raise UpstreamForbiddenError(FORBIDDEN)
         if r.status_code != 200:
             raise UpstreamUnavailableError(f"snapshot answered {r.status_code}")
         try:

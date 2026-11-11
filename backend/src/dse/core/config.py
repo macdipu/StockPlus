@@ -34,8 +34,16 @@ class SecuritySettings(BaseModel):
     min_password_length: int = 10
 
 
+DEFAULT_USER_AGENT = (
+    "dse-analyzer/1.0 (non-commercial research tool; polite polling; +https://github.com/macdipu)"
+)
+
+
 class UpstreamSettings(BaseModel):
     base_url: str = "https://www.dse.com.bd"
+    # Who we are. Honest by default: this client does not pretend to be a browser. Include a contact
+    # (DSE_UPSTREAM__USER_AGENT="dse-analyzer/1.0 (you@example.com)") if the exchange asks for one.
+    user_agent: str = DEFAULT_USER_AGENT
     timeout_s: float = 20.0
     min_page_interval_s: float = 2.5
 

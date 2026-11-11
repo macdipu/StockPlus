@@ -164,6 +164,9 @@ class PollPolicy:
     floor_s: float = 5.0
     backoff_start_s: float = 5.0
     backoff_cap_s: float = 120.0
+    forbidden_s: float = (
+        900.0  # a 403 is a refusal, not a glitch: do not keep knocking every couple of minutes
+    )
 
     def interval(self, session: SessionState | None) -> float:
         base = self.open_s if session is None or session.is_open else self.closed_s

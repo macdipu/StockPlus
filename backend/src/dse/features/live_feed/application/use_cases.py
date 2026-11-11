@@ -30,7 +30,7 @@ from dse.features.live_feed.domain.entities import (
 )
 from dse.features.live_feed.domain.ports import LiveFeedUnitOfWork, SnapshotFeed
 from dse.shared_kernel.clock import Clock
-from dse.shared_kernel.errors import ServiceNotReadyError
+from dse.shared_kernel.errors import ServiceNotReadyError, UpstreamForbiddenError
 from dse.shared_kernel.symbol import Symbol
 
 log = logging.getLogger("dse.live_feed")
@@ -190,6 +190,9 @@ class RunFeed:
                         log.exception(
                             "feed hook failed", extra={"hook": getattr(hook, "__name__", repr(hook))}
                         )
+            except UpstreamForbiddenError as e:
+                backoff = self._policy.forbidden_s
+                log.error("upstream refuses this client", extra={"error": str(e), "retry_in_s": backoff})
             except Exception as e:
                 backoff = self._policy.next_backoff(backoff)
                 log.warning(

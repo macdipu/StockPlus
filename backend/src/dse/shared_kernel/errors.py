@@ -34,6 +34,10 @@ class UpstreamUnavailableError(DomainError):
     """An external system (www.dse.com.bd) failed or changed shape."""
 
 
+class UpstreamForbiddenError(UpstreamUnavailableError):
+    """The exchange answered 403: it refuses this client. Retrying quickly would only be rude."""
+
+
 class ServiceNotReadyError(DomainError):
     """A dependency or materialised view is not available yet."""
 

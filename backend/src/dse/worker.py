@@ -56,9 +56,13 @@ def policy_from(settings: Settings) -> PollPolicy:
 async def run(settings: Settings) -> None:
     db, redis, clock = Database(settings.database), create_redis(settings.redis), SystemClock()
     up = settings.upstream
-    feed = DseSnapshotFeed(up.base_url, timeout_s=up.timeout_s)
+    feed = DseSnapshotFeed(up.base_url, user_agent=up.user_agent, timeout_s=up.timeout_s)
     source = DseHttpSource(
-        up.base_url, clock, timeout_s=up.timeout_s, min_page_interval_s=up.min_page_interval_s
+        up.base_url,
+        clock,
+        user_agent=up.user_agent,
+        timeout_s=up.timeout_s,
+        min_page_interval_s=up.min_page_interval_s,
     )
     market_data = MarketDataContainer(db, source, clock)
     policy = policy_from(settings)
