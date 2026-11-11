@@ -11,7 +11,6 @@ backend/    FastAPI API + background worker (Python 3.11): features market_data,
             identity, watchlists, each domain → application → infrastructure → presentation
 frontend/   Next.js (App Router, TypeScript strict): stock · market · scanner · data · tools · accounts
 docs/       architecture assessment, 8-phase migration plan, ADRs (docs/architecture/)
-legacy/     the original single-process app, kept until the cutover deletes it
 ```
 
 ## Run
@@ -46,5 +45,9 @@ serialised across concurrent runs. See `frontend/README.md` for what the e2e sui
 
 ## Status
 
-Phases 0–6 of the migration are done (`docs/architecture/ARCHITECTURE.md` has per-phase notes and decisions). Phase 7,
-the cutover, remains: delete `legacy/` and finalise the docs.
+The 8-phase migration from the original single-process app is complete (`docs/architecture/ARCHITECTURE.md` has
+per-phase notes and decisions). The legacy app was removed in the cutover; it lives in git history before the
+"Phase 7" commit. Its recorded outputs remain as golden fixtures (`legacy_golden_*.json`) that the parity tests check.
+
+Not ported, on purpose: the live order-book depth panel (DSE answers that endpoint with 403 to automated clients)
+and the per-tick `analysis` SSE event.
