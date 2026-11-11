@@ -16,6 +16,7 @@ from dse.shared_kernel.errors import (
     ForbiddenError,
     NotFoundError,
     ServiceNotReadyError,
+    TooManyRequestsError,
     UnauthorizedError,
     UpstreamUnavailableError,
     ValidationFailedError,
@@ -31,6 +32,7 @@ STATUS: dict[type[DomainError], int] = {
     ConflictError: 409,
     UpstreamUnavailableError: 502,
     ServiceNotReadyError: 503,
+    TooManyRequestsError: 429,
 }
 
 
@@ -42,7 +44,12 @@ def status_for(exc: DomainError) -> int:
 
 
 def problem(
-    request: Request, status: int, title: str, detail: str | None = None, **extra: Any
+    request: Request,
+    status: int,
+    title: str,
+    detail: str | None = None,
+    headers: dict[str, str] | None = None,
+    **extra: Any,
 ) -> JSONResponse:
     body = {
         "type": "about:blank",
@@ -53,7 +60,7 @@ def problem(
         "requestId": request_id_var.get(),
         **extra,
     }
-    return JSONResponse(body, status_code=status, media_type="application/problem+json")
+    return JSONResponse(body, status_code=status, media_type="application/problem+json", headers=headers)
 
 
 def install_error_handlers(app: FastAPI) -> None:
@@ -62,7 +69,12 @@ def install_error_handlers(app: FastAPI) -> None:
         status = status_for(exc)
         if status >= 500:
             log.warning("domain error", extra={"error": type(exc).__name__, "detail": exc.detail})
-        return problem(request, status, HTTPStatus(status).phrase, exc.detail, **exc.extra)
+        headers: dict[str, str] = {}
+        if status == 401:
+            headers["WWW-Authenticate"] = "Bearer"
+        if isinstance(exc, TooManyRequestsError):
+            headers["Retry-After"] = str(exc.retry_after_s)
+        return problem(request, status, HTTPStatus(status).phrase, exc.detail, headers or None, **exc.extra)
 
     @app.exception_handler(RequestValidationError)
     async def _validation(request: Request, exc: RequestValidationError) -> JSONResponse:

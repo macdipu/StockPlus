@@ -25,6 +25,23 @@ def test_production_refuses_default_secret() -> None:
         Settings(env="production").assert_production_safe()
 
 
+def test_production_requires_a_long_random_secret() -> None:
+    from pydantic import SecretStr
+
+    from dse.core.config import SecuritySettings
+
+    def prod(secret: str) -> Settings:
+        return Settings(env="production", security=SecuritySettings(jwt_secret=SecretStr(secret)))
+
+    for weak in ("dev-only-insecure-secret", "short"):
+        with pytest.raises(RuntimeError):
+            prod(weak).assert_production_safe()
+    with pytest.raises(RuntimeError, match="at least 32"):
+        prod("x" * 31).assert_production_safe()
+    prod("x" * 32).assert_production_safe()  # long enough: fine
+    Settings(env="development").assert_production_safe()  # dev keeps its convenient default
+
+
 def test_json_log_carries_request_id() -> None:
     token = request_id_var.set("rid-1")
     try:

@@ -193,3 +193,65 @@ def run_scan(u: pd.DataFrame, spec: ScanSpec) -> pd.DataFrame:
             by=str(spec.sort.field), ascending=not spec.sort.desc, na_position="last", kind="stable"
         )
     return out.head(spec.limit)
+
+
+_DEFINITION_KEYS = {"rules", "match", "universe", "sort", "limit", "columns", "live"}
+MAX_RULES = 20
+
+
+def _str_list(v: Any, what: str) -> tuple[str, ...]:
+    if v is None:
+        return ()
+    if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
+        raise ScanError(f"'{what}' must be a list of strings")
+    return tuple(v)
+
+
+def parse_scan_definition(d: Any) -> ScanSpec:
+    """A scan as plain JSON (what a client POSTs, and what a saved scan stores) → a validated ScanSpec.
+    Strict: unknown keys and malformed rules are rejected. Whether a *field name* exists is only known against
+    a built universe, so an unknown field still fails when the scan runs."""
+    if not isinstance(d, dict):
+        raise ScanError("A scan definition must be a JSON object")
+    unknown = set(d) - _DEFINITION_KEYS
+    if unknown:
+        raise ScanError(f"Unknown key(s) in scan definition: {sorted(unknown)}")
+    raw = d.get("rules")
+    if not isinstance(raw, list) or not 1 <= len(raw) <= MAX_RULES:
+        raise ScanError(f"'rules' must be a list of 1–{MAX_RULES} rules")
+    rules = []
+    for r in raw:
+        if not isinstance(r, dict) or not isinstance(r.get("field"), str) or not isinstance(r.get("op"), str):
+            raise ScanError("Each rule needs a string 'field' and 'op'")
+        extra = set(r) - {"field", "op", "value", "field2"}
+        if extra:
+            raise ScanError(f"Unknown key(s) in rule: {sorted(extra)}")
+        rules.append(Rule(r["field"], r["op"], r.get("value"), r.get("field2")))
+    match = d.get("match", "all")
+    if match not in ("all", "any"):
+        raise ScanError("'match' must be 'all' or 'any'")
+    u = d.get("universe")
+    u = {} if u is None else u
+    if not isinstance(u, dict):
+        raise ScanError("'universe' must be an object")
+    mv = u.get("min_value_mn")
+    if mv is not None and (isinstance(mv, bool) or not isinstance(mv, int | float)):
+        raise ScanError("'min_value_mn' must be a number")
+    sort = d.get("sort")
+    if sort is not None and not (isinstance(sort, dict) and isinstance(sort.get("field"), str)):
+        raise ScanError("'sort' needs a string 'field'")
+    limit = d.get("limit", 100)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+        raise ScanError("'limit' must be an integer between 1 and 500")
+    return ScanSpec(
+        rules=tuple(rules),
+        match=match,
+        universe=UniverseFilter(
+            _str_list(u.get("sectors"), "sectors"),
+            _str_list(u.get("categories"), "categories"),
+            _str_list(u.get("asset_types"), "asset_types"),
+            mv,
+        ),
+        sort=Sort(sort["field"], bool(sort.get("desc", True))) if sort else None,
+        limit=limit,
+    )

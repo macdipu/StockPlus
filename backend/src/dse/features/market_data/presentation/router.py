@@ -4,6 +4,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query
 
+from dse.core.auth import AdminOnly
 from dse.core.http import envelope
 from dse.features.market_data.presentation.dependencies import MarketDataContainer, container
 from dse.shared_kernel.symbol import Symbol
@@ -33,3 +34,13 @@ async def get_announcements(
 ) -> dict[str, Any]:
     items = await c.get_announcements(Symbol(symbol), limit)
     return envelope([a.model_dump(mode="json") for a in items], count=len(items))
+
+
+# ---------------------------------------------------------------------------------------- admin
+admin_router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@admin_router.post("/stocks/{symbol}/sync", summary="Re-sync one instrument from DSE now (admin only)")
+async def admin_sync(symbol: SymbolPath, c: Container, _: AdminOnly) -> dict[str, Any]:
+    report = await c.sync(Symbol(symbol))
+    return envelope(report.model_dump(mode="json"))

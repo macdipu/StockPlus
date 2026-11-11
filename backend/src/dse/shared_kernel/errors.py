@@ -36,3 +36,11 @@ class UpstreamUnavailableError(DomainError):
 
 class ServiceNotReadyError(DomainError):
     """A dependency or materialised view is not available yet."""
+
+
+class TooManyRequestsError(DomainError):
+    """The caller is being throttled; `retry_after_s` says when to try again."""
+
+    def __init__(self, detail: str | None = None, retry_after_s: int = 60) -> None:
+        super().__init__(detail, retry_after_s=retry_after_s)
+        self.retry_after_s = retry_after_s

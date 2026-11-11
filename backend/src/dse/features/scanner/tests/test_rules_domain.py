@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
+from dse.features.scanner.application.facade import ScannerFacade
 from dse.features.scanner.domain.rules import (
     AllOf,
     AnyOf,
@@ -16,6 +17,7 @@ from dse.features.scanner.domain.rules import (
     Sort,
     UniverseFilter,
     compose,
+    parse_scan_definition,
     run_scan,
 )
 from dse.features.scanner.domain.universe import Universe, rows_to_frame
@@ -137,3 +139,64 @@ def test_universe_frame_requires_rows() -> None:
     uni = Universe(1, 0, 0, None, None, rows_to_frame([]), rows_to_frame([]))
     with pytest.raises(ServiceNotReadyError):
         uni.frame()
+
+
+# --- scan definitions as plain JSON (saved scans) ---
+def test_parse_scan_definition_builds_a_validated_spec() -> None:
+    spec = parse_scan_definition(
+        {
+            "rules": [
+                {"field": "rsi14", "op": "between", "value": [40, 80]},
+                {"field": "close", "op": ">", "field2": "ema21"},
+            ],
+            "match": "any",
+            "universe": {"sectors": ["Bank"], "asset_types": ["EQ"], "min_value_mn": 1.5},
+            "sort": {"field": "vol_ratio"},
+            "limit": 25,
+            "columns": ["symbol"],
+            "live": False,
+        }
+    )
+    assert spec.rules == (Rule("rsi14", "between", [40, 80]), Rule("close", ">", field2="ema21"))
+    assert (spec.match, spec.limit, spec.sort) == ("any", 25, Sort("vol_ratio", True))
+    assert spec.universe == UniverseFilter(("Bank",), (), ("EQ",), 1.5)
+    minimal = parse_scan_definition({"rules": [{"field": "rsi14", "op": "<", "value": 30}]})
+    assert (minimal.match, minimal.limit, minimal.sort) == ("all", 100, None)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        None,
+        [],
+        "rules",
+        {},
+        {"rules": []},
+        {"rules": "x"},
+        {"rules": [{"field": "a", "op": "<", "value": 1}] * 21},
+        {"rules": [{"op": "<", "value": 1}]},
+        {"rules": [{"field": "a", "op": "wat", "value": 1}]},
+        {"rules": [{"field": "a", "op": "<"}]},
+        {"rules": [{"field": "a", "op": "<", "value": 1, "extra": 1}]},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "match": "some"},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "limit": 0},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "limit": 501},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "limit": True},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "limit": "10"},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "sort": {"desc": True}},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "universe": {"sectors": "Bank"}},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "universe": {"min_value_mn": "5"}},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "universe": []},
+        {"rules": [{"field": "a", "op": "<", "value": 1}], "unknown_key": 1},
+    ],
+)
+def test_parse_scan_definition_rejects_malformed_input(bad: object) -> None:
+    with pytest.raises(ScanError):
+        parse_scan_definition(bad)
+
+
+def test_scanner_facade_validates_without_needing_a_universe() -> None:
+    facade = ScannerFacade()
+    facade.validate_scan({"rules": [{"field": "rsi14", "op": "<", "value": 30}]})
+    with pytest.raises(ScanError):
+        facade.validate_scan({"rules": []})

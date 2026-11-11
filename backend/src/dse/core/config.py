@@ -17,10 +17,21 @@ class RedisSettings(BaseModel):
     url: str = "redis://localhost:6380/0"
 
 
+DEV_JWT_SECRET = "dev-only-insecure-secret-do-not-use-in-production-0123456789"  # noqa: S105 — public on purpose; production refuses it
+MIN_PRODUCTION_SECRET_BYTES = 32
+
+
 class SecuritySettings(BaseModel):
-    jwt_secret: SecretStr = Field(default=SecretStr("dev-only-insecure-secret"))
+    jwt_secret: SecretStr = Field(default=SecretStr(DEV_JWT_SECRET))
     access_token_minutes: int = 15
     refresh_token_days: int = 14
+    issuer: str = "dse-analyzer"
+    refresh_cookie_name: str = "dse_refresh"
+    cookie_secure: bool | None = None  # None → Secure in production, off for http://localhost dev
+    max_failed_logins: int = 5  # per email within `lockout_minutes`
+    lockout_minutes: int = 15
+    refresh_reuse_grace_s: int = 10  # a just-rotated token replayed within this window is a race, not theft
+    min_password_length: int = 10
 
 
 class UpstreamSettings(BaseModel):
@@ -54,13 +65,23 @@ class Settings(BaseSettings):
     upstream: UpstreamSettings = UpstreamSettings()
     live: LiveSettings = LiveSettings()
 
+    @property
+    def cookie_secure(self) -> bool:
+        return (
+            self.env == "production" if self.security.cookie_secure is None else self.security.cookie_secure
+        )
+
     def assert_production_safe(self) -> None:
         """Fail fast instead of running production with development defaults."""
-        if (
-            self.env == "production"
-            and self.security.jwt_secret.get_secret_value() == "dev-only-insecure-secret"
-        ):
+        if self.env != "production":
+            return
+        secret = self.security.jwt_secret.get_secret_value()
+        if secret == DEV_JWT_SECRET or secret == "dev-only-insecure-secret":  # noqa: S105
             raise RuntimeError("DSE_SECURITY__JWT_SECRET must be set in production")
+        if len(secret.encode()) < MIN_PRODUCTION_SECRET_BYTES:
+            raise RuntimeError(
+                f"DSE_SECURITY__JWT_SECRET must be at least {MIN_PRODUCTION_SECRET_BYTES} bytes"
+            )
 
 
 @lru_cache

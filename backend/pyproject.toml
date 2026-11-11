@@ -15,6 +15,8 @@ dependencies = [
   "httpx>=0.27",
   "numpy>=2.0",
   "pandas>=2.2",
+  "argon2-cffi>=23.1",
+  "pyjwt>=2.8",
 ]
 
 [project.optional-dependencies]
@@ -92,6 +94,8 @@ containers = [
   "dse.features.live_feed",
   "dse.features.analysis",
   "dse.features.scanner",
+  "dse.features.identity",
+  "dse.features.watchlists",
 ]
 layers = ["presentation", "infrastructure", "application", "domain"]
 exhaustive = false
@@ -104,6 +108,8 @@ source_modules = [
   "dse.features.live_feed.domain",
   "dse.features.analysis.domain",  # numpy/pandas are allowed here (ADR 0004)
   "dse.features.scanner.domain",
+  "dse.features.identity.domain",
+  "dse.features.watchlists.domain",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "pydantic", "dse.core"]
 
@@ -115,6 +121,8 @@ source_modules = [
   "dse.features.live_feed.application",
   "dse.features.analysis.application",
   "dse.features.scanner.application",
+  "dse.features.identity.application",
+  "dse.features.watchlists.application",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 
@@ -172,3 +180,47 @@ forbidden_modules = ["dse.features.scanner"]
 [[tool.mypy.overrides]]
 module = "dse.features.scanner.tests.legacy.*"
 ignore_errors = true
+
+[[tool.importlinter.contracts]]
+name = "identity is independent of every other feature"
+type = "forbidden"
+source_modules = ["dse.features.identity"]
+forbidden_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.watchlists",
+]
+
+[[tool.importlinter.contracts]]
+name = "watchlists reaches other features only through their application facade"
+type = "forbidden"
+source_modules = ["dse.features.watchlists"]
+forbidden_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.identity",
+]
+allow_indirect_imports = true
+ignore_imports = [
+  "dse.features.watchlists.infrastructure.gateways -> dse.features.live_feed.application.facade",
+  "dse.features.watchlists.infrastructure.gateways -> dse.features.scanner.application.facade",
+]
+
+[[tool.importlinter.contracts]]
+name = "no feature depends on identity or watchlists (they sit at the top)"
+type = "forbidden"
+source_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+]
+forbidden_modules = ["dse.features.identity", "dse.features.watchlists"]
+ignore_imports = [
+  "dse.features.market_data.tests.** -> dse.main",
+  "dse.features.live_feed.tests.** -> dse.main",
+]

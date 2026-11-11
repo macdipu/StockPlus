@@ -1,7 +1,8 @@
-"""Command-line composition root:  python -m dse.cli {sync,backfill,eod} ..."""
+"""Command-line composition root:  python -m dse.cli {sync,backfill,eod,create-user,set-role} ..."""
 
 import argparse
 import asyncio
+import getpass
 import json
 import sys
 
@@ -9,13 +10,46 @@ from dse.core.clock import SystemClock
 from dse.core.config import get_settings
 from dse.core.db import Database
 from dse.core.logging import configure_logging
+from dse.core.security import Argon2PasswordHasher
+from dse.features.identity.application.use_cases import PromoteUser, Register
+from dse.features.identity.infrastructure.repositories import SqlIdentityUnitOfWork
 from dse.features.market_data.application.use_cases import AppendEndOfDay, BackfillUniverse
 from dse.features.market_data.infrastructure.dse_source import DseHttpSource
 from dse.features.market_data.presentation.dependencies import MarketDataContainer
+from dse.shared_kernel.errors import DomainError
+from dse.shared_kernel.principal import Role
 from dse.shared_kernel.symbol import Symbol
 
 
+async def _identity(args: argparse.Namespace) -> int:
+    """Operator account commands. Passwords come from a prompt or stdin, never from argv (visible in `ps`)."""
+    s = get_settings()
+    db, clock = Database(s.database), SystemClock()
+
+    def uow() -> SqlIdentityUnitOfWork:
+        return SqlIdentityUnitOfWork(db.sessions)
+
+    try:
+        if args.cmd == "create-user":
+            password = (
+                sys.stdin.readline().rstrip("\n") if args.password_stdin else getpass.getpass("Password: ")
+            )
+            register = Register(uow, Argon2PasswordHasher(), clock, s.security.min_password_length)
+            user = await register(args.email, password, Role(args.role))
+        else:  # set-role
+            user = await PromoteUser(uow, clock)(args.email, Role(args.role))
+        print(json.dumps({"id": str(user.id), "email": user.email, "role": user.role}))
+        return 0
+    except DomainError as e:
+        print(f"error: {e.detail}", file=sys.stderr)
+        return 1
+    finally:
+        await db.dispose()
+
+
 async def _run(args: argparse.Namespace) -> int:
+    if args.cmd in ("create-user", "set-role"):
+        return await _identity(args)
     s = get_settings()
     db = Database(s.database)
     clock = SystemClock()
@@ -61,6 +95,13 @@ def main() -> int:
     p.add_argument("symbols", nargs="*")
     p.add_argument("--force", action="store_true")
     sub.add_parser("eod", help="append today's bars from one post-close snapshot")
+    p = sub.add_parser("create-user", help="create an account (use --role admin for the first admin)")
+    p.add_argument("email")
+    p.add_argument("--role", choices=[r.value for r in Role], default=Role.USER.value)
+    p.add_argument("--password-stdin", action="store_true", help="read the password from stdin, not a prompt")
+    p = sub.add_parser("set-role", help="change an account's role (signs it out everywhere)")
+    p.add_argument("email")
+    p.add_argument("role", choices=[r.value for r in Role])
     return asyncio.run(_run(ap.parse_args()))
 
 

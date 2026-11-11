@@ -28,7 +28,7 @@ services:
       DSE_ENV: development
       DSE_DATABASE__URL: postgresql+asyncpg://dse:dse@db:5432/dse
       DSE_REDIS__URL: redis://redis:6379/0
-      DSE_SECURITY__JWT_SECRET: ${DSE_SECURITY__JWT_SECRET:-dev-only-insecure-secret}
+      DSE_SECURITY__JWT_SECRET: ${DSE_SECURITY__JWT_SECRET:-dev-only-insecure-secret-do-not-use-in-production-0123456789}
     healthcheck: {disable: true}
     depends_on:
       db: {condition: service_healthy}

@@ -9,7 +9,8 @@ Status: **accepted plan, migration in progress** · Baseline commit `7508812` (l
 | 2 live_feed | ✅ done — see below |
 | 3 analysis | ✅ done — see below |
 | 4 scanner | ✅ done — see below |
-| 5–7 | not started |
+| 5 identity + watchlists | ✅ done — see below |
+| 6–7 | not started |
 
 **Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
 Known gaps carried forward: none from Phase 1 (moving averages are served by `analysis`, see Phase 3).
@@ -32,6 +33,11 @@ Exit criteria verified: **parity** — on a fixed 48-instrument universe (trend/
 Decisions / deliberate differences from legacy (both are legacy bugs, asserted in tests, not hidden): (1) legacy dropped `asset_type` for quote-less rows and for the whole last-close view, so with the default `assetTypes=EQ` **every pre-market preset returned nothing**; the row now falls back to the instrument record. (2) Ties in a sort are ordered by universe order (stable) instead of legacy's unspecified quicksort order. Payload fields are snake_case (`asset_type`, `asset_types`, `value_mn`).
 Not yet ported from legacy (needed before the Phase 7 cutover; none are scanner concerns): `/stocks/{symbol}/depth` (live order book proxy), `/stocks/{symbol}/intraday` (1-minute bars + VPA from recorded ticks), `/tools/correlation`, `/tools/return`, `/data/{symbol}.csv`, the per-tick `analysis` SSE event. They belong with the Phase 6 frontend tabs (stock, tools, data) and will be added as features need them.
 **Test isolation.** Integration suites TRUNCATE tables, so they now run against their own `dse_test` database (created and migrated on demand by `backend/conftest.py`) and Redis db 15. The development database is never touched by `pytest` (an earlier version wiped it).
+
+**Phase 5 notes.** `identity` and `watchlists` features, per ADR 0005 (amended below). *identity:* `Email`/password policy/`User`/`RefreshToken` domain; `Register`, `Login`, `Refresh` (rotating, with reuse detection), `Logout`, `GetCurrentUser`, `PromoteUser`; argon2id + HS256 JWT live in `core/security.py`, the FastAPI dependencies (`CurrentPrincipal`, `require_role`, `AdminOnly`) in `core/auth.py`, and `Principal`/`Role` in `shared_kernel` — so no feature ever imports identity (a contract enforces it). Endpoints `/auth/{register,login,refresh,logout,me}`; operator commands `python -m dse.cli create-user|set-role` (password from a prompt/stdin, never argv). *watchlists:* named `Watchlist` aggregate (unique symbols, ≤100, ≤20 lists/user) and `SavedScan` (≤50/user), unique names per user ignoring case; symbols are checked against DSE's live snapshot via the `live_feed` facade, saved-scan definitions against the scanner's own strict parser via a new `ScannerFacade`. Endpoints `/watchlists…`, `/saved-scans…`; an admin-only `POST /admin/stocks/{symbol}/sync` exercises roles. Migration `0004` (users, refresh_tokens, watchlists, saved_scans; FK `owner_id → users.id ON DELETE CASCADE`; reversible incl. the enum; drift-checked). 13 import-linter contracts.
+Verified end to end on Postgres + Redis: cookie attributes, rotation, stolen-token replay revokes the family, concurrent registration of one email creates exactly one account, uniform 401s, lockout, forged/tampered/`alg=none`/expired tokens, cross-user isolation (404 on every verb for both resources), FK cascade, roles (401/403/200).
+Bugs the tests caught while writing this phase: a rejected refresh did not clear the cookie (headers on an injected `Response` are dropped when a handler raises), and `"universe": []` passed scan-definition validation (`d.get(..) or {}` treats falsy as missing).
+Decisions beyond ADR 0005 are recorded in its amendment. Not done (deliberately): email verification, password reset, and 2FA (no mail transport yet); access tokens of a deactivated user stay valid for ≤15 min; the frontend (Phase 6) is the first consumer.
 
 ---
 
