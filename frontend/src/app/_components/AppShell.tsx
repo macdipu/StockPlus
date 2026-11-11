@@ -10,8 +10,6 @@ import { WatchlistCard, useWatchlist } from "@/features/watchlist";
 import { buildUrl } from "@/shared/api";
 import { Card } from "@/shared/ui/Card";
 
-const FALLBACK_SYMBOL = "GP";
-
 function currentSymbol(pathname: string): string | null {
   const m = /^\/stock\/([^/]+)/.exec(pathname);
   return m?.[1] ? decodeURIComponent(m[1]).toUpperCase() : null;
@@ -22,7 +20,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const symbol = currentSymbol(pathname);
   const watched = useWatchlist().symbols; // hooks are called unconditionally, then used below
-  const stockHref = `/stock/${symbol ?? watched[0] ?? FALLBACK_SYMBOL}`;
+  const target = symbol ?? watched[0];
+  const stockHref = target ? `/stock/${target}` : "/stock";
   const tabs = [
     { href: "/", label: "Dashboard", on: pathname === "/" },
     { href: stockHref, label: "Stock", on: pathname.startsWith("/stock") },
