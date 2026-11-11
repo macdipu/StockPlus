@@ -3,9 +3,9 @@
 Pure Python: no framework, no I/O. Timestamps are epoch milliseconds (what SSE clients measure latency in).
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, tzinfo
 from typing import Any
 
 from dse.shared_kernel.symbol import Symbol
@@ -171,3 +171,33 @@ class PollPolicy:
 
     def next_backoff(self, current: float) -> float:
         return min(max(current * 2, self.backoff_start_s), self.backoff_cap_s)
+
+
+@dataclass(frozen=True, slots=True)
+class MinuteBar:
+    minute: datetime  # floored to the minute, in the exchange's timezone
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+
+
+def minute_bars(ticks: Sequence[Tick], tz: tzinfo) -> list[MinuteBar]:
+    """1-minute OHLCV from recorded ticks of ONE instrument (any order). Snapshot volume is cumulative for
+    the day, so a tick's own volume is the increase over the previous tick; the first recorded tick carries
+    everything traded before recording began (as the legacy aggregation did)."""
+    bars: dict[datetime, list[float]] = {}  # minute → [open, high, low, close, volume]
+    previous = 0
+    for t in sorted(ticks, key=lambda t: t.ts_ms):
+        if t.ltp is None:
+            continue
+        traded = max(t.volume - previous, 0)
+        previous = t.volume
+        minute = datetime.fromtimestamp(t.ts_ms / 1000, tz).replace(second=0, microsecond=0)
+        b = bars.get(minute)
+        if b is None:
+            bars[minute] = [t.ltp, t.ltp, t.ltp, t.ltp, traded]
+        else:
+            b[1], b[2], b[3], b[4] = max(b[1], t.ltp), min(b[2], t.ltp), t.ltp, b[4] + traded
+    return [MinuteBar(m, b[0], b[1], b[2], b[3], int(b[4])) for m, b in sorted(bars.items())]

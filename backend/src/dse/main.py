@@ -10,14 +10,14 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from dse.core.cache import create_redis
-from dse.core.clock import SystemClock
+from dse.core.clock import DHAKA, SystemClock
 from dse.core.config import Settings, get_settings
 from dse.core.db import Database
 from dse.core.errors import install_error_handlers
 from dse.core.http import health_router, request_context
 from dse.core.logging import configure_logging
 from dse.core.security import Argon2PasswordHasher, JwtCodec
-from dse.features.analysis.infrastructure.gateways import FacadeAnalysisInputs
+from dse.features.analysis.infrastructure.gateways import FacadeAnalysisInputs, FacadeHistorySource
 from dse.features.analysis.presentation.dependencies import AnalysisContainer
 from dse.features.analysis.presentation.router import router as analysis_router
 from dse.features.identity.infrastructure.throttle import RedisLoginThrottle
@@ -30,6 +30,7 @@ from dse.features.live_feed.presentation.router import router as live_feed_route
 from dse.features.market_data.infrastructure.dse_source import DseHttpSource
 from dse.features.market_data.presentation.dependencies import MarketDataContainer
 from dse.features.market_data.presentation.router import admin_router as admin_router
+from dse.features.market_data.presentation.router import data_router as data_router
 from dse.features.market_data.presentation.router import router as market_data_router
 from dse.features.scanner.application.facade import ScannerFacade
 from dse.features.scanner.application.view import UniverseView
@@ -40,7 +41,7 @@ from dse.features.watchlists.infrastructure.gateways import LiveFeedSymbolDirect
 from dse.features.watchlists.presentation.dependencies import WatchlistsContainer
 from dse.features.watchlists.presentation.router import router as watchlists_router
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -62,7 +63,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.db, app.state.redis = db, redis
         app.state.market_data = MarketDataContainer(db, source, clock)
         hub = FeedHub(RedisEventStream(redis), queue_size=settings.live.subscriber_queue)
-        app.state.live_feed = LiveFeedContainer(RedisLiveStateStore(redis), hub, clock, settings.live)
+        app.state.live_feed = LiveFeedContainer(
+            RedisLiveStateStore(redis), hub, clock, settings.live, db, DHAKA
+        )
         sec = settings.security
         jwt_codec = JwtCodec(
             sec.jwt_secret.get_secret_value(), sec.issuer, timedelta(minutes=sec.access_token_minutes), clock
@@ -86,7 +89,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         app.state.scanner = ScannerContainer(UniverseView(RedisUniverseStore(redis)))
         app.state.analysis = AnalysisContainer(
-            FacadeAnalysisInputs(app.state.market_data.facade, app.state.live_feed.facade)
+            FacadeAnalysisInputs(app.state.market_data.facade, app.state.live_feed.facade),
+            FacadeHistorySource(app.state.market_data.facade, app.state.live_feed.facade),
         )
         hub_task = asyncio.create_task(hub.run(), name="live-feed-hub")
         yield
@@ -124,6 +128,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     v1.include_router(identity_router)
     v1.include_router(market_data_router)
     v1.include_router(admin_router)
+    v1.include_router(data_router)
     v1.include_router(watchlists_router)
     v1.include_router(live_feed_router)
     v1.include_router(analysis_router)

@@ -83,6 +83,10 @@ class SqlRefreshTokenRepository:
         r = await self._s.scalar(select(RefreshTokenRow).where(RefreshTokenRow.token_hash == token_hash))
         return _token(r) if r else None
 
+    async def get(self, token_id: UUID) -> RefreshToken | None:
+        r = await self._s.get(RefreshTokenRow, token_id)
+        return _token(r) if r else None
+
     async def mark_rotated(self, token_id: UUID, at: datetime, replaced_by: UUID) -> None:
         await self._s.execute(
             update(RefreshTokenRow)

@@ -8,7 +8,13 @@ import pytest
 
 from dse.core.clock import DHAKA
 from dse.features.live_feed.application.mappers import market_dto, quote_dto
-from dse.features.live_feed.domain.entities import LiveSnapshot, PollPolicy, SessionState
+from dse.features.live_feed.domain.entities import (
+    LiveSnapshot,
+    PollPolicy,
+    SessionState,
+    Tick,
+    minute_bars,
+)
 from dse.features.live_feed.infrastructure.codec import (
     market_from_json,
     market_to_json,
@@ -18,6 +24,7 @@ from dse.features.live_feed.infrastructure.codec import (
 from dse.features.live_feed.infrastructure.dse_snapshot import parse_live_snapshot
 from dse.features.live_feed.tests.fakes import with_quote, with_trade_time
 from dse.shared_kernel.errors import UpstreamUnavailableError
+from dse.shared_kernel.symbol import Symbol
 
 # ---------------------------------------------------------------- parser == legacy scraper.parse_snapshot
 
@@ -120,3 +127,36 @@ def test_poll_policy() -> None:
     for _ in range(7):
         backoffs.append(p.next_backoff(backoffs[-1]))
     assert backoffs == [0, 5, 10, 20, 40, 80, 120, 120]
+
+
+# ---------------------------------------------------------------- minute bars from recorded ticks
+def _tick(sec: int, ltp: float | None, volume: int, symbol: str = "GP") -> Tick:
+    base = int(datetime(2026, 11, 11, 10, 0, tzinfo=DHAKA).timestamp() * 1000)
+    return Tick(Symbol(symbol), base + sec * 1000, "t", ltp, ltp, ltp, volume, None, None)
+
+
+def test_minute_bars_use_the_increase_in_cumulative_volume() -> None:
+    ticks = [
+        _tick(5, 100.0, 1_000),  # first recorded tick: carries everything traded before recording began
+        _tick(35, 101.0, 1_200),  # same minute: +200
+        _tick(40, 99.5, 1_250),  # +50, new low
+        _tick(65, 100.5, 1_400),  # next minute: +150
+        _tick(125, 100.5, 1_400),  # no new volume
+    ]
+    bars = minute_bars(ticks, DHAKA)
+    assert [b.minute.strftime("%H:%M") for b in bars] == ["10:00", "10:01", "10:02"]
+    first, second, third = bars
+    assert (first.open, first.high, first.low, first.close, first.volume) == (100.0, 101.0, 99.5, 99.5, 1_250)
+    assert (second.open, second.close, second.volume) == (100.5, 100.5, 150)
+    assert third.volume == 0
+    assert all(b.minute.tzinfo is not None for b in bars)
+
+
+def test_minute_bars_ignore_input_order_missing_prices_and_volume_resets() -> None:
+    shuffled = [_tick(65, 100.5, 1_400), _tick(5, 100.0, 1_000), _tick(35, None, 1_100), _tick(40, 99.0, 900)]
+    bars = minute_bars(shuffled, DHAKA)
+    assert [(b.open, b.close, b.volume) for b in bars] == [(100.0, 99.0, 1_000), (100.5, 100.5, 500)]
+    # a tick whose cumulative volume went down contributes 0 (never negative); the next one counts from it
+    assert minute_bars([_tick(5, 1.0, 500), _tick(10, 1.0, 400), _tick(15, 1.0, 450)], DHAKA)[0].volume == 550
+    assert minute_bars([], DHAKA) == []
+    assert minute_bars([_tick(5, None, 100)], DHAKA) == []

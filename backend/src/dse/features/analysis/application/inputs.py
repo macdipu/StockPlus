@@ -1,6 +1,7 @@
 """What the analysis needs to know about one instrument, independent of where it came from."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from dse.features.analysis.domain.frames import Bar, LiveBar
@@ -53,3 +54,15 @@ class UniverseInput:
 class UniverseRows:
     rows: list[dict[str, Any]]
     errors: dict[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class MinuteInput:
+    """One recorded 1-minute bar (exchange time)."""
+
+    minute: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float

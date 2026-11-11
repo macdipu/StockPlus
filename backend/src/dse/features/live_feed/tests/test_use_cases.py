@@ -21,6 +21,7 @@ from dse.features.live_feed.application.use_cases import (
 from dse.features.live_feed.domain.entities import LiveSnapshot, PollPolicy, SessionState
 from dse.features.live_feed.domain.ports import FetchResult
 from dse.features.live_feed.tests.fakes import (
+    NOW,
     FakeClock,
     FakeFeed,
     FakeGuard,
@@ -290,3 +291,36 @@ async def test_broadcast_publishes_a_custom_event() -> None:
     [e] = bus.published
     assert (e.event, e.symbol, e.data) == ("universe", None, {"version": 3, "rows": 400})
     assert e.received_ms > 0
+
+
+async def test_minute_bars_use_case_reads_one_exchange_day() -> None:
+    from dse.core.clock import DHAKA
+    from dse.features.live_feed.application.use_cases import GetMinuteBars
+    from dse.features.live_feed.domain.entities import Tick
+    from dse.shared_kernel.symbol import Symbol
+
+    gp = Symbol("GP")
+    day_start = int(NOW.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+
+    def at(hour: int, minute: int, ltp: float, volume: int, sym: Symbol = gp) -> Tick:
+        return Tick(sym, day_start + (hour * 60 + minute) * 60_000, "t", ltp, ltp, ltp, volume, None, None)
+
+    log = TickLog()
+    log.rows += [
+        at(-1, 59, 90.0, 10),  # 23:59 the previous evening (Dhaka): excluded
+        at(10, 0, 100.0, 100),
+        at(10, 1, 101.0, 160),
+        at(14, 30, 102.0, 300),
+        at(10, 0, 55.0, 5, Symbol("BATBC")),  # another instrument: excluded
+        at(24, 0, 95.0, 400),  # midnight after: excluded
+    ]
+    read = GetMinuteBars(lambda: FakeUow(log), FakeClock(), DHAKA)
+    bars = await read(gp)  # default day = the clock's today
+    assert [(b.minute.strftime("%H:%M"), b.close) for b in bars] == [
+        ("10:00", 100.0),
+        ("10:01", 101.0),
+        ("14:30", 102.0),
+    ]
+    assert (
+        await read(gp, NOW.date().replace(day=NOW.day - 1)) != bars
+    )  # a different day reads different ticks

@@ -115,3 +115,12 @@ class PollOutcome:
     changed: tuple[str, ...] = ()
     market_changed: bool = False
     published: int = 0
+
+
+class MinuteBarDto(BaseModel):
+    time: str  # HH:MM, exchange time
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int

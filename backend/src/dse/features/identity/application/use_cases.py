@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from dse.features.identity.application.dto import IssuedSession, UserDto
@@ -113,9 +113,13 @@ class Login:
 
 
 class Refresh:
-    """Rotate: the presented refresh token is spent and a new one issued in the same family. A spent token
-    shown again means two parties hold it, so the whole family is revoked (theft detection) — unless it was
-    spent a moment ago, which is just two browser tabs racing."""
+    """Rotate: the presented refresh token is spent and a new one issued in the same family.
+
+    A spent token shown again means two parties hold it, so the whole family is revoked (theft detection),
+    with one carve-out for how browsers actually behave. A navigation or reload can abort the response that
+    carried the rotated cookie, leaving the browser holding the token we just spent. So within a short leeway
+    window a spent token is exchanged once more, by rotating its still-unused successor. Once the window has
+    passed, or the successor has itself been spent, a replay is reuse and the family is revoked."""
 
     def __init__(
         self, uow: UowFactory, tokens: AccessTokens, clock: Clock, refresh_ttl: timedelta, grace_s: int
@@ -130,15 +134,7 @@ class Refresh:
             if token is None:
                 raise UnauthorizedError("Invalid refresh token.")
             if token.is_revoked():
-                if token.recently_rotated(now, self._grace):
-                    raise RefreshRaceError("Refresh token was just used; retry with the newest cookie.")
-                n = await uow.refresh_tokens.revoke_family(token.family_id, now)
-                await uow.commit()
-                log.warning(
-                    "refresh token reuse: family revoked",
-                    extra={"user_id": str(token.user_id), "family_id": str(token.family_id), "revoked": n},
-                )
-                raise UnauthorizedError("Refresh token reuse detected; please sign in again.")
+                token = await self._within_leeway(uow, token, now)
             if token.is_expired(now):
                 raise UnauthorizedError("Refresh token expired; please sign in again.")
             user = await uow.users.get(token.user_id)
@@ -151,6 +147,23 @@ class Refresh:
             await uow.refresh_tokens.mark_rotated(token.id, now, nxt.id)
             await uow.commit()
         return session
+
+    async def _within_leeway(
+        self, uow: IdentityUnitOfWork, spent: RefreshToken, now: datetime
+    ) -> RefreshToken:
+        """The token to rotate instead of `spent`; or raises: reuse (family revoked) or a plain race."""
+        if spent.recently_rotated(now, self._grace) and spent.replaced_by is not None:
+            successor = await uow.refresh_tokens.get(spent.replaced_by)
+            if successor is not None and not successor.is_revoked():
+                return successor  # the browser never received it (aborted response): carry on from there
+            raise RefreshRaceError("Refresh token was just used; retry with the newest cookie.")
+        revoked = await uow.refresh_tokens.revoke_family(spent.family_id, now)
+        await uow.commit()
+        log.warning(
+            "refresh token reuse: family revoked",
+            extra={"user_id": str(spent.user_id), "family_id": str(spent.family_id), "revoked": revoked},
+        )
+        raise UnauthorizedError("Refresh token reuse detected; please sign in again.")
 
 
 class Logout:

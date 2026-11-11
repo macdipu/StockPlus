@@ -2,20 +2,27 @@
 
 import asyncio
 from collections.abc import Sequence
+from datetime import date
 from typing import Any
+
+import pandas as pd
 
 from dse.features.analysis.application.brief import render_brief
 from dse.features.analysis.application.dto import (
     AnalysisDto,
+    CorrelationDto,
+    IntradayBarDto,
+    ReturnDto,
     ScreenerRowDto,
     TechnicalBarDto,
     VpaDto,
     VpaRowDto,
 )
 from dse.features.analysis.application.knowledge import build, clean, day, num, technical_bars
-from dse.features.analysis.application.ports import AnalysisInputs
-from dse.features.analysis.domain import vpa
-from dse.shared_kernel.errors import DomainError
+from dse.features.analysis.application.ports import AnalysisInputs, HistorySource
+from dse.features.analysis.domain import tools, vpa
+from dse.features.analysis.domain.frames import merge_live, to_frame
+from dse.shared_kernel.errors import DomainError, NotFoundError, ValidationFailedError
 
 
 class AnalyzeInstrument:
@@ -102,3 +109,69 @@ class RankSymbols:
                 rows.append({"symbol": sym, "action": "ERROR", "score": -1, "error": e.detail or str(e)})
         rows.sort(key=lambda r: (r["score"], r.get("rr") or 0), reverse=True)
         return [ScreenerRowDto(rank=i, **r) for i, r in enumerate(rows, 1)]
+
+
+class CalculateReturn:
+    def __init__(self, history: HistorySource) -> None:
+        self._history = history
+
+    async def __call__(
+        self, symbol: str, buy: date, sell: date | None, quantity: float, fee_pct: float
+    ) -> ReturnDto:
+        bars = await self._history.bars(symbol, 2000)
+        if not bars:
+            raise NotFoundError(f"No price history for {symbol}.")
+        df = merge_live(to_frame(bars), await self._history.live_bar(symbol))
+        return ReturnDto(symbol=symbol, **tools.return_between(df, buy, sell, quantity, fee_pct))
+
+
+class ComputeCorrelation:
+    """Sequential on purpose: an unsynced symbol is fetched from DSE (politely spaced) the first time."""
+
+    def __init__(self, history: HistorySource) -> None:
+        self._history = history
+
+    async def __call__(self, symbols: Sequence[str], days: int) -> CorrelationDto:
+        unique = list(dict.fromkeys(symbols))
+        if len(unique) > tools.MAX_CORRELATION_SYMBOLS:
+            raise ValidationFailedError(f"At most {tools.MAX_CORRELATION_SYMBOLS} symbols.")
+        closes = {}
+        for sym in unique:
+            bars = await self._history.bars(sym, days + 5)
+            if bars:
+                closes[sym] = to_frame(bars)["close"]
+        if len(closes) < 2:
+            raise ValidationFailedError("Need at least two symbols with price history.")
+        return CorrelationDto.model_validate(tools.correlation(closes, days))
+
+
+class GetIntraday:
+    """1-minute bars recorded from the live feed, each labelled by volume-price analysis."""
+
+    def __init__(self, history: HistorySource) -> None:
+        self._history = history
+
+    async def __call__(self, symbol: str, day: date | None = None) -> list[IntradayBarDto]:
+        minutes = await self._history.minute_bars(symbol, day)
+        if not minutes:
+            return []
+        frame = pd.DataFrame(
+            [
+                {"open": m.open, "high": m.high, "low": m.low, "close": m.close, "volume": m.volume}
+                for m in minutes
+            ],
+            index=pd.DatetimeIndex([m.minute for m in minutes]),
+        )
+        labels = vpa.classify(frame)["vpa"]
+        return [
+            IntradayBarDto(
+                time=f"{m.minute:%H:%M}",
+                open=m.open,
+                high=m.high,
+                low=m.low,
+                close=m.close,
+                volume=m.volume,
+                vpa=label if isinstance(label, str) else None,
+            )
+            for m, label in zip(minutes, labels, strict=True)
+        ]

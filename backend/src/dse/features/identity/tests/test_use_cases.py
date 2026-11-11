@@ -175,16 +175,39 @@ async def test_replaying_a_spent_token_revokes_the_whole_family(w: World) -> Non
     assert all(t.is_revoked() for t in w.store.tokens.values())
 
 
-async def test_a_token_replayed_within_the_grace_window_is_a_race_not_theft(w: World) -> None:
+async def test_a_spent_token_is_exchanged_again_within_leeway_when_the_browser_never_got_the_new_one(
+    w: World,
+) -> None:
+    """A reload aborts the response carrying the rotated cookie: the browser still holds the spent token."""
+    first = await signed_in(w)
+    await w.refresh(first)  # rotated, but the browser never received the new cookie
+    w.clock.advance(seconds=3)
+    recovered = await w.refresh(first)  # leeway: rotates the unused successor instead of failing
+    assert recovered.access_token
+    live = [t for t in w.store.tokens.values() if not t.is_revoked()]
+    assert len(live) == 1  # the chain stays linear: exactly one usable token, in the same family
+    assert (await w.refresh(recovered.refresh_secret)).access_token
+
+
+async def test_leeway_does_not_cover_a_token_whose_successor_was_really_used(w: World) -> None:
+    first = await signed_in(w)
+    second = (await w.refresh(first)).refresh_secret
+    newest = (await w.refresh(second)).refresh_secret  # the browser did get `second` and used it
+    w.clock.advance(seconds=3)
+    with pytest.raises(UnauthorizedError, match="just used"):  # two tabs racing: refuse, but do not punish
+        await w.refresh(first)
+    assert (await w.refresh(newest)).access_token  # the family survived
+
+
+async def test_a_replay_after_the_leeway_is_reuse_and_kills_the_family(w: World) -> None:
     first = await signed_in(w)
     newest = (await w.refresh(first)).refresh_secret
-    w.clock.advance(seconds=3)  # two tabs refreshing at once
-    with pytest.raises(UnauthorizedError, match="just used"):
-        await w.refresh(first)
-    assert (await w.refresh(newest)).access_token  # the family survives
     w.clock.advance(seconds=30)
-    with pytest.raises(UnauthorizedError, match="reuse"):  # after the window it is treated as reuse
+    with pytest.raises(UnauthorizedError, match="reuse"):
         await w.refresh(first)
+    with pytest.raises(UnauthorizedError):
+        await w.refresh(newest)
+    assert all(t.is_revoked() for t in w.store.tokens.values())
 
 
 async def test_refresh_rejects_unknown_expired_and_orphaned_tokens(w: World) -> None:

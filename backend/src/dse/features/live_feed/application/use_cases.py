@@ -8,6 +8,7 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import Awaitable, Callable, Sequence
+from datetime import date, datetime, time, timedelta, tzinfo
 from typing import Any, Literal
 
 from dse.features.live_feed.application.dto import (
@@ -20,10 +21,17 @@ from dse.features.live_feed.application.dto import (
 )
 from dse.features.live_feed.application.mappers import feed_status_dto, market_dto, quote_dto
 from dse.features.live_feed.application.ports import EventPublisher, LiveStateStore, OnceGuard
-from dse.features.live_feed.domain.entities import LiveSnapshot, PollPolicy, Tick
+from dse.features.live_feed.domain.entities import (
+    LiveSnapshot,
+    MinuteBar,
+    PollPolicy,
+    Tick,
+    minute_bars,
+)
 from dse.features.live_feed.domain.ports import LiveFeedUnitOfWork, SnapshotFeed
 from dse.shared_kernel.clock import Clock
 from dse.shared_kernel.errors import ServiceNotReadyError
+from dse.shared_kernel.symbol import Symbol
 
 log = logging.getLogger("dse.live_feed")
 UowFactory = Callable[[], LiveFeedUnitOfWork]
@@ -284,3 +292,19 @@ class BroadcastEvent:
         await self._publisher.publish(
             [FeedEvent(event=event, symbol=None, data=data, received_ms=epoch_ms(self._clock))]
         )
+
+
+class GetMinuteBars:
+    """1-minute bars of one instrument for a trading day, built from the ticks the worker recorded."""
+
+    def __init__(self, uow: UowFactory, clock: Clock, tz: tzinfo) -> None:
+        self._uow, self._clock, self._tz = uow, clock, tz
+
+    async def __call__(self, symbol: Symbol, day: date | None = None) -> list[MinuteBar]:
+        day = day or self._clock.today()
+        start = datetime.combine(day, time.min, tzinfo=self._tz)
+        async with self._uow() as uow:
+            ticks = await uow.ticks.between(
+                symbol, int(start.timestamp() * 1000), int((start + timedelta(days=1)).timestamp() * 1000)
+            )
+        return minute_bars(ticks, self._tz)

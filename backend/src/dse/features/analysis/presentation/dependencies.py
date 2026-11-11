@@ -5,10 +5,13 @@ from dataclasses import dataclass
 from fastapi import Request
 
 from dse.features.analysis.application.facade import AnalysisFacade
-from dse.features.analysis.application.ports import AnalysisInputs
+from dse.features.analysis.application.ports import AnalysisInputs, HistorySource
 from dse.features.analysis.application.use_cases import (
     AnalyzeInstrument,
+    CalculateReturn,
+    ComputeCorrelation,
     GetBrief,
+    GetIntraday,
     GetTechnicals,
     GetVpa,
     RankSymbols,
@@ -18,6 +21,7 @@ from dse.features.analysis.application.use_cases import (
 @dataclass(frozen=True)
 class AnalysisContainer:
     inputs: AnalysisInputs
+    history: HistorySource
 
     @property
     def analyze(self) -> AnalyzeInstrument:
@@ -38,6 +42,18 @@ class AnalysisContainer:
     @property
     def rank(self) -> RankSymbols:
         return RankSymbols(self.analyze)
+
+    @property
+    def calculate_return(self) -> CalculateReturn:
+        return CalculateReturn(self.history)
+
+    @property
+    def correlation(self) -> ComputeCorrelation:
+        return ComputeCorrelation(self.history)
+
+    @property
+    def intraday(self) -> GetIntraday:
+        return GetIntraday(self.history)
 
     @property
     def facade(self) -> AnalysisFacade:

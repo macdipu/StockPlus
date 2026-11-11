@@ -4,8 +4,9 @@ Cross-feature rule (ARCHITECTURE §4.3): only `<feature>.application.facade` may
 """
 
 import logging
+from datetime import date
 
-from dse.features.analysis.application.inputs import AnalysisInput
+from dse.features.analysis.application.inputs import AnalysisInput, MinuteInput
 from dse.features.analysis.domain.frames import Bar, LiveBar
 from dse.features.live_feed.application.facade import LiveFeedFacade
 from dse.features.market_data.application.facade import MarketDataFacade
@@ -80,3 +81,38 @@ class FacadeAnalysisInputs:
                 for a in announcements
             ),
         )
+
+
+class FacadeHistorySource:
+    """HistorySource: daily bars from market_data, live bar and recorded minutes from live_feed."""
+
+    def __init__(self, market_data: MarketDataFacade, live: LiveFeedFacade) -> None:
+        self._md, self._live = market_data, live
+
+    async def bars(self, symbol: str, limit: int) -> tuple[Bar, ...]:
+        rows = await self._md.daily_bars(Symbol(symbol), limit)
+        return tuple(Bar(b.day, b.open, b.high, b.low, b.close, float(b.volume), b.trades) for b in rows)
+
+    async def live_bar(self, symbol: str) -> LiveBar | None:
+        try:
+            quotes = await self._live.quotes([symbol])
+            market = await self._live.market()
+        except ServiceNotReadyError:
+            return None
+        if not quotes or market.session.day is None:
+            return None
+        q = quotes[0]
+        return LiveBar(
+            market.session.day,
+            q.ltp,
+            q.open,
+            q.high,
+            q.low,
+            q.close,
+            float(q.volume),
+            float(q.trades) if q.trades is not None else None,
+        )
+
+    async def minute_bars(self, symbol: str, day: date | None) -> tuple[MinuteInput, ...]:
+        rows = await self._live.minute_bars(Symbol(symbol), day)
+        return tuple(MinuteInput(m.minute, m.open, m.high, m.low, m.close, float(m.volume)) for m in rows)

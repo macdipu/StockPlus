@@ -1,14 +1,23 @@
 """Dependency providers. Build use cases from the process-wide resources on app.state."""
 
 from dataclasses import dataclass
+from datetime import tzinfo
 
 from fastapi import Request
 
 from dse.core.config import LiveSettings
+from dse.core.db import Database
 from dse.features.live_feed.application.facade import LiveFeedFacade
 from dse.features.live_feed.application.hub import FeedHub
 from dse.features.live_feed.application.ports import LiveStateStore
-from dse.features.live_feed.application.use_cases import GetFeedStatus, GetMarket, GetMovers, GetQuotes
+from dse.features.live_feed.application.use_cases import (
+    GetFeedStatus,
+    GetMarket,
+    GetMinuteBars,
+    GetMovers,
+    GetQuotes,
+)
+from dse.features.live_feed.infrastructure.repositories import SqlLiveFeedUnitOfWork
 from dse.shared_kernel.clock import Clock
 
 
@@ -20,6 +29,8 @@ class LiveFeedContainer:
     hub: FeedHub
     clock: Clock
     settings: LiveSettings
+    db: Database
+    tz: tzinfo
 
     @property
     def get_quotes(self) -> GetQuotes:
@@ -38,8 +49,12 @@ class LiveFeedContainer:
         return GetFeedStatus(self.store, self.clock, self.settings.stale_after_s)
 
     @property
+    def get_minute_bars(self) -> GetMinuteBars:
+        return GetMinuteBars(lambda: SqlLiveFeedUnitOfWork(self.db.sessions), self.clock, self.tz)
+
+    @property
     def facade(self) -> LiveFeedFacade:
-        return LiveFeedFacade(self.get_quotes, self.get_market)
+        return LiveFeedFacade(self.get_quotes, self.get_market, minutes=self.get_minute_bars)
 
 
 def container(request: Request) -> LiveFeedContainer:

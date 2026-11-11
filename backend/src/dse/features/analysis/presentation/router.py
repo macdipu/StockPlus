@@ -1,5 +1,6 @@
 """HTTP adapter for single-instrument analysis. Thin: validate, call one use case, wrap the result."""
 
+from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -67,3 +68,38 @@ async def screener(
         raise ValidationFailedError(f"At most {SCREENER_MAX_SYMBOLS} symbols (got {len(codes)}).")
     rows = await c.rank(codes)
     return envelope([r.model_dump(mode="json") for r in rows], count=len(rows))
+
+
+@router.get("/stocks/{symbol}/intraday", summary="1-minute bars recorded from the live feed, with VPA labels")
+async def get_intraday(
+    symbol: SymbolPath, c: Container, day: Annotated[date | None, Query(description="default: today")] = None
+) -> dict[str, Any]:
+    rows = await c.intraday(Symbol(symbol).value, day)
+    note = (
+        None if rows else "No ticks recorded for this day yet; the worker records them while the market runs."
+    )
+    return envelope([r.model_dump(mode="json") for r in rows], count=len(rows), note=note)
+
+
+@router.get("/tools/return", tags=["tools"], summary="Price return between two dates, after round-trip fees")
+async def tool_return(
+    symbol: Annotated[str, Query(max_length=24)],
+    buy_date: date,
+    c: Container,
+    sell_date: date | None = None,
+    quantity: Annotated[float, Query(gt=0, le=1e9)] = 100,
+    fee_pct: Annotated[float, Query(ge=0, le=5)] = 0.4,
+) -> dict[str, Any]:
+    out = await c.calculate_return(Symbol(symbol).value, buy_date, sell_date, quantity, fee_pct)
+    return envelope(out.model_dump(mode="json"))
+
+
+@router.get("/tools/correlation", tags=["tools"], summary="Correlation of daily returns")
+async def tool_correlation(
+    symbols: Annotated[str, Query(description="Comma-separated codes, 2 to 20", examples=["GP,BATBC,ROBI"])],
+    c: Container,
+    days: Annotated[int, Query(ge=20, le=400)] = 120,
+) -> dict[str, Any]:
+    codes = [Symbol(s).value for s in symbols.split(",") if s.strip()]
+    out = await c.correlation(codes, days)
+    return envelope(out.model_dump(mode="json"))

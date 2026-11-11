@@ -5,12 +5,14 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Self
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dse.core.db import SqlAlchemyUnitOfWork
 from dse.features.live_feed.domain.entities import Tick
 from dse.features.live_feed.infrastructure.orm import TickRow
+from dse.shared_kernel.symbol import Symbol
 
 _CHUNK = 1000
 
@@ -22,6 +24,31 @@ def _dec(v: float | None) -> Decimal | None:
 class SqlTickRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
+
+    async def between(self, symbol: Symbol, start_ms: int, end_ms: int) -> list[Tick]:
+        rows = await self._s.scalars(
+            select(TickRow)
+            .where(
+                TickRow.symbol == symbol.value,
+                TickRow.ts >= datetime.fromtimestamp(start_ms / 1000, UTC),
+                TickRow.ts < datetime.fromtimestamp(end_ms / 1000, UTC),
+            )
+            .order_by(TickRow.ts)
+        )
+        return [
+            Tick(
+                symbol,
+                int(r.ts.timestamp() * 1000),
+                r.trade_time,
+                float(r.ltp) if r.ltp is not None else None,
+                float(r.high) if r.high is not None else None,
+                float(r.low) if r.low is not None else None,
+                int(r.volume),
+                float(r.value_mn) if r.value_mn is not None else None,
+                r.trades,
+            )
+            for r in rows
+        ]
 
     async def record(self, ticks: Sequence[Tick]) -> int:
         written = 0

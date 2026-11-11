@@ -108,6 +108,9 @@ class FakeUow:
             async def get_by_hash(self, token_hash: str) -> RefreshToken | None:
                 return next((t for t in store.tokens.values() if t.token_hash == token_hash), None)
 
+            async def get(self, token_id: UUID) -> RefreshToken | None:
+                return store.tokens.get(token_id)
+
             async def mark_rotated(self, token_id: UUID, at: datetime, replaced_by: UUID) -> None:
                 store.tokens[token_id] = store.tokens[token_id].revoked(at, replaced_by)
 

@@ -234,7 +234,7 @@ def test_forged_tampered_and_expired_access_tokens_are_401(make_app: Callable[..
 
 
 # ======================================================================================== refresh cookie
-def test_refresh_rotates_and_a_just_used_token_is_only_a_race(client: TestClient) -> None:
+def test_refresh_rotates_the_cookie(client: TestClient) -> None:
     email = uniq()
     register(client, email)
     login(client, email)
@@ -249,13 +249,48 @@ def test_refresh_rotates_and_a_just_used_token_is_only_a_race(client: TestClient
     assert r.json()["data"]["access_token"]
     assert r.headers["cache-control"] == "no-store"
 
-    client.cookies.set(COOKIE, first, path=f"{API}/auth")  # a concurrent tab still holding the old cookie
+
+def test_a_reload_that_aborts_the_refresh_response_does_not_sign_the_user_out(client: TestClient) -> None:
+    """The server rotated the cookie but the browser never received it (the page was reloaded mid-request), so
+    it presents the spent token again. Within the leeway window that must still work."""
+    email = uniq()
+    register(client, email)
+    login(client, email)
+    held = client.cookies.get(COOKIE)  # what the browser will still have after the aborted response
+    assert held
+    assert client.post(f"{API}/auth/refresh").status_code == 200  # response "lost"
+
+    client.cookies.clear()  # the browser's jar holds exactly one cookie: the spent one
+    client.cookies.set(COOKIE, held, path=f"{API}/auth")
+    again = client.post(f"{API}/auth/refresh")
+    assert again.status_code == 200
+    fresh = [c.value for c in client.cookies.jar if c.name == COOKIE and c.value != held]
+    assert len(fresh) == 1  # the response carried a new cookie
+    client.cookies.clear()
+    client.cookies.set(COOKIE, fresh[0], path=f"{API}/auth")
+    assert client.post(f"{API}/auth/refresh").status_code == 200
+    assert sql("SELECT count(*) FROM refresh_tokens WHERE revoked_at IS NULL") == [(1,)]  # one live token
+
+
+def test_two_tabs_racing_are_refused_without_losing_the_session(client: TestClient) -> None:
+    email = uniq()
+    register(client, email)
+    login(client, email)
+    first = client.cookies.get(COOKIE)
+    assert first
+    assert client.post(f"{API}/auth/refresh").status_code == 200
+    second = client.cookies.get(COOKIE)
+    assert second
+    assert client.post(f"{API}/auth/refresh").status_code == 200  # tab A really used `second`
+
+    client.cookies.set(COOKIE, first, path=f"{API}/auth")  # tab B still holds the oldest cookie
     race = client.post(f"{API}/auth/refresh")
     assert race.status_code == 401
     assert "just used" in race.json()["detail"]
-    assert "set-cookie" not in race.headers  # the newer cookie the other tab received must not be cleared
-    client.cookies.set(COOKIE, second, path=f"{API}/auth")
-    assert client.post(f"{API}/auth/refresh").status_code == 200  # the family survived
+    assert "set-cookie" not in race.headers  # the newer cookie tab A received must not be cleared
+    assert sql("SELECT count(*) FROM refresh_tokens WHERE revoked_at IS NULL") == [
+        (1,)
+    ]  # the family survived
 
 
 def test_replaying_a_stolen_refresh_token_kills_the_session(make_app: Callable[..., Any]) -> None:

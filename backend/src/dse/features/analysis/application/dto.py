@@ -124,3 +124,36 @@ class ScreenerRowDto(BaseModel):
     rr: float | None = None
     p_target_first: float | None = None
     error: str | None = None
+
+
+class ReturnDto(BaseModel):
+    symbol: str
+    buy_date: str
+    buy_price: float
+    sell_date: str
+    sell_price: float
+    quantity: float
+    fee_pct: float
+    cost: float
+    proceeds: float
+    profit: float
+    return_pct: float
+    days: int
+    annualised_pct: float | None
+    note: str
+
+
+class CorrelationDto(BaseModel):
+    symbols: list[str]
+    days: int
+    matrix: list[list[float | None]]
+
+
+class IntradayBarDto(BaseModel):
+    time: str  # HH:MM, exchange time
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    vpa: str | None = None

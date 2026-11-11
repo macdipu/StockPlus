@@ -6,6 +6,7 @@ from types import TracebackType
 from typing import Protocol
 
 from dse.features.live_feed.domain.entities import LiveSnapshot, Tick
+from dse.shared_kernel.symbol import Symbol
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +22,10 @@ class SnapshotFeed(Protocol):
 
 
 class TickRepository(Protocol):
+    async def between(self, symbol: Symbol, start_ms: int, end_ms: int) -> list[Tick]:
+        """Ticks of one instrument with start_ms <= ts < end_ms, oldest first."""
+        ...
+
     async def record(self, ticks: Sequence[Tick]) -> int:
         """Insert; a (symbol, ts) already recorded is ignored. Returns rows written."""
         ...

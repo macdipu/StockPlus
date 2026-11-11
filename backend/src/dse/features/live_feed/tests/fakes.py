@@ -11,6 +11,7 @@ from dse.core.clock import DHAKA
 from dse.features.live_feed.application.dto import FeedCounters, FeedEvent, PublishedEvent
 from dse.features.live_feed.domain.entities import LiveQuote, LiveSnapshot, MarketState, Tick
 from dse.features.live_feed.domain.ports import FetchResult
+from dse.shared_kernel.symbol import Symbol
 
 NOW = datetime(2026, 11, 11, 11, 40, tzinfo=DHAKA)
 
@@ -136,6 +137,12 @@ class FakeUow:
         outer = self
 
         class Ticks:
+            async def between(self, symbol: Symbol, start_ms: int, end_ms: int) -> list[Tick]:
+                return sorted(
+                    (t for t in log.rows if t.symbol == symbol and start_ms <= t.ts_ms < end_ms),
+                    key=lambda t: t.ts_ms,
+                )
+
             async def record(self, ticks: Sequence[Tick]) -> int:
                 if log.fail:
                     raise RuntimeError("db down")
