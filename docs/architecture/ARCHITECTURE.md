@@ -21,7 +21,7 @@ Exit criterion verified two ways: integration test boots two uvicorn servers and
 Decisions: payload fields are snake_case like Phase 1 (legacy camelCase `assetType`/`tradeTime` change with the Phase 6 frontend); no `analysis`/`universe` stream events yet (Phases 3/4 add them as worker hooks); SSE does not replay on `Last-Event-ID` (ADR 0006 amendment). Ticks have no retention policy yet (~100k rows/trading day).
 
 Migration strategy: **strangler fig**. The new modular monolith (`backend/`, `frontend/`) is built next to
-the legacy app (repo root). Features move one at a time behind the same `/api/v1` contract. The legacy app
+the legacy app (`legacy/`). Features move one at a time behind the same `/api/v1` contract. The legacy app
 keeps serving until the new one reaches parity, then it is deleted. No big-bang rewrite.
 
 **Phase 3 notes.** `analysis` feature. Domain = the legacy analytics moved over verbatim (`indicators`, `patterns`, `vpa`, `valuation`, `setup_score`, `signals`), with pattern detectors split into a `DETECTORS` strategy list, valuation constants moved out of `config.py`, plus two new modules: `frames` (stored bars + live bar → OHLCV frame) and `summary` (the plain-language composer, moved out of `report.py`, P5). Application: `build()` (pure, = legacy `service.build`), `AnalyzeInstrument`/`GetBrief`/`GetTechnicals`/`GetVpa`/`RankSymbols` (pandas runs in a worker thread), Markdown `render_brief`, `AnalysisFacade`. Infrastructure: `FacadeAnalysisInputs` assembles one instrument from the `market_data` and `live_feed` **facades only** (new import-linter contract allows exactly those two imports). Endpoints: `/stocks/{symbol}/analysis`, `/brief`, `/technicals`, `/vpa`, `/screener`. `market_data` facade gained `announcements`.
@@ -49,7 +49,7 @@ Deliberately not ported: **market depth** (`/stocks/{symbol}/depth`) because it 
 
 ---
 
-## 1. Inspection — what exists (legacy, repo root)
+## 1. Inspection — what exists (legacy, now in `legacy/`)
 
 | Module | Role | Depends on |
 |---|---|---|

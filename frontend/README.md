@@ -22,7 +22,7 @@ The access token lives in memory only; the refresh cookie restores the session a
 ## Run
 
 ```bash
-docker compose up -d db redis          # repo root; then the API + worker, e.g. `docker compose up -d`
+docker compose up -d db redis          # from the repo root; add `migrate api worker` (or just `up -d`) for the API
 API_ORIGIN=http://localhost:8001 npm run dev
 ```
 
