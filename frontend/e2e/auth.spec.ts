@@ -2,15 +2,18 @@ import { expect, test } from "@playwright/test";
 import { PASSWORD, register, signOut, uniqueEmail } from "./helpers";
 
 test.describe("Accounts and watchlists", () => {
-  test("a visitor has a local watchlist that survives a reload", async ({ page }) => {
+  test("a visitor starts empty and builds a local watchlist that survives a reload", async ({ page }) => {
     await page.goto("/stock/GP");
     const list = page.getByRole("region", { name: "Watchlist" });
     await expect(list.getByText(/Saved in this browser/)).toBeVisible();
-    await list.getByRole("button", { name: "Remove ROBI" }).click();
-    await expect(list.getByTestId("watch-ROBI")).toHaveCount(0);
+    await expect(list.getByTestId("watch-GP")).toHaveCount(0); // nothing is chosen on the visitor's behalf
+    await list.getByRole("button", { name: /add GP/ }).click();
+    await expect(list.getByTestId("watch-GP")).toBeVisible();
     await page.reload();
     await expect(list.getByTestId("watch-GP")).toBeVisible();
-    await expect(list.getByTestId("watch-ROBI")).toHaveCount(0); // the removal persisted in this browser
+    await list.getByRole("button", { name: "Remove GP" }).click();
+    await page.reload();
+    await expect(list.getByTestId("watch-GP")).toHaveCount(0); // the removal persisted in this browser
   });
 
   test("register → signed in → session survives a reload → sign out", async ({ page }) => {
@@ -55,17 +58,39 @@ test.describe("Accounts and watchlists", () => {
     await other.context().close();
   });
 
-  test("a customised guest list is carried into the account at first sign-in", async ({ page }) => {
+  test("a guest list is carried into a new account at first sign-in", async ({ page }) => {
     await page.goto("/stock/GP");
     const list = page.getByRole("region", { name: "Watchlist" });
-    await list.getByRole("button", { name: "Remove BRACBANK" }).click();
-    await expect(list.getByTestId("watch-BRACBANK")).toHaveCount(0);
+    await list.getByRole("button", { name: /add GP/ }).click();
+    await expect(list.getByTestId("watch-GP")).toBeVisible();
     await register(page);
-    await page.goto("/market");
+    await page.goto("/");
     const mine = page.getByRole("region", { name: "Watchlist" });
     await expect(mine.getByText(/Saved to your account/)).toBeVisible();
     await expect(mine.getByTestId("watch-GP")).toBeVisible();
-    await expect(mine.getByTestId("watch-BRACBANK")).toHaveCount(0); // the customisation came along
+    expect(await page.evaluate(() => localStorage.getItem("dse.guest.watchlist"))).toBeNull(); // moved, not copied
+  });
+
+  test("a guest list is merged into an existing account's list when signing in", async ({ page }) => {
+    const email = await register(page);
+    await page.goto("/stock/ORIONINFU");
+    const list = page.getByRole("region", { name: "Watchlist" });
+    await list.getByRole("button", { name: /add ORIONINFU/ }).click();
+    await expect(list.getByTestId("watch-ORIONINFU")).toBeVisible();
+    await signOut(page);
+
+    await page.goto("/stock/GP"); // back to being a visitor, with a new local list
+    await list.getByRole("button", { name: /add GP/ }).click();
+    await expect(list.getByText(/Saved in this browser/)).toBeVisible();
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByTestId("user-menu")).toBeVisible();
+    await page.goto("/");
+    const mine = page.getByRole("region", { name: "Watchlist" });
+    await expect(mine.getByTestId("watch-ORIONINFU")).toBeVisible(); // what the account had
+    await expect(mine.getByTestId("watch-GP")).toBeVisible(); // what this browser had
   });
 
   test("wrong password and duplicate registration are explained", async ({ page }) => {

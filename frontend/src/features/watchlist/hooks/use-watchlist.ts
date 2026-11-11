@@ -61,25 +61,33 @@ export function useWatchlist(): WatchlistApi {
     onSuccess: (w) => w && store(w),
   });
 
-  // First sign-in with a customised guest list and no account list yet: carry it over, once.
+  // Signed in with a guest list saved in this browser: carry it into the account, once, then clear it.
+  // No account list yet -> create it; an existing one -> add only the symbols it lacks.
   const imported = useRef(false);
   useEffect(() => {
-    if (!signedIn || !lists.isSuccess || lists.data.length > 0 || imported.current || !guestListWasCustomised()) return;
+    if (!signedIn || !lists.isSuccess || imported.current || !guestListWasCustomised()) return;
     imported.current = true;
-    const symbols = [...getGuestSymbols()];
+    const have = new Set(main?.symbols ?? []);
+    const wanted = getGuestSymbols().filter((s) => !have.has(s));
+    if (wanted.length === 0) {
+      clearGuestSymbols();
+      return;
+    }
+    const push = (symbols: readonly string[]) =>
+      main ? watchlistApi.add(main.id, symbols) : watchlistApi.create(DEFAULT_LIST_NAME, symbols);
     void (async () => {
       try {
-        store((await watchlistApi.create(DEFAULT_LIST_NAME, symbols)).data);
+        store((await push(wanted)).data);
         clearGuestSymbols();
       } catch (e) {
         const bad = new Set(unknownSymbols(e));
-        if (bad.size) {
-          try {
-            store((await watchlistApi.create(DEFAULT_LIST_NAME, symbols.filter((s) => !bad.has(s)))).data);
-            clearGuestSymbols();
-          } catch {
-            /* keep the guest list; the user can add symbols by hand */
-          }
+        const rest = wanted.filter((s) => !bad.has(s));
+        if (bad.size === 0) return; // keep the guest list; the user can add symbols by hand
+        try {
+          if (rest.length > 0) store((await push(rest)).data);
+          clearGuestSymbols();
+        } catch {
+          imported.current = false; // keep the guest list and try again on the next load
         }
       }
     })();

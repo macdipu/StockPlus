@@ -4,7 +4,8 @@
  */
 
 export const GUEST_KEY = "dse.guest.watchlist";
-export const DEFAULT_GUEST_SYMBOLS: readonly string[] = ["GP", "BATBC", "SQURPHARMA", "BRACBANK", "ROBI"];
+/** A visitor starts with an empty list: nothing is chosen on their behalf. */
+export const DEFAULT_GUEST_SYMBOLS: readonly string[] = [];
 
 const listeners = new Set<() => void>();
 let cachedRaw: string | null | undefined;
