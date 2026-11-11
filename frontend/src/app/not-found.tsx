@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="card notice">
       <h3>Page not found</h3>
       <p>
-        <Link href="/stock/GP">Go to the stock page</Link>
+        <Link href="/">Go to the dashboard</Link>
       </p>
     </div>
   );

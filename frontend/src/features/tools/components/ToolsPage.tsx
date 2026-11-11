@@ -109,7 +109,7 @@ function CorrelationTool({ defaults }: { defaults: string }) {
 
 export function ToolsPage() {
   const watched = useWatchlist().symbols;
-  const first = watched[0] ?? "GP";
+  const first = watched[0] ?? "";
   return (
     <>
       <div className="grid2">
@@ -117,7 +117,7 @@ export function ToolsPage() {
         <CsvDownload defaultSymbol={first} />
       </div>
       <div style={{ marginTop: 16 }}>
-        <CorrelationTool defaults={watched.slice(0, 6).join(",") || "GP,BATBC,ROBI"} />
+        <CorrelationTool defaults={watched.slice(0, 6).join(",")} />
       </div>
     </>
   );
