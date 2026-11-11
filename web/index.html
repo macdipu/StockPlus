@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSE Live Analyzer</title>
+<script src="/vendor/plotly.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e2e8f0;--up:#15803d;--dn:#dc2626;--accent:#2563eb;--flash-up:#dcfce7;--flash-dn:#fee2e2;--chip:#f1f5f9}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1120;--card:#111827;--ink:#e5e7eb;--mute:#94a3b8;--line:#1f2937;--up:#22c55e;--dn:#f87171;--accent:#60a5fa;--flash-up:#14532d;--flash-dn:#7f1d1d;--chip:#1f2937}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+header b.brand{font-size:16px}.dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--mute);margin-right:6px}
+.dot.live{background:var(--up);box-shadow:0 0 0 0 var(--up);animation:pulse 2s infinite}.dot.err{background:var(--dn)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.mute{color:var(--mute)}.up{color:var(--up)}.dn{color:var(--dn)}.small{font-size:12px}
+form{margin-left:auto;display:flex;gap:6px}#sym{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:170px;text-transform:uppercase}
+button{padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--accent);color:#fff;cursor:pointer}button.ghost{background:transparent;color:var(--ink)}
+.layout{display:grid;grid-template-columns:240px 1fr;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+@media (max-width:900px){.layout{grid-template-columns:1fr}aside{order:2}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.watch{list-style:none;margin:0;padding:0}.watch li{display:flex;justify-content:space-between;align-items:center;padding:7px 6px;border-radius:8px;cursor:pointer;transition:background .6s}
+.watch li:hover{background:var(--chip)}.watch li.sel{outline:1px solid var(--accent)}.watch .x{border:0;background:none;color:var(--mute);padding:0 4px;cursor:pointer}
+.hero{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end}.ltp{font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:8px;transition:background .8s}
+.flash-up{background:var(--flash-up)!important}.flash-dn{background:var(--flash-dn)!important}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px 16px;font-variant-numeric:tabular-nums}.kv div span{display:block;color:var(--mute);font-size:12px}
+.pill{display:inline-block;padding:6px 14px;border-radius:999px;color:#fff;font-weight:700;letter-spacing:.03em}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}td,th{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute);font-weight:500}
+.bar{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;display:flex}.bar i{display:block;height:100%}
+#chart{height:560px}.links a{color:var(--accent);margin-right:12px}footer{text-align:center;color:var(--mute);padding:24px 16px}
+.skeleton{color:var(--mute);padding:40px;text-align:center}
+nav.tabs{display:flex;gap:4px}nav.tabs a{padding:6px 12px;border-radius:8px;color:var(--ink);text-decoration:none}nav.tabs a.on{background:var(--chip);font-weight:600}
+th.sort{cursor:pointer;white-space:nowrap}th.sort:hover{color:var(--ink)}tr.click{cursor:pointer}tr.click:hover td{background:var(--chip)}
+.tablewrap{overflow:auto;max-height:70vh}.tablewrap thead th{position:sticky;top:0;background:var(--card)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:5px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink)}.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+select,.inp{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.rule{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.ladder td{padding:3px 6px}.ladder .q{position:relative}.ladder .q i{position:absolute;top:2px;bottom:2px;opacity:.18;border-radius:3px}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+</style>
+</head>
+<body>
+<header>
+  <b class="brand">DSE Live Analyzer</b>
+  <nav class="tabs" id="tabs"><a href="#/stock">Stock</a><a href="#/market">Market</a><a href="#/scanner">Scanner</a><a href="#/data">Data</a><a href="#/tools">Tools</a></nav>
+  <span><span id="feedDot" class="dot"></span><span id="feedTxt" class="small">connecting…</span></span>
+  <span id="session" class="small mute"></span>
+  <span id="dsex" class="small"></span>
+  <span id="breadth" class="small" style="min-width:160px"></span>
+  <form id="search"><input id="sym" list="symbols" placeholder="Symbol e.g. GP" autocomplete="off" aria-label="Symbol"><datalist id="symbols"></datalist><button>Analyze</button></form>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card"><h3>Watchlist</h3><ul id="watch" class="watch"></ul>
+      <button class="ghost small" id="addWatch" style="margin-top:8px;width:100%">+ add current</button></div>
+    <div class="card"><h3>Latency</h3>
+      <div class="small">Upstream trade time <b id="tradeTime">–</b></div>
+      <div class="small">Last tick → screen <b id="lat">–</b></div>
+      <div class="small">Feed poll every <b id="pollS">–</b></div>
+      <p class="small mute">DSE publishes about once a minute behind a 10–15 s CDN cache. New ticks are pushed here the moment they land.</p></div>
+    <div class="card links small"><h3>For AI agents</h3>
+      <a id="lnkJson" target="_blank">analysis.json</a><a id="lnkBrief" target="_blank">brief.md</a><a href="/docs" target="_blank">API docs</a></div>
+  </aside>
+
+  <div><main id="main"><div class="card skeleton">Loading…</div></main><section id="view" hidden></section></div>
+</div>
+<footer>For research only, not investment advice. Data: www.dse.com.bd.</footer>
+
+<template id="tpl">
+  <div class="card">
+    <div class="hero">
+      <div><div class="mute"><b id="code" style="color:var(--ink);font-size:18px"></b> <span id="name"></span> · <span id="cat"></span></div>
+        <span id="ltp" class="ltp">–</span> <span id="chg" style="font-size:18px;font-weight:600"></span></div>
+      <div class="kv" style="flex:1">
+        <div><span>Open</span><b id="o"></b></div><div><span>High</span><b id="h"></b></div><div><span>Low</span><b id="l"></b></div>
+        <div><span>Prev close</span><b id="yc"></b></div><div><span>Volume</span><b id="v"></b></div><div><span>Value (mn)</span><b id="valmn"></b></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="hero" style="align-items:center">
+      <span id="action" class="pill">–</span>
+      <div class="kv" style="flex:1">
+        <div><span>Setup score</span><b id="score"></b></div><div><span>Risk / reward</span><b id="rr"></b></div>
+        <div><span>Hit rate (similar)</span><b id="ph"></b></div><div><span>Baseline (all days)</span><b id="pb"></b></div>
+        <div><span>Expectancy / trade</span><b id="exp"></b></div><div><span>Samples</span><b id="pn"></b></div>
+      </div></div>
+    <p id="pwarn" class="small dn"></p>
+    <div class="grid2 small"><div><b class="up">Bullish</b><ul id="bull"></ul></div><div><b class="dn">Bearish</b><ul id="bear"></ul></div></div>
+  </div>
+  <div class="card"><div id="chart"></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Trade plan</h3><table id="plan"></table><div id="flags" class="small dn"></div></div>
+    <div class="card"><h3>Setup checklist</h3><table id="checks"></table></div>
+    <div class="card"><h3>Support / resistance</h3><table id="levels"></table></div>
+    <div class="card"><h3>Trend</h3><table id="trend"></table></div>
+    <div class="card"><h3>Indicators</h3><table id="ind"></table></div>
+    <div class="card"><h3>Candle patterns (last 10)</h3><p id="lastCandle" class="small"></p><table id="pats"></table></div>
+  </div>
+  <div class="card"><h3>Summary</h3><ul id="summary"></ul></div>
+  <div class="grid2">
+    <div class="card"><h3>Market depth <span class="small mute" id="depthTs"></span></h3><div id="depth" class="small mute">Loading…</div></div>
+    <div class="card"><h3>Volume-price analysis (daily)</h3><div id="vpa" class="small mute">Loading…</div></div>
+  </div>
+  <div class="card"><h3>Intraday (1-minute, recorded live)</h3><div id="intraday" class="small mute">Loading…</div></div>
+  <div class="card"><h3>Fair value</h3><table id="val"></table><ul id="valNotes" class="small mute"></ul></div>
+  <div class="grid2">
+    <div class="card"><h3>Fundamentals</h3><table id="fund"></table></div>
+    <div class="card"><h3>Announcements</h3><table id="news"></table></div>
+  </div>
+</template>
+
+<script>
+"use strict";
+const API = "/api/v1";
+const COLORS = {"STRONG BUY":"#15803d","BUY":"#16a34a","HOLD":"#64748b","SELL":"#dc2626","STRONG SELL":"#991b1b","AVOID":"#0f172a"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v, d = 2) => v == null || Number.isNaN(v) ? "–" : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = (v, d = 1) => v == null ? "–" : `${v >= 0 ? "+" : ""}${num(v, d)}%`;
+const cls = v => v == null ? "" : v >= 0 ? "up" : "dn";
+const store = {get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+               set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }};
+
+const state = {symbol: null, candles: [], analysis: null, quotes: {}, es: null, session: {},
+               watch: store.get("watch", ["ORIONINFU", "GP", "SQURPHARMA", "BXPHARMA", "BATBC"])};
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  const body = await r.json();
+  if (!r.ok) throw new Error(body.detail || body.title || r.statusText);
+  return body;
+}
+
+// ------------------------------------------------------------------ render: full analysis
+function renderAll(a) {
+  state.analysis = a;
+  const f = a.fundamentals;
+  $("code").textContent = a.symbol; $("name").textContent = a.name || ""; $("cat").textContent = `Category ${f.category || "?"} · ${f.sector || ""}`;
+  renderPrice({ltp: a.price.ltp, ycp: a.price.prev_close, open: a.price.open, high: a.price.high, low: a.price.low,
+               volume: a.price.volume, value: a.price.value_mn}, false);
+  renderLive(a);
+  $("val").innerHTML = "<tr><th>Method</th><th>Inputs</th><th>Fair</th><th>vs price</th></tr>" + a.valuation.rows.map(r =>
+    `<tr><td>${esc(r.method)}</td><td class="small mute">${esc(r.inputs)}</td><td>${num(r.fair_value)}</td><td class="${cls(r.gap_pct)}">${pct(r.gap_pct, 0)}</td></tr>`).join("");
+  $("valNotes").innerHTML = a.valuation.notes.map(n => `<li>${esc(n)}</li>`).join("");
+  const F = [["EPS TTM", f.eps_ttm], ["EPS basis", f.eps_ttm_basis], ["EPS Q1 / Q2 / Q3", [f.eps_q1, f.eps_q2, f.eps_q3].join(" / ")],
+    ["NAV / share", f.nav], ["P/E (TTM)", num(f.pe, 1)], ["P/E (DSE trailing)", num(f.pe_dse_trailing, 1)],
+    ["Market cap (BDT)", num(f.market_cap, 0)], ["Total shares", num(f.total_shares, 0)], ["Sponsor %", f.sponsor_pct],
+    ["Institute / Foreign / Public %", [f.institute_pct, f.foreign_pct, f.public_pct].join(" / ")],
+    ["Free float %", num(f.free_float_pct, 1)], ["Last dividend", f.last_dividend], ["Dividend yield %", f.dividend_yield_pct],
+    ["52w range", `${f.week_low_52} – ${f.week_high_52}`]];
+  $("fund").innerHTML = F.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v ?? "–")}</td></tr>`).join("");
+  $("news").innerHTML = (a.news || []).slice(0, 12).map(n =>
+    `<tr><td class="small mute" style="white-space:nowrap">${esc(n.date)}</td><td><b>${esc(n.title)}</b><div class="small">${esc(n.text)}</div></td></tr>`).join("") || "<tr><td>None</td></tr>";
+  $("lnkJson").href = `${API}/stocks/${a.symbol}/analysis`; $("lnkBrief").href = `${API}/stocks/${a.symbol}/brief`;
+  document.title = `${a.symbol} ${num(a.price.ltp)} · DSE Live`;
+}
+
+// ------------------------------------------------------------------ render: parts refreshed on every analysis tick
+function renderLive(a) {
+  const s = a.signal, st = a.setup, p = a.probability, sim = p.similar_setups, plan = st.plan;
+  $("action").textContent = s.action; $("action").style.background = COLORS[s.action] || "#64748b";
+  $("score").textContent = `${st.score} / ${st.max}`;
+  $("rr").innerHTML = `<span class="${plan.rr_ok ? "up" : "dn"}">${num(plan.rr)}</span>`;
+  $("ph").textContent = sim.p_target_first == null ? "–" : `${Math.round(sim.p_target_first * 100)}%`;
+  $("pb").textContent = p.all_days_baseline.p_target_first == null ? "–" : `${Math.round(p.all_days_baseline.p_target_first * 100)}%`;
+  $("exp").innerHTML = `<span class="${cls(sim.expectancy_pct)}">${pct(sim.expectancy_pct, 2)}</span>`;
+  $("pn").textContent = sim.n;
+  $("pwarn").textContent = p.warning || `Target +${num(p.target_pct, 1)}% before stop −${num(p.stop_pct, 1)}% within ${p.horizon_sessions} sessions. Historical frequency, not a forecast.`;
+  $("bull").innerHTML = s.bullish_reasons.map(r => `<li>${esc(r)}</li>`).join("") || "<li class='mute'>none</li>";
+  $("bear").innerHTML = s.bearish_reasons.map(r => `<li>${esc(r)}</li>`).join("") || "<li class='mute'>none</li>";
+  $("plan").innerHTML = [["Entry zone", `${num(plan.entry_zone[0])} – ${num(plan.entry_zone[1])}`],
+    ["Stop-loss", `${num(plan.stop)} <span class="small mute">${esc(plan.stop_basis)}, −${num(plan.risk_pct, 1)}%</span>`],
+    ["Target", `${num(plan.target)} <span class="small mute">${esc(plan.target_basis)}, +${num(plan.reward_pct, 1)}%</span>`],
+    ["ATR(14)", num(plan.atr)]].map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
+  $("flags").innerHTML = st.flags.map(f => `⚠ ${esc(f)}`).join("<br>");
+  $("checks").innerHTML = st.checks.map(c => `<tr><td>${esc(c.label)}</td><td class="${c.pass ? "up" : "dn"}">${c.pass ? "✔" : "✘"}</td></tr>`).join("");
+  const L = a.levels;
+  $("levels").innerHTML = [...L.above].reverse().map(x => `<tr><th class="dn">R</th><td>${num(x)}</td></tr>`).join("") +
+    `<tr><th>Price</th><td><b>${num(L.price)}</b></td></tr>` + L.below.map(x => `<tr><th class="up">S</th><td>${num(x)}</td></tr>`).join("") +
+    `<tr><th>52w</th><td>${num(L.low_52w)} – ${num(L.high_52w)}</td></tr>`;
+  $("trend").innerHTML = Object.entries(a.trend.changes).map(([k, v]) => `<tr><th>${k}</th><td class="${cls(v)}">${pct(v)}</td></tr>`).join("") +
+    Object.entries(a.trend.vs_ma).map(([k, v]) => `<tr><th>vs ${k}</th><td>${v ? `${num(v.value)} <span class="${cls(v.pct)}">(${pct(v.pct)})</span>` : "–"}</td></tr>`).join("");
+  const I = a.indicators;
+  $("ind").innerHTML = [["RSI(14)", num(I.rsi14, 1)], ["MACD / signal / hist", `${num(I.macd)} / ${num(I.macd_signal)} / ${num(I.macd_hist)}`],
+    ["EMA 9 / 21", `${num(I.ema9)} / ${num(I.ema21)}`], ["SMA 20 / 50 / 200", `${num(I.sma20)} / ${num(I.sma50)} / ${num(I.sma200)}`],
+    ["Bollinger (20,2)", `${num(I.bb_lower)} – ${num(I.bb_upper)}`], ["ATR(14)", num(I.atr14)],
+    ["Volume vs 20d avg", `${num(I.vol_ratio)}×`]].map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("");
+  const pats = a.patterns || a.candles?.patterns || [];
+  $("lastCandle").textContent = a.lastCandle || a.candles?.last_candle || "";
+  $("pats").innerHTML = [...pats].reverse().map(p => `<tr><td>${p.date}</td><td>${esc(p.pattern)}</td><td class="${p.direction === "bullish" ? "up" : p.direction === "bearish" ? "dn" : ""}">${p.direction}</td></tr>`).join("") || "<tr><td class='mute'>None detected</td></tr>";
+  $("summary").innerHTML = a.summary.map(x => `<li>${esc(x)}</li>`).join("");
+}
+
+// ------------------------------------------------------------------ render: price header (every quote tick)
+function renderPrice(q, flash = true) {
+  const el = $("ltp"); if (!el) return;
+  const prev = parseFloat(el.dataset.v);
+  el.textContent = num(q.ltp); el.dataset.v = q.ltp;
+  const chg = q.ycp ? q.ltp - q.ycp : null, cp = q.ycp ? (q.ltp / q.ycp - 1) * 100 : null;
+  $("chg").innerHTML = `<span class="${cls(chg)}">${chg == null ? "" : (chg >= 0 ? "▲ +" : "▼ ") + num(chg)} (${pct(cp, 2)})</span>`;
+  $("o").textContent = num(q.open); $("h").textContent = num(q.high); $("l").textContent = num(q.low);
+  $("yc").textContent = num(q.ycp); $("v").textContent = num(q.volume, 0); $("valmn").textContent = num(q.value, 3);
+  if (flash && !Number.isNaN(prev) && prev !== q.ltp) {
+    el.classList.remove("flash-up", "flash-dn"); void el.offsetWidth;
+    el.classList.add(q.ltp > prev ? "flash-up" : "flash-dn"); setTimeout(() => el.classList.remove("flash-up", "flash-dn"), 900);
+  }
+}
+
+// ------------------------------------------------------------------ chart
+function drawChart() {
+  const c = state.candles, a = state.analysis; if (!c.length || !$("chart")) return;
+  const x = c.map(d => d.date), css = getComputedStyle(document.documentElement);
+  const up = css.getPropertyValue("--up").trim(), dn = css.getPropertyValue("--dn").trim(), ink = css.getPropertyValue("--ink").trim(), line = css.getPropertyValue("--line").trim();
+  const ma = (k, color, dash) => ({x, y: c.map(d => d[k]), type: "scatter", mode: "lines", name: k.toUpperCase(), line: {color, width: 1.3, dash}, hoverinfo: "skip"});
+  const traces = [
+    {x, open: c.map(d => d.open), high: c.map(d => d.high), low: c.map(d => d.low), close: c.map(d => d.close), type: "candlestick", name: "OHLC",
+     increasing: {line: {color: up}, fillcolor: up}, decreasing: {line: {color: dn}, fillcolor: dn}},
+    ma("sma20", "#2563eb"), ma("sma50", "#f59e0b"), ma("sma200", "#8b5cf6"), ma("ema9", "#06b6d4", "dot"), ma("ema21", "#ec4899", "dot"),
+    {x, y: c.map(d => d.volume), type: "bar", name: "Volume", yaxis: "y2", marker: {color: c.map(d => d.close >= d.open ? up : dn)}, opacity: .45},
+  ];
+  const pats = (a && (a.patterns || a.candles?.patterns)) || [];
+  for (const [dir, sym, col, key, off] of [["bullish", "triangle-up", up, "low", .985], ["bearish", "triangle-down", dn, "high", 1.015], ["neutral", "circle", "#94a3b8", "high", 1.015]]) {
+    const ps = pats.filter(p => p.direction === dir);
+    if (ps.length) traces.push({x: ps.map(p => p.date), y: ps.map(p => p[key] * off), mode: "markers", type: "scatter", name: dir + " pattern",
+      text: ps.map(p => p.pattern), hovertemplate: "%{text}<extra></extra>", marker: {symbol: sym, size: 11, color: col}});
+  }
+  const L = a?.levels || {above: [], below: []};
+  const shapes = [...L.above.map(v => [v, dn]), ...L.below.map(v => [v, up])].map(([v, col]) =>
+    ({type: "line", xref: "paper", x0: 0, x1: 1, y0: v, y1: v, yref: "y", line: {color: col, width: 1, dash: "dash"}}));
+  const annotations = [...L.above.map(v => [v, "R"]), ...L.below.map(v => [v, "S"])].map(([v, t]) =>
+    ({xref: "paper", x: 1, y: v, yref: "y", text: `${t} ${v}`, showarrow: false, xanchor: "left", font: {size: 10, color: ink}}));
+  Plotly.react("chart", traces, {
+    margin: {l: 48, r: 60, t: 10, b: 30}, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: {color: ink},
+    xaxis: {type: "category", nticks: 10, rangeslider: {visible: false}, gridcolor: line}, showlegend: true, legend: {orientation: "h", y: 1.06},
+    yaxis: {domain: [.25, 1], gridcolor: line}, yaxis2: {domain: [0, .2], gridcolor: line}, shapes, annotations, uirevision: state.symbol,
+  }, {displaylogo: false, responsive: true});
+}
+
+function applyQuoteToCandles(q) {
+  const day = state.session.date; if (!day || !q.ltp || !(q.volume > 0)) return;
+  const c = state.candles, last = c[c.length - 1];
+  const bar = {date: day, open: q.open || q.ltp, high: q.high || q.ltp, low: q.low || q.ltp, close: q.close || q.ltp, volume: q.volume};
+  if (last && last.date === day) Object.assign(last, bar); else if (!last || day > last.date) c.push({...bar});
+  drawChart();
+}
+
+// ------------------------------------------------------------------ watchlist
+function renderWatch() {
+  $("watch").innerHTML = state.watch.map(s => {
+    const q = state.quotes[s] || {};
+    return `<li data-s="${esc(s)}" class="${s === state.symbol ? "sel" : ""}"><span><b>${esc(s)}</b><br><span class="small ${cls(q.percent)}">${pct(q.percent, 2)}</span></span>
+      <span style="text-align:right"><b>${num(q.ltp)}</b><br><button class="x" title="remove" data-x="${esc(s)}">×</button></span></li>`;
+  }).join("");
+}
+$("watch").addEventListener("click", e => {
+  const x = e.target.dataset.x;
+  if (x) { state.watch = state.watch.filter(s => s !== x); store.set("watch", state.watch); renderWatch(); connect(); e.stopPropagation(); return; }
+  const li = e.target.closest("li"); if (li) open(li.dataset.s);
+});
+$("addWatch").onclick = () => { if (state.symbol && !state.watch.includes(state.symbol)) { state.watch.push(state.symbol); store.set("watch", state.watch); renderWatch(); connect(); } };
+function flashWatch(s, up) {
+  const li = document.querySelector(`#watch li[data-s="${CSS.escape(s)}"]`); if (!li) return;
+  li.classList.add(up ? "flash-up" : "flash-dn"); setTimeout(() => li.classList.remove("flash-up", "flash-dn"), 900);
+}
+
+// ------------------------------------------------------------------ market header
+function renderMarket(m) {
+  if (!m) return;
+  state.session = m.session || state.session;
+  const s = state.session;
+  $("session").textContent = s.isOpen ? `Market open · closes ${s.closing}` : `Market closed · ${s.phase || ""}`;
+  const dsex = (m.indices || []).find(i => i.key === "DSEX");
+  if (dsex) $("dsex").innerHTML = `DSEX <b>${num(dsex.value)}</b> <span class="${cls(dsex.change)}">${pct(dsex.percent, 2)}</span>`;
+  const b = m.breadth; if (b) {
+    const t = b.advanced + b.declined + b.unchanged || 1;
+    $("breadth").innerHTML = `<div class="bar" title="▲${b.advanced} ▼${b.declined} ▬${b.unchanged}"><i style="width:${b.advanced / t * 100}%;background:var(--up)"></i><i style="width:${b.unchanged / t * 100}%;background:var(--mute)"></i><i style="width:${b.declined / t * 100}%;background:var(--dn)"></i></div><span class="small mute">▲${b.advanced} ▼${b.declined} ▬${b.unchanged}</span>`;
+  }
+  $("tradeTime").textContent = m.tradeTime || "–";
+}
+
+function feedStatus(ok, txt) { $("feedDot").className = "dot " + (ok ? "live" : "err"); $("feedTxt").textContent = txt; }
+
+// ------------------------------------------------------------------ live stream
+function connect() {
+  if (state.es) state.es.close();
+  const syms = [...new Set([state.symbol, ...state.watch].filter(Boolean))];
+  const es = new EventSource(`${API}/stream?symbols=${encodeURIComponent(syms.join(","))}`);
+  state.es = es;
+  es.onopen = () => feedStatus(true, "LIVE");
+  es.onerror = () => feedStatus(false, "reconnecting…");
+  es.addEventListener("snapshot", e => {
+    const d = JSON.parse(e.data); renderMarket(d.market);
+    Object.entries(d.quotes || {}).forEach(([s, q]) => q && (state.quotes[s] = q));
+    $("pollS").textContent = `${d.feed.pollIntervalS}s`; renderWatch();
+  });
+  es.addEventListener("quote", e => {
+    const q = JSON.parse(e.data), prev = state.quotes[q.symbol];
+    state.quotes[q.symbol] = q;
+    if (q.symbol === state.symbol) { renderPrice(q); applyQuoteToCandles(q); }
+    renderWatch(); if (prev && prev.ltp !== q.ltp) flashWatch(q.symbol, q.ltp > prev.ltp);
+    $("lat").textContent = `${Date.now() - q._meta.receivedMs} ms`; $("tradeTime").textContent = q._meta.tradeTime;
+  });
+  es.addEventListener("analysis", e => {
+    const a = JSON.parse(e.data); if (a.symbol !== state.symbol || !state.analysis) return;
+    Object.assign(state.analysis, {signal: a.signal, setup: a.setup, probability: a.probability, indicators: a.indicators,
+      levels: a.levels, trend: a.trend, summary: a.summary, patterns: a.patterns, lastCandle: a.lastCandle});
+    for (const nc of a.candles || []) {   // refresh MAs on the live bar(s)
+      const i = state.candles.findIndex(c => c.date === nc.date);
+      if (i >= 0) state.candles[i] = nc; else if (!state.candles.length || nc.date > state.candles[state.candles.length - 1].date) state.candles.push(nc);
+    }
+    renderLive(state.analysis); drawChart();
+  });
+  es.addEventListener("market", e => renderMarket(JSON.parse(e.data)));
+  es.addEventListener("universe", e => window.dispatchEvent(new CustomEvent("universe", {detail: JSON.parse(e.data)})));
+  es.addEventListener("heartbeat", e => { const d = JSON.parse(e.data); feedStatus(!d.feed.lastError, d.feed.lastError ? "upstream error" : "LIVE"); $("pollS").textContent = `${d.feed.pollIntervalS}s`; });
+  es.addEventListener("error", e => { if (e.data) console.warn("stream error", e.data); });
+}
+
+// ------------------------------------------------------------------ navigation
+async function open(symbol) {
+  symbol = symbol.trim().toUpperCase(); if (!symbol) return;
+  if (location.hash !== `#/stock/${symbol}`) { location.hash = `#/stock/${symbol}`; return; }  // router calls back
+  window.App && App.show("stock");
+  state.symbol = symbol; renderWatch();
+  $("main").innerHTML = `<div class="card skeleton">Loading ${esc(symbol)}…</div>`;
+  try {
+    const [an, cd] = await Promise.all([getJSON(`${API}/stocks/${symbol}/analysis`), getJSON(`${API}/stocks/${symbol}/candles?limit=260`)]);
+    if (state.symbol !== symbol) return;
+    $("main").innerHTML = ""; $("main").appendChild($("tpl").content.cloneNode(true));
+    state.candles = cd.data; renderAll(an.data); drawChart();
+    window.App && App.stockExtras(symbol);
+    if (an.meta.tradeTime) $("tradeTime").textContent = an.meta.tradeTime;
+  } catch (err) {
+    $("main").innerHTML = `<div class="card skeleton dn">${esc(symbol)}: ${esc(err.message)}</div>`;
+  }
+  connect();
+}
+
+$("search").addEventListener("submit", e => { e.preventDefault(); open($("sym").value); $("sym").value = ""; });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawChart);
+
+(async () => {
+  try {
+    const q = await getJSON(`${API}/quotes`);
+    $("symbols").innerHTML = q.data.map(r => `<option value="${esc(r.symbol)}">`).join("");
+    q.data.forEach(r => state.quotes[r.symbol] = r);
+    renderWatch();
+  } catch (e) { feedStatus(false, "feed unavailable"); }
+  const legacy = new URLSearchParams(location.search).get("symbol");
+  if (legacy) location.hash = `#/stock/${legacy.toUpperCase()}`;
+  App.start(state.watch[0] || "ORIONINFU");
+})();
+</script>
+<script src="/static/app.js"></script>
+</body>
+</html>

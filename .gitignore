@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+cache/
+captured/
+reports/
+screenshots/
+*.sqlite*
+node_modules/
+.next/
+.env
