@@ -2,12 +2,18 @@
 
 import { num, pct, tone } from "@/shared/lib/format";
 import { useConnection, useFeed, useLatencyMs, useMarket } from "../hooks/use-live";
-import { Card } from "@/shared/ui/Card";
 
 /** The header status: connection dot, session, DSEX and market breadth. */
 export function FeedIndicator() {
   const connection = useConnection();
   const feed = useFeed();
+  const m = useMarket();
+  const latency = useLatencyMs();
+  const detail = [
+    `DSE trade time: ${m?.trade_time ?? "unknown"}`,
+    `Last price reached this screen ${latency == null ? "–" : `${num(latency, 0)} ms`} after DSE published it`,
+    `Checked every ${feed?.poll_interval_s ?? "–"} s. DSE publishes about once a minute behind a 10–15 s cache.`,
+  ].join("\n");
   const live = connection === "live" && !feed?.last_error;
   const text =
     connection === "connecting"
@@ -18,9 +24,9 @@ export function FeedIndicator() {
           ? "offline"
           : feed?.last_error
             ? "upstream error"
-            : "LIVE";
+            : "Live";
   return (
-    <span role="status" aria-live="polite" data-testid="feed-status">
+    <span role="status" aria-live="polite" data-testid="feed-status" title={detail}>
       <span className={`dot ${live ? "live" : connection === "live" ? "err" : ""}`} aria-hidden />
       <span className="small">{text}</span>
     </span>
@@ -51,27 +57,5 @@ export function MarketStrip() {
         </span>
       ) : null}
     </>
-  );
-}
-
-export function LatencyCard() {
-  const m = useMarket();
-  const feed = useFeed();
-  const latency = useLatencyMs();
-  return (
-    <Card title="Latency">
-      <div className="small">
-        Upstream trade time <b>{m?.trade_time ?? "–"}</b>
-      </div>
-      <div className="small">
-        Last tick → screen <b>{latency == null ? "–" : `${num(latency, 0)} ms`}</b>
-      </div>
-      <div className="small">
-        Feed poll every <b>{feed?.poll_interval_s == null ? "–" : `${feed.poll_interval_s}s`}</b>
-      </div>
-      <p className="small mute">
-        DSE publishes about once a minute behind a 10–15 s CDN cache. New ticks are pushed here the moment they land.
-      </p>
-    </Card>
   );
 }

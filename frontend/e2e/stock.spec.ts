@@ -11,10 +11,14 @@ test.describe("Stock tab", () => {
     await expect(page.getByTestId("price-chart").locator("canvas").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Trade plan", level: 3 })).toBeVisible();
     await page.getByRole("tab", { name: "Technicals" }).click();
-    for (const title of ["Setup checklist", "Support / resistance", "Trend", "Indicators", "Fair value", "Fundamentals", "Announcements"]) {
+    for (const title of ["Setup checklist", "Support / resistance", "Trend", "Indicators"]) {
       await expect(page.getByRole("heading", { name: title, level: 3 })).toBeVisible();
     }
     await expect(page.getByRole("heading", { name: "Volume-price analysis (daily)" })).toBeVisible();
+    await page.getByRole("tab", { name: "Company" }).click();
+    for (const title of ["Fair value", "Fundamentals", "Financial health", "Company profile"]) {
+      await expect(page.getByRole("heading", { name: title, level: 3 })).toBeVisible();
+    }
     await expect(page).toHaveTitle(new RegExp(`${SYNCED[0]}`));
   });
 
@@ -42,20 +46,23 @@ test.describe("Stock tab", () => {
     await page.getByLabel("Trading code or sector").fill(SYNCED[1].slice(0, 2));
     await expect(page.getByRole("list", { name: "Matching symbols" }).getByRole("link").first()).toBeVisible();
     await page.getByLabel("Trading code or sector").fill(SYNCED[1]);
-    await page.getByRole("button", { name: "Analyze" }).last().click();
+    await page.getByRole("button", { name: "Open" }).click();
     await expect(page).toHaveURL(new RegExp(`/stock/${SYNCED[1]}$`));
   });
 
   test("the live stream connects through the proxy and the market strip appears", async ({ page }) => {
     await page.goto(`/stock/${SYNCED[0]}`);
-    await expect(page.getByTestId("feed-status")).toContainText("LIVE", { timeout: 20_000 });
+    await expect(page.getByTestId("feed-status")).toContainText("Live", { timeout: 20_000 });
     await expect(page.getByTestId("session")).toContainText(/Market (open|closed)/);
   });
 
-  test("searching for another symbol navigates to it", async ({ page }) => {
+  test("the Stock tab always opens the search page, and a share is reachable from it", async ({ page }) => {
     await page.goto(`/stock/${SYNCED[0]}`);
-    await page.getByLabel("Trading code").fill(SYNCED[1].toLowerCase());
-    await page.getByRole("button", { name: "Analyze" }).click();
+    await expect(page.getByRole("search")).toHaveCount(0); // no second search box in the header
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Stock" }).click();
+    await expect(page).toHaveURL(/\/stock$/);
+    await page.getByLabel("Trading code or sector").fill(SYNCED[1].toLowerCase());
+    await page.getByRole("button", { name: "Open" }).click();
     await expect(page).toHaveURL(new RegExp(`/stock/${SYNCED[1]}$`));
     await expect(page.getByTestId("stock-symbol")).toHaveText(SYNCED[1]);
   });

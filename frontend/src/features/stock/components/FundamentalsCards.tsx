@@ -53,28 +53,3 @@ export function FundamentalsCard({ analysis }: { analysis: Analysis }) {
     </Card>
   );
 }
-
-export function AnnouncementsCard({ analysis }: { analysis: Analysis }) {
-  const news = analysis.news.slice(0, 12);
-  return (
-    <Card title="Announcements">
-      <table>
-        <tbody>
-          {news.length ? (
-            news.map((n, i) => (
-              <tr key={n.id ?? i}>
-                <td className="small mute" style={{ whiteSpace: "nowrap" }}>{n.date ?? "–"}</td>
-                <td>
-                  <b>{n.title}</b>
-                  <div className="small">{n.text}</div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr><td className="mute">None</td></tr>
-          )}
-        </tbody>
-      </table>
-    </Card>
-  );
-}

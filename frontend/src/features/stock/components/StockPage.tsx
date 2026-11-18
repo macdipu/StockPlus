@@ -12,6 +12,7 @@ import { pushRecent } from "../store/recent-store";
 import { applyQuote } from "../utils/chart-model";
 import { AnalysisCards } from "./AnalysisSections";
 import { TradePlanCard } from "./TradePlanCard";
+import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
 import { TradingChart } from "./TradingChart";
@@ -104,7 +105,13 @@ export function StockPage({ symbol }: { symbol: string }) {
           </>
         )}
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
-        {tab === "company" && <CompanyDetails symbol={code} />}
+        {tab === "company" && (
+          <>
+            <ValuationCard analysis={a} />
+            <FundamentalsCard analysis={a} />
+            <CompanyDetails symbol={code} />
+          </>
+        )}
       </div>
     </>
   );

@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { UserMenu } from "@/features/auth";
-import { FeedIndicator, LatencyCard, MarketStrip } from "@/features/live";
-import { SymbolSearch } from "@/features/stock";
-import { WatchlistCard, useWatchlist } from "@/features/watchlist";
+import { FeedIndicator, MarketStrip } from "@/features/live";
+import { WatchlistCard } from "@/features/watchlist";
 import { buildUrl } from "@/shared/api";
-import { SECTIONS, routes, sectionFor } from "@/shared/lib/navigation";
-import { Card } from "@/shared/ui/Card";
+import { SECTIONS, sectionFor } from "@/shared/lib/navigation";
 
 function currentSymbol(pathname: string): string | null {
   const m = /^\/stock\/([^/]+)/.exec(pathname);
@@ -20,15 +18,8 @@ function currentSymbol(pathname: string): string | null {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const symbol = currentSymbol(pathname);
-  const watched = useWatchlist().symbols; // hooks are called unconditionally, then used below
-  const target = symbol ?? watched[0];
-  const stockHref = routes.stock(target);
   const active = sectionFor(pathname)?.key;
-  const tabs = SECTIONS.map((sec) => ({
-    ...sec,
-    href: sec.key === "stock" ? stockHref : sec.href,
-    on: sec.key === active,
-  }));
+  const tabs = SECTIONS.map((sec) => ({ ...sec, on: sec.key === active }));
   return (
     <>
       <header className="topbar">
@@ -40,31 +31,27 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <FeedIndicator />
         <MarketStrip />
-        <SymbolSearch />
         <UserMenu />
       </header>
       <div className="layout">
         <aside aria-label="Sidebar">
           <WatchlistCard current={symbol} />
-          <LatencyCard />
-          <Card title="For AI agents">
-            <div className="small">
-              {symbol ? (
-                <>
-                  <a href={buildUrl(`/stocks/${symbol}/analysis`)} target="_blank" rel="noreferrer">analysis.json</a>{" · "}
-                  <a href={buildUrl(`/stocks/${symbol}/brief`)} target="_blank" rel="noreferrer">brief.md</a>{" · "}
-                  <a href={buildUrl(`/stocks/${symbol}/company`)} target="_blank" rel="noreferrer">company.json</a>{" · "}
-                </>
-              ) : null}
-              <a href={buildUrl("/market/picks")} target="_blank" rel="noreferrer">picks.json</a>{" · "}
-              <a href="/llms.txt" target="_blank" rel="noreferrer">llms.txt</a>{" · "}
-              <a href={buildUrl("/openapi.json")} target="_blank" rel="noreferrer">API schema</a>
-            </div>
-          </Card>
         </aside>
         <main id="main">{children}</main>
       </div>
-      <footer className="footer">For research only, not investment advice. Data: www.dse.com.bd.</footer>
+      <footer className="footer">
+        <span>For research only, not investment advice. Prices from the Dhaka Stock Exchange; company data from public sources named on each page.</span>
+        <nav aria-label="For developers and AI agents">
+          {symbol ? (
+            <>
+              <a href={buildUrl(`/stocks/${symbol}/analysis`)} target="_blank" rel="noreferrer">{symbol} analysis (JSON)</a>
+              <a href={buildUrl(`/stocks/${symbol}/brief`)} target="_blank" rel="noreferrer">{symbol} brief (Markdown)</a>
+            </>
+          ) : null}
+          <a href="/llms.txt" target="_blank" rel="noreferrer">Guide for AI agents</a>
+          <a href={buildUrl("/openapi.json")} target="_blank" rel="noreferrer">API reference</a>
+        </nav>
+      </footer>
     </>
   );
 }

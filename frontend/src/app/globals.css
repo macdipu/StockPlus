@@ -62,8 +62,7 @@ code { background: var(--chip); padding: 1px 5px; border-radius: 5px; font-size:
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--mute); margin-right: 6px; }
 .dot.live { background: var(--up); animation: pulse 2.4s infinite; } .dot.err { background: var(--dn); }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(18 120 74 / 0.5); } 70% { box-shadow: 0 0 0 7px rgb(18 120 74 / 0); } 100% { box-shadow: 0 0 0 0 rgb(18 120 74 / 0); } }
-.search { margin-left: auto; display: flex; gap: 6px; }
-.search input { width: 170px; text-transform: uppercase; }
+.topbar > :last-child { margin-left: auto; }
 .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto; }
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; padding: 12px; } aside { order: 2; } }
 .footer { color: var(--mute); padding: 28px 20px; max-width: 1500px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 12.5px; border-top: 1px solid var(--line); }

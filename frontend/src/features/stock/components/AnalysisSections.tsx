@@ -7,11 +7,10 @@ import {
   SummaryCard,
   TrendCard,
 } from "./AnalysisCards";
-import { AnnouncementsCard, FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { IntradayCard } from "./IntradayCard";
 import { VpaCard } from "./VpaCard";
 
-/** The cards below the chart, in reading order. */
+/** The Technicals tab: everything that reads the chart (checklist, levels, trend, indicators, patterns, volume). */
 export function AnalysisCards({ analysis, symbol, day }: { analysis: Analysis; symbol: string; day: string }) {
   return (
     <>
@@ -25,14 +24,9 @@ export function AnalysisCards({ analysis, symbol, day }: { analysis: Analysis; s
       <div style={{ marginTop: 16 }}>
         <SummaryCard analysis={analysis} />
       </div>
-      <div className="grid2" style={{ marginBottom: 16 }}>
+      <div className="grid2">
         <VpaCard symbol={symbol} />
         <IntradayCard symbol={symbol} day={day} />
-      </div>
-      <ValuationCard analysis={analysis} />
-      <div className="grid2">
-        <FundamentalsCard analysis={analysis} />
-        <AnnouncementsCard analysis={analysis} />
       </div>
     </>
   );

@@ -83,13 +83,13 @@ export function StockLauncher() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
-          <button className="btn" type="submit">Analyze</button>
+          <button className="btn" type="submit">Open</button>
         </form>
         {value.trim() ? (
           matches.length > 0 ? (
             <ul className="watch" aria-label="Matching symbols">{matches.map((q) => <SymbolRow key={q.symbol} quote={q} />)}</ul>
           ) : (
-            <p className="mute small">{quotes.isPending ? "Loading symbols…" : `No symbol or sector matches “${value.trim()}”. Press Analyze to try it anyway.`}</p>
+            <p className="mute small">{quotes.isPending ? "Loading symbols…" : `No symbol or sector matches “${value.trim()}”. Press Open to try it anyway.`}</p>
           )
         ) : (
           <p className="mute small" style={{ marginBottom: 0 }}>
