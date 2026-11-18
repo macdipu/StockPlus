@@ -5,6 +5,16 @@ from typing import Any
 from dse.features.analysis.domain.summary import fmt
 
 
+def _story(st: dict[str, Any] | None) -> list[str]:
+    if not st:
+        return []
+    out = ["## Candle reading and trade plan", st["headline"], ""]
+    out += [f"- **{p['step']}:** {p['text']}" for p in st["plan"]]
+    out += ["", "Recent candles (oldest first):"]
+    out += [f"- {c['date']}: {c['text']}" for c in st["recent"]]
+    return [*out, ""]
+
+
 def render_brief(k: dict[str, Any]) -> str:
     p, fd, s, sig, pr = k["price"], k["fundamentals"], k["setup"], k["signal"], k["probability"]
     sim = pr["similar_setups"]
@@ -56,6 +66,7 @@ def render_brief(k: dict[str, Any]) -> str:
         f"Resistance above: {k['levels']['above'] or 'none'} · "
         f"Support below: {k['levels']['below'] or 'none'}",
         "",
+        *_story(k.get("candle_story")),
         "## Trend",
         ", ".join(f"{a} {fmt(b, '{:+.1f}%')}" for a, b in k["trend"]["changes"].items()),
         "",

@@ -136,9 +136,12 @@ class UniverseFilter:
     categories: tuple[str, ...] = ()
     asset_types: tuple[str, ...] = ()
     min_value_mn: float | None = None
+    exclude_sectors: tuple[str, ...] = ()
 
     def mask(self, u: pd.DataFrame) -> pd.Series:
         base = pd.Series(True, index=u.index)
+        if self.exclude_sectors:
+            base &= ~_col(u, "sector").isin(self.exclude_sectors)
         for values, column in (
             (self.sectors, "sector"),
             (self.categories, "category"),
@@ -251,6 +254,7 @@ def parse_scan_definition(d: Any) -> ScanSpec:
             _str_list(u.get("categories"), "categories"),
             _str_list(u.get("asset_types"), "asset_types"),
             mv,
+            _str_list(u.get("exclude_sectors"), "exclude_sectors"),
         ),
         sort=Sort(sort["field"], bool(sort.get("desc", True))) if sort else None,
         limit=limit,

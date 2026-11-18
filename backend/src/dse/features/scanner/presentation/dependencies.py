@@ -6,6 +6,7 @@ from fastapi import Request
 
 from dse.features.scanner.application.use_cases import (
     GetPe,
+    GetPicks,
     GetRange52w,
     GetSectors,
     GetTable,
@@ -53,6 +54,10 @@ class ScannerContainer:
     @property
     def table(self) -> GetTable:
         return GetTable(self.view)
+
+    @property
+    def picks(self) -> GetPicks:
+        return GetPicks(self.view)
 
     @property
     def status(self) -> GetUniverseStatus:

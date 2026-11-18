@@ -27,8 +27,9 @@ from dse.features.scanner.application.ports import (
     UniverseStore,
 )
 from dse.features.scanner.application.view import UniverseView
-from dse.features.scanner.domain import analytics
+from dse.features.scanner.domain import analytics, picks
 from dse.features.scanner.domain.fields import DEFAULT_COLUMNS, FIELD_DOCS
+from dse.features.scanner.domain.picks import PickFilter
 from dse.features.scanner.domain.presets import PRESETS
 from dse.features.scanner.domain.rules import ALL_OPS, Preset, ScanSpec, UniverseFilter, run_scan
 from dse.shared_kernel.clock import Clock
@@ -278,6 +279,30 @@ class GetTable(_Analytics):
         if sector:
             frame = frame[frame["sector"] == sector]
         return analytics.to_records(frame.sort_values("symbol"), columns)
+
+
+class GetPicks(_Analytics):
+    """Every instrument ranked for value and entry timing, bucketed (see domain.picks)."""
+
+    async def __call__(self, flt: PickFilter, live: bool = True) -> dict[str, Any]:
+        u = await self._view.current()
+        frame = u.frame(live)
+        everything = await asyncio.to_thread(
+            picks.rank, frame, flt, False
+        )  # ~400 rows of Python: off the loop
+        counts = dict.fromkeys(picks.BUCKETS, 0)
+        for r in everything:
+            counts[r["bucket"]] += 1
+        rows = everything[: flt.limit]
+        return {
+            "rows": rows,
+            "counts": counts,
+            "sectors": list(picks.sector_names(frame)),
+            "universe_version": u.version,
+            "trade_time": u.trade_time,
+            "live": live,
+            "method": picks.__doc__,
+        }
 
 
 class GetUniverseStatus:

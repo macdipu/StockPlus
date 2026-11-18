@@ -96,6 +96,7 @@ containers = [
   "dse.features.scanner",
   "dse.features.identity",
   "dse.features.watchlists",
+  "dse.features.company",
 ]
 layers = ["presentation", "infrastructure", "application", "domain"]
 exhaustive = false
@@ -110,6 +111,7 @@ source_modules = [
   "dse.features.scanner.domain",
   "dse.features.identity.domain",
   "dse.features.watchlists.domain",
+  "dse.features.company.domain",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "pydantic", "dse.core"]
 
@@ -123,6 +125,7 @@ source_modules = [
   "dse.features.scanner.application",
   "dse.features.identity.application",
   "dse.features.watchlists.application",
+  "dse.features.company.application",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 
@@ -224,3 +227,35 @@ ignore_imports = [
   "dse.features.market_data.tests.** -> dse.main",
   "dse.features.live_feed.tests.** -> dse.main",
 ]
+
+[[tool.importlinter.contracts]]
+name = "company reaches other features only through their application facade"
+type = "forbidden"
+source_modules = ["dse.features.company"]
+forbidden_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.identity",
+  "dse.features.watchlists",
+]
+allow_indirect_imports = true
+ignore_imports = [
+  "dse.features.company.infrastructure.gateways -> dse.features.live_feed.application.facade",
+  "dse.features.company.infrastructure.gateways -> dse.features.analysis.application.facade",
+]
+
+[[tool.importlinter.contracts]]
+name = "no other feature depends on company"
+type = "forbidden"
+source_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.identity",
+  "dse.features.watchlists",
+]
+forbidden_modules = ["dse.features.company"]
+ignore_imports = ["dse.features.*.tests.** -> dse.main"]  # tests may boot the whole app

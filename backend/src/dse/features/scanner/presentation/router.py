@@ -5,8 +5,9 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
-from dse.core.http import envelope
-from dse.features.scanner.domain.rules import ALL_OPS, Rule, ScanSpec, Sort, UniverseFilter
+from dse.core.http import Envelope, envelope
+from dse.features.scanner.domain.picks import BUCKETS, PickFilter
+from dse.features.scanner.domain.rules import ALL_OPS, Rule, ScanError, ScanSpec, Sort, UniverseFilter
 from dse.features.scanner.presentation.dependencies import ScannerContainer, container
 
 router = APIRouter(tags=["scanner"])
@@ -30,6 +31,9 @@ class UniverseFilterBody(BaseModel):
     categories: list[str] = []
     asset_types: list[str] = Field([], examples=[["EQ"]])
     min_value_mn: float | None = Field(None, description="Minimum turnover today, BDT mn (liquidity filter)")
+    exclude_sectors: list[str] = Field(
+        [], examples=[["Bank", "Insurance"]], description="Sectors to leave out"
+    )
 
 
 class SortBody(BaseModel):
@@ -38,7 +42,7 @@ class SortBody(BaseModel):
 
 
 class ScanBody(BaseModel):
-    rules: list[RuleBody] = Field(..., min_length=1, max_length=20)
+    rules: list[RuleBody] = Field(min_length=1, max_length=20)
     match: Literal["all", "any"] = "all"
     universe: UniverseFilterBody = UniverseFilterBody()
     sort: SortBody | None = None
@@ -91,8 +95,9 @@ async def run_preset(
     min_value_mn: float | None = None,
     live: Annotated[bool | None, Query(description="default: false for pre-market presets")] = None,
     columns: str | None = None,
+    exclude_sectors: Annotated[str | None, Query(description="Comma-separated sectors to leave out")] = None,
 ) -> dict[str, Any]:
-    flt = UniverseFilter(csv(sectors), csv(categories), csv(asset_types), min_value_mn)
+    flt = UniverseFilter(csv(sectors), csv(categories), csv(asset_types), min_value_mn, csv(exclude_sectors))
     result, preset = await c.run_preset(key, flt, limit, csv(columns) or None, live)
     return envelope(
         result.rows,
@@ -111,7 +116,13 @@ async def run_custom(body: ScanBody, c: Container) -> dict[str, Any]:
     spec = ScanSpec(
         rules=tuple(Rule(r.field, r.op, r.value, r.field2) for r in body.rules),
         match=body.match,
-        universe=UniverseFilter(tuple(u.sectors), tuple(u.categories), tuple(u.asset_types), u.min_value_mn),
+        universe=UniverseFilter(
+            tuple(u.sectors),
+            tuple(u.categories),
+            tuple(u.asset_types),
+            u.min_value_mn,
+            tuple(u.exclude_sectors),
+        ),
         sort=Sort(body.sort.field, body.sort.desc) if body.sort else None,
         limit=body.limit,
     )
@@ -173,3 +184,72 @@ async def ta_values(c: Container, sector: str | None = None, columns: str = TA_C
 async def data_matrix(c: Container, sector: str | None = None) -> dict[str, Any]:
     rows = await c.table(csv(MATRIX_COLUMNS), sector)
     return envelope(rows, count=len(rows))
+
+
+class PickRow(BaseModel):
+    symbol: str
+    name: str | None
+    sector: str | None
+    category: str | None
+    ltp: float | None
+    change_pct: float | None
+    pe: float | None
+    pb: float | None
+    dividend_yield_pct: float | None
+    rsi14: float | None
+    setup_score: float | None
+    patterns: list[str] | None
+    vpa: str | None
+    low_52w: float | None
+    high_52w: float | None
+    value_mn: float | None
+    pick_score: float
+    value_score: int
+    entry_score: int
+    bucket: Literal["buy_zone", "wait_pullback", "watch", "avoid"]
+    bucket_label: str
+    reasons: list[str]
+    warnings: list[str]
+
+
+@router.get(
+    "/market/picks",
+    tags=["market"],
+    response_model=Envelope[list[PickRow]],
+    summary="Watch list built from a market-wide analysis: every share scored for value and entry timing",
+    description=(
+        "Each row gets a value score and an entry score (0–100), a pick score, a bucket (buy_zone, "
+        "wait_pullback, watch, avoid) and the reasons. Filter by sector (include or exclude), category, "
+        "turnover and bucket. Example: all shares except banks and insurance: "
+        "`?exclude_sectors=Bank,Insurance,Life Insurance`."
+    ),
+)
+async def market_picks(
+    c: Container,
+    sectors: Annotated[str | None, Query(description="Comma-separated sectors to keep (default all)")] = None,
+    exclude_sectors: Annotated[str | None, Query(description="Comma-separated sectors to leave out")] = None,
+    categories: Annotated[str | None, Query(description="e.g. A,B")] = None,
+    asset_types: Annotated[str | None, Query(description="Comma-separated; default EQ")] = "EQ",
+    min_value_mn: Annotated[float | None, Query(description="Minimum turnover today, BDT mn")] = None,
+    buckets: Annotated[
+        str | None, Query(description=f"Comma-separated subset of {', '.join(BUCKETS)}")
+    ] = None,
+    min_value_score: Annotated[int, Query(ge=0, le=100)] = 0,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    live: bool = True,
+) -> dict[str, Any]:
+    wanted = csv(buckets)
+    unknown = [b for b in wanted if b not in BUCKETS]
+    if unknown:
+        raise ScanError(f"Unknown bucket(s): {', '.join(unknown)}. Use {', '.join(BUCKETS)}")
+    flt = PickFilter(
+        universe=UniverseFilter(
+            csv(sectors), csv(categories), csv(asset_types), min_value_mn, csv(exclude_sectors)
+        ),
+        buckets=wanted,
+        min_value_score=min_value_score,
+        limit=limit,
+    )
+    data = await c.picks(flt, live)
+    rows = data.pop("rows")
+    return envelope(rows, count=len(rows), **data)

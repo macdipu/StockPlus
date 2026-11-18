@@ -6,7 +6,15 @@ import numpy as np
 import pandas as pd
 
 from dse.features.analysis.application.inputs import AnalysisInput
-from dse.features.analysis.domain import indicators, patterns, setup_score, signals, summary, valuation
+from dse.features.analysis.domain import (
+    candle_story,
+    indicators,
+    patterns,
+    setup_score,
+    signals,
+    summary,
+    valuation,
+)
 from dse.features.analysis.domain.frames import merge_live, to_frame
 from dse.shared_kernel.errors import ValidationFailedError
 
@@ -135,6 +143,7 @@ def build(inp: AnalysisInput) -> tuple[dict[str, Any], pd.DataFrame]:
         "probability": prob,
         "news": list(inp.news),
     }
+    k["candle_story"] = candle_story.story(ind, pats, sr, setup["plan"], live=live)
     k["summary"] = summary.summarize(k)
     return k, ind
 

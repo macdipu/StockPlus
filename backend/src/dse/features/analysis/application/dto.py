@@ -73,6 +73,7 @@ class AnalysisDto(BaseModel):
     fundamentals: dict[str, Any]
     news: list[dict[str, Any]]
     summary: list[str]
+    candle_story: dict[str, Any] | None = None
     disclaimer: str
 
 
