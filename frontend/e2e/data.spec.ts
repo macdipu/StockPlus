@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 test.describe("Data tab", () => {
   test("shows the fundamentals matrix and switches to TA values", async ({ page }) => {
-    await page.goto("/data");
+    await page.goto("/find/table");
     const table = page.getByRole("region", { name: "Data" });
     await expect(table.getByRole("columnheader", { name: /P\/E/ })).toBeVisible();
     await expect(table.getByRole("row")).not.toHaveCount(1);
@@ -13,14 +13,14 @@ test.describe("Data tab", () => {
   });
 
   test("filters to a sector from the URL and can clear the filter", async ({ page }) => {
-    await page.goto("/data?sector=Bank");
+    await page.goto("/find/table?sector=Bank");
     await expect(page.getByText("Sector: Bank")).toBeVisible();
-    await page.getByRole("link", { name: "all" }).click();
+    await page.getByRole("link", { name: "Show all sectors" }).click();
     await expect(page.getByText("All sectors")).toBeVisible();
   });
 
   test("exports exactly what is on screen as CSV", async ({ page }) => {
-    await page.goto("/data");
+    await page.goto("/find/table");
     await expect(page.getByRole("region", { name: "Data" }).getByRole("row")).not.toHaveCount(1);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export CSV" }).click()]);
     expect(download.suggestedFilename()).toBe("dse-data-matrix.csv");
@@ -31,7 +31,7 @@ test.describe("Data tab", () => {
   });
 
   test("a row opens the stock page", async ({ page }) => {
-    await page.goto("/data");
+    await page.goto("/find/table");
     const link = page.getByRole("region", { name: "Data" }).getByRole("link").first();
     const symbol = (await link.textContent()) ?? "";
     await link.click();

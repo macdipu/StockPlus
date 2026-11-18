@@ -1,5 +1,6 @@
 "use client";
 
+import { routes } from "@/shared/lib/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -31,7 +32,7 @@ export function DataPage() {
       <div className="row">
         <Chips<DataTab> label="Table" options={TABS} value={tab} onChange={setTab} />
         <span className="mute small">
-          {sector ? <>Sector: <b>{sector}</b> · <Link href="/data">all</Link></> : "All sectors"}
+          {sector ? <>Sector: <b>{sector}</b> · <Link href={routes.findTable()}>Show all sectors</Link></> : "All sectors"}
         </span>
         <button
           className="btn ghost small"

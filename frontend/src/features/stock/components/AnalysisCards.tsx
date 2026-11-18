@@ -3,23 +3,6 @@ import { Card } from "@/shared/ui/Card";
 import { KeyValueTable } from "@/shared/ui/Stat";
 import type { Analysis } from "../schemas/analysis";
 
-export function PlanCard({ analysis }: { analysis: Analysis }) {
-  const { plan, flags } = analysis.setup;
-  return (
-    <Card title="Trade plan">
-      <KeyValueTable
-        rows={[
-          ["Entry zone", `${num(plan.entry_zone[0])} – ${num(plan.entry_zone[1])}`],
-          ["Stop-loss", <>{num(plan.stop)} <span className="small mute">{plan.stop_basis}, −{num(plan.risk_pct, 1)}%</span></>],
-          ["Target", <>{num(plan.target)} <span className="small mute">{plan.target_basis}, +{num(plan.reward_pct, 1)}%</span></>],
-          ["ATR(14)", num(plan.atr)],
-        ]}
-      />
-      {flags.length ? <div className="small dn">{flags.map((f) => <div key={f}>⚠ {f}</div>)}</div> : null}
-    </Card>
-  );
-}
-
 export function ChecklistCard({ analysis }: { analysis: Analysis }) {
   return (
     <Card title="Setup checklist">

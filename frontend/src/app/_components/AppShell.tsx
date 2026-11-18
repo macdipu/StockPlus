@@ -8,6 +8,7 @@ import { FeedIndicator, LatencyCard, MarketStrip } from "@/features/live";
 import { SymbolSearch } from "@/features/stock";
 import { WatchlistCard, useWatchlist } from "@/features/watchlist";
 import { buildUrl } from "@/shared/api";
+import { SECTIONS, routes, sectionFor } from "@/shared/lib/navigation";
 import { Card } from "@/shared/ui/Card";
 
 function currentSymbol(pathname: string): string | null {
@@ -21,21 +22,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const symbol = currentSymbol(pathname);
   const watched = useWatchlist().symbols; // hooks are called unconditionally, then used below
   const target = symbol ?? watched[0];
-  const stockHref = target ? `/stock/${target}` : "/stock";
-  const tabs = [
-    { href: "/", label: "Dashboard", on: pathname === "/" },
-    { href: stockHref, label: "Stock", on: pathname.startsWith("/stock") },
-    { href: "/scanner", label: "Scanner", on: pathname.startsWith("/scanner") },
-    { href: "/data", label: "Data", on: pathname.startsWith("/data") },
-    { href: "/tools", label: "Tools", on: pathname.startsWith("/tools") },
-  ];
+  const stockHref = routes.stock(target);
+  const active = sectionFor(pathname)?.key;
+  const tabs = SECTIONS.map((sec) => ({
+    ...sec,
+    href: sec.key === "stock" ? stockHref : sec.href,
+    on: sec.key === active,
+  }));
   return (
     <>
       <header className="topbar">
         <Link href="/" className="brand">DSE Live Analyzer</Link>
         <nav className="tabs" aria-label="Main">
           {tabs.map((t) => (
-            <Link key={t.label} href={t.href} aria-current={t.on ? "page" : undefined}>{t.label}</Link>
+            <Link key={t.key} href={t.href} title={t.description} aria-current={t.on ? "page" : undefined}>{t.label}</Link>
           ))}
         </nav>
         <FeedIndicator />
@@ -53,8 +53,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <>
                   <a href={buildUrl(`/stocks/${symbol}/analysis`)} target="_blank" rel="noreferrer">analysis.json</a>{" · "}
                   <a href={buildUrl(`/stocks/${symbol}/brief`)} target="_blank" rel="noreferrer">brief.md</a>{" · "}
+                  <a href={buildUrl(`/stocks/${symbol}/company`)} target="_blank" rel="noreferrer">company.json</a>{" · "}
                 </>
               ) : null}
+              <a href={buildUrl("/market/picks")} target="_blank" rel="noreferrer">picks.json</a>{" · "}
+              <a href="/llms.txt" target="_blank" rel="noreferrer">llms.txt</a>{" · "}
               <a href={buildUrl("/openapi.json")} target="_blank" rel="noreferrer">API schema</a>
             </div>
           </Card>

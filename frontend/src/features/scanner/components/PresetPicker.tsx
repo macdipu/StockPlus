@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { routes } from "@/shared/lib/navigation";
 import { Card } from "@/shared/ui/Card";
 import type { Preset } from "../schemas/scanner";
 
@@ -14,7 +15,7 @@ export function PresetPicker({ presets, active }: { presets: readonly Preset[]; 
             {items.map((p) => (
               <Link
                 key={p.key}
-                href={`/scanner/${p.key}`}
+                href={routes.findRules(p.key)}
                 className={`chip ${p.key === active ? "on" : ""}`}
                 aria-current={p.key === active ? "true" : undefined}
                 title={p.description}

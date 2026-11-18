@@ -2,6 +2,40 @@ import { z } from "zod";
 
 const n = z.number().nullable();
 
+export const candleStorySchema = z.object({
+  where: z.enum(["inside_buy_zone", "above_buy_zone", "below_buy_zone", "below_stop"]),
+  headline: z.string(),
+  recent: z.array(
+    z.object({
+      date: z.string(),
+      colour: z.string(),
+      shape: z.string(),
+      bias: z.enum(["bullish", "bearish", "neutral"]),
+      body_pct: n,
+      upper_wick_pct: n,
+      lower_wick_pct: n,
+      close_pos_pct: n,
+      vol_ratio: n,
+      vpa: z.string().nullable(),
+      patterns: z.array(z.string()),
+      text: z.string(),
+      live: z.boolean().optional(),
+    }),
+  ),
+  annotations: z.array(
+    z.object({
+      kind: z.enum(["entry", "stop", "target", "watch"]),
+      price: z.number(),
+      price_to: z.number().optional(),
+      label: z.string(),
+      text: z.string(),
+    }),
+  ),
+  plan: z.array(z.object({ step: z.string(), text: z.string() })),
+  markers: z.array(z.object({ date: z.string(), bias: z.string(), text: z.string(), meaning: z.string() })),
+});
+export type CandleStory = z.infer<typeof candleStorySchema>;
+
 export const analysisSchema = z.object({
   symbol: z.string(),
   name: z.string().nullable(),
@@ -124,6 +158,7 @@ export const analysisSchema = z.object({
     z.object({ id: z.string().nullable(), date: z.string().nullable(), type: z.string().nullable(), title: z.string().nullable(), text: z.string() }),
   ),
   summary: z.array(z.string()),
+  candle_story: candleStorySchema.nullish(),
   disclaimer: z.string(),
 });
 export type Analysis = z.infer<typeof analysisSchema>;

@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { Card } from "@/shared/ui/Card";
+import { StockLauncher } from "@/features/stock";
 
-export const metadata: Metadata = { title: "Stock" };
+export const metadata: Metadata = { title: "Stock", description: "Look up any DSE share: signal, chart, trade plan and company details." };
 
-/** No symbol chosen yet: point at the search box instead of guessing a stock. */
+/** No symbol chosen yet: search, recent and watchlist shortcuts, and what is moving today. */
 export default function Page() {
-  return (
-    <Card title="Pick a stock">
-      <p style={{ margin: 0 }}>
-        Search a trading code in the box above, click any row on the Dashboard, or open a symbol from your watchlist.
-      </p>
-    </Card>
-  );
+  return <StockLauncher />;
 }

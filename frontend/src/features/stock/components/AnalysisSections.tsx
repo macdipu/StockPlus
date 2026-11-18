@@ -4,7 +4,6 @@ import {
   IndicatorsCard,
   LevelsCard,
   PatternsCard,
-  PlanCard,
   SummaryCard,
   TrendCard,
 } from "./AnalysisCards";
@@ -17,7 +16,6 @@ export function AnalysisCards({ analysis, symbol, day }: { analysis: Analysis; s
   return (
     <>
       <div className="grid2">
-        <PlanCard analysis={analysis} />
         <ChecklistCard analysis={analysis} />
         <LevelsCard analysis={analysis} />
         <TrendCard analysis={analysis} />

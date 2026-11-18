@@ -14,3 +14,6 @@ node_modules/
 .mypy_cache/
 .ruff_cache/
 .import_linter_cache/
+.idea/
+test-results/
+tsconfig.tsbuildinfo

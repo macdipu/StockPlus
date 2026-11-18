@@ -30,7 +30,7 @@ test.describe("Market tab", () => {
     const row = page.getByRole("region", { name: "Sectors" }).getByRole("row").nth(1);
     const sector = (await row.getByRole("cell").first().textContent()) ?? "";
     await row.click();
-    await expect(page).toHaveURL(/\/data\?sector=/);
+    await expect(page).toHaveURL(/\/find\/table\?sector=/);
     await expect(page.getByText(`Sector: ${sector}`)).toBeVisible();
   });
 

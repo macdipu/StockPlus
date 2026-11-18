@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { routes } from "@/shared/lib/navigation";
 import { useState } from "react";
 import { useAuth } from "@/features/auth";
 import { describeError } from "@/shared/api";
@@ -26,7 +27,7 @@ export function SavedScansCard({ current, onLoad }: Props) {
     return (
       <Card title="Saved scans">
         <p className="small mute" style={{ margin: 0 }}>
-          <Link href="/login?next=/scanner">Sign in</Link> to save custom scans to your account.
+          <Link href={`/login?next=${routes.findRules()}`}>Sign in</Link> to save custom scans to your account.
         </p>
       </Card>
     );

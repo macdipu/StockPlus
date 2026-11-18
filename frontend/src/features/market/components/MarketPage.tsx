@@ -2,6 +2,7 @@
 
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useMemo, type ReactNode } from "react";
+import { routes } from "@/shared/lib/navigation";
 import { Card } from "@/shared/ui/Card";
 import { DataTable } from "@/shared/ui/DataTable";
 import { columnsFor, symbolHref } from "@/shared/ui/columns";
@@ -63,7 +64,7 @@ export function MarketPage() {
               caption="Sector performance"
               rows={rows}
               rowKey={(r) => r.sector}
-              rowHref={(r) => `/data?sector=${encodeURIComponent(r.sector)}`}
+              rowHref={(r) => routes.findTable(r.sector)}
               defaultSort={{ key: "turnover_mn", desc: true }}
               columns={columnsFor<SectorRow>(SECTOR_COLS, rows[0] as unknown as Record<string, unknown>)}
             />

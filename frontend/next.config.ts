@@ -25,6 +25,15 @@ const config: NextConfig = {
   poweredByHeader: false,
   // Compression would buffer the Server-Sent Events stream proxied below; a fronting proxy can compress.
   compress: false,
+  // The old section paths moved under "Find shares"; keep every bookmark and shared link working.
+  async redirects() {
+    return [
+      { source: "/picks", destination: "/find", permanent: true },
+      { source: "/scanner", destination: "/find/rules", permanent: true },
+      { source: "/scanner/:preset", destination: "/find/rules/:preset", permanent: true },
+      { source: "/data", destination: "/find/table", permanent: true },
+    ];
+  },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_ORIGIN}/api/:path*` }];
   },

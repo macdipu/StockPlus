@@ -32,6 +32,35 @@ Development without containers: `docker compose up -d db redis`, then `uvicorn d
 `python -m dse.worker` from `backend/` (virtualenv with `pip install -e ".[dev]"`), and
 `API_ORIGIN=http://localhost:8001 npm run dev` from `frontend/`. Configuration: `backend/.env.example`.
 
+If your Docker runtime rejects the API's host port range (`invalid host port 8001-8002`), run one API replica on
+8001 with the local override: `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build`.
+
+## Features added in the company/picks release
+
+- **Company details** on every share page (`/api/v1/stocks/{symbol}/company`): profile and contacts, credit
+  rating, capital and loans, EPS/NAV/NOCF and dividend history, quarterly EPS, shareholding history, yearly
+  financial summary, full statements (P&L, balance sheet, cash flow), director trades, events, news, ratios
+  (each with its basis) and plain-language health flags. Sources: stocknow.com.bd (JSON), amarstock.com and
+  topstockbd.com (public pages), fetched politely (one request at a time per host, honest User-Agent, 6 h
+  Redis cache). Check each site's terms of use before relying on them.
+- **Chart timeframes** 1min / 5min / 30min / 1h / D (`/api/v1/stocks/{symbol}/bars?resolution=`), and
+  **Advanced**: the daily chart with the whole analysis drawn on it (shaded buy zone, stop, targets, watch
+  levels, patterns, Bollinger bands, RSI and MACD panes) beside the written plan.
+- **Candle analysis**: `candle_story` in `/analysis` (and the Markdown brief) says what the last five candles
+  show and where to enter, exit, take profit and what to watch.
+- **Navigation**: four sections, Market · Find shares · Stock · Tools. "Find shares" holds three views:
+  Picks (`/find`), Custom rules (`/find/rules`, the scanner) and All shares table (`/find/table`). Old paths
+  (`/picks`, `/scanner/…`, `/data`) redirect permanently. Sections, views, labels and descriptions live in one
+  catalog (`frontend/src/shared/lib/navigation.ts`); each view carries a `plan` (`free` today) so a future
+  paid tier can gate a view without restructuring routes or menus.
+- **Picks** (`/find`, `/api/v1/market/picks`): every share scored for value and entry timing, bucketed
+  (buy zone / wait for a pullback / watch / avoid), with include/exclude sector filters such as "all except
+  banks and insurance". Scanner filters accept `exclude_sectors` too.
+- **Watchlist**: sector filter and opt-in browser notifications (`/api/v1/alerts?symbols=`), e.g.
+  "PADMAOIL 196.8 in buy zone (194–197) with a hammer forming. … Stop 189, target 205."
+- **For AI agents**: `/llms.txt`; each share page server-renders a "Key facts" block
+  (`data-agent="stock-facts"`, `data-field="…"`) and schema.org JSON-LD, and links JSON/Markdown alternates.
+
 ## Test
 
 ```bash

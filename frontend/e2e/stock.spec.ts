@@ -9,11 +9,41 @@ test.describe("Stock tab", () => {
     await expect(page.getByTestId("ltp")).toHaveText(/^[\d,]+\.\d{2}$/);
     await expect(page.getByTestId("signal")).toHaveText(/^(STRONG BUY|BUY|HOLD|SELL|STRONG SELL|AVOID)$/);
     await expect(page.getByTestId("price-chart").locator("canvas").first()).toBeVisible();
-    for (const title of ["Trade plan", "Setup checklist", "Support / resistance", "Trend", "Indicators", "Fair value", "Fundamentals", "Announcements"]) {
+    await expect(page.getByRole("heading", { name: "Trade plan", level: 3 })).toBeVisible();
+    await page.getByRole("tab", { name: "Technicals" }).click();
+    for (const title of ["Setup checklist", "Support / resistance", "Trend", "Indicators", "Fair value", "Fundamentals", "Announcements"]) {
       await expect(page.getByRole("heading", { name: title, level: 3 })).toBeVisible();
     }
     await expect(page.getByRole("heading", { name: "Volume-price analysis (daily)" })).toBeVisible();
     await expect(page).toHaveTitle(new RegExp(`${SYNCED[0]}`));
+  });
+
+  test("the Overview, Technicals and Company tabs switch views and are linkable by URL hash", async ({ page }) => {
+    await page.goto(`/stock/${SYNCED[0]}`);
+    const overview = page.getByRole("tab", { name: "Overview" });
+    await expect(overview).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("tab", { name: "Company" }).click();
+    await expect(page).toHaveURL(/#company$/);
+    await expect(page.getByRole("heading", { name: "Trade plan", level: 3 })).toHaveCount(0);
+    await page.getByRole("tab", { name: "Company" }).press("ArrowLeft");
+    await expect(page.getByRole("tab", { name: "Technicals" })).toHaveAttribute("aria-selected", "true");
+    await page.goto(`/stock/${SYNCED[0]}#technicals`);
+    await expect(page.getByRole("tab", { name: "Technicals" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("heading", { name: "Setup checklist", level: 3 })).toBeVisible();
+  });
+
+  test("/stock without a symbol offers search, suggestions and recently viewed stocks", async ({ page }) => {
+    await page.goto(`/stock/${SYNCED[0]}`);
+    await expect(page.getByTestId("stock-symbol")).toHaveText(SYNCED[0]);
+    await page.goto("/stock");
+    await expect(page.getByRole("heading", { name: "Recently viewed", level: 3 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Recently viewed" }).getByRole("link", { name: new RegExp(SYNCED[0]) })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Most active today", level: 3 })).toBeVisible();
+    await page.getByLabel("Trading code or sector").fill(SYNCED[1].slice(0, 2));
+    await expect(page.getByRole("list", { name: "Matching symbols" }).getByRole("link").first()).toBeVisible();
+    await page.getByLabel("Trading code or sector").fill(SYNCED[1]);
+    await page.getByRole("button", { name: "Analyze" }).last().click();
+    await expect(page).toHaveURL(new RegExp(`/stock/${SYNCED[1]}$`));
   });
 
   test("the live stream connects through the proxy and the market strip appears", async ({ page }) => {

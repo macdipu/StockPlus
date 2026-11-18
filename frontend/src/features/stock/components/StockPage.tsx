@@ -1,18 +1,44 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { CompanyDetails } from "@/features/company";
 import { useLiveSymbols, useMarket, useQuote } from "@/features/live";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
+import { TabBar } from "@/shared/ui/TabBar";
 import { analysisKey, useAnalysis, useTechnicals } from "../hooks/use-stock-queries";
+import { pushRecent } from "../store/recent-store";
 import { applyQuote } from "../utils/chart-model";
 import { AnalysisCards } from "./AnalysisSections";
-import { PriceChart } from "./PriceChart";
+import { TradePlanCard } from "./TradePlanCard";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
+import { TradingChart } from "./TradingChart";
 
 const REFRESH_EVERY_MS = 20_000;
+
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "technicals", label: "Technicals" },
+  { key: "company", label: "Company" },
+] as const;
+type TabKey = (typeof TABS)[number]["key"];
+const isTab = (v: string): v is TabKey => TABS.some((t) => t.key === v);
+
+/** The chosen tab lives in the URL hash, so a link or reload lands on the same view. The server snapshot is
+ * "overview", which keeps server and client markup identical during hydration. */
+function useHashTab(): TabKey {
+  const hash = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("hashchange", notify);
+      return () => window.removeEventListener("hashchange", notify);
+    },
+    () => window.location.hash.slice(1),
+    () => "",
+  );
+  return isTab(hash) ? hash : "overview";
+}
 
 export function StockPage({ symbol }: { symbol: string }) {
   const code = symbol.toUpperCase();
@@ -22,6 +48,15 @@ export function StockPage({ symbol }: { symbol: string }) {
   const technicals = useTechnicals(code);
   const quote = useQuote(code);
   const sessionDay = useMarket()?.session.day ?? null;
+  const tab = useHashTab();
+  const known = analysis.isSuccess;
+  useEffect(() => {
+    if (known) pushRecent(code); // only real symbols make the recent list
+  }, [known, code]);
+  const selectTab = (key: TabKey) => {
+    window.history.replaceState(null, "", `#${key}`);
+    window.dispatchEvent(new HashChangeEvent("hashchange")); // replaceState is silent; tell subscribers
+  };
 
   // The signal, plan and indicators are recomputed server-side. Refresh them when the price actually moves,
   // at most every 20 s, and never for the first quote we see (that is just the initial seed).
@@ -57,11 +92,20 @@ export function StockPage({ symbol }: { symbol: string }) {
   return (
     <>
       <StockHero analysis={a} />
-      <SignalCard analysis={a} />
-      <Card label="Chart">
-        {technicals.isError ? <ErrorNotice error={technicals.error} /> : <PriceChart bars={bars} patterns={a.candles.patterns} levels={a.levels} />}
-      </Card>
-      <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />
+      <TabBar tabs={TABS} value={tab} onChange={selectTab} label="Stock sections" idPrefix="stock" />
+      <div role="tabpanel" id={`stock-panel-${tab}`} aria-labelledby={`stock-tab-${tab}`}>
+        {tab === "overview" && (
+          <>
+            <SignalCard analysis={a} />
+            <Card label="Chart">
+              {technicals.isError ? <ErrorNotice error={technicals.error} /> : <TradingChart symbol={code} bars={bars} analysis={a} />}
+            </Card>
+            <TradePlanCard analysis={a} />
+          </>
+        )}
+        {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
+        {tab === "company" && <CompanyDetails symbol={code} />}
+      </div>
     </>
   );
 }
