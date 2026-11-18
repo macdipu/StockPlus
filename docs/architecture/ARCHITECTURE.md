@@ -1,6 +1,6 @@
 # DSE Live Analyzer — Architecture Assessment & Target Design
 
-Status: **accepted plan, migration in progress** · Baseline commit `7508812` (legacy app, 49 tests green)
+Status: **migration complete (phases 0–7); later additions in the Phase 8 notes** · Baseline commit `7508812` (legacy app, 49 tests green)
 
 | Phase | State |
 |---|---|
@@ -11,7 +11,8 @@ Status: **accepted plan, migration in progress** · Baseline commit `7508812` (l
 | 4 scanner | ✅ done — see below |
 | 5 identity + watchlists | ✅ done — see below |
 | 6 frontend | ✅ done — see below |
-| 7 | not started |
+| 7 cutover | ✅ done: legacy removed, compose points at the new stack |
+| 8 additions | ✅ done: company details, charts and indicators, picks, candle analysis, redesigned frontend (see below and ADR 0007) |
 
 **Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
 Known gaps carried forward: none from Phase 1 (moving averages are served by `analysis`, see Phase 3).
@@ -44,6 +45,14 @@ Decisions beyond ADR 0005 are recorded in its amendment. Not done (deliberately)
 Backend additions made for it (6a): 1-minute intraday bars from recorded ticks (`/stocks/{symbol}/intraday`, VPA-labelled), `/tools/return` (round-trip fees, live exit price), `/tools/correlation`, `/data/{symbol}.csv`.
 Verified: 90 unit/component/contract tests (the contract tests parse **real captured API responses** with each feature's schema); **35 Playwright tests against the real stack**, one spec per tab plus accounts, watchlists and saved scans. Bugs the e2e suite found: (1) **a page reload during the silent refresh signed the user out**: the browser aborted the response carrying the rotated cookie and then presented the spent token; the server now grants a short leeway (a just-rotated token is exchanged once more by rotating its unused successor; reuse after the window still revokes the family: ADR 0005 amended); (2) `crore(NaN)` rendered "NaN cr"; (3) a conditionally-called hook in the shell. Test-infrastructure fixes: concurrent pytest sessions deadlocked on the shared `dse_test` database (they now queue behind a file lock), and the p95 latency test now budgets **CPU time per request** instead of wall-clock (7 ms p95 even at load average 18 on 10 cores, where wall-clock reads ~70 ms because the scheduler, not the code, is the bottleneck).
 Deliberately not ported: **market depth** (`/stocks/{symbol}/depth`) because it proxies a DSE endpoint that answers automated clients with 403, and the legacy per-tick `analysis` SSE event, replaced by a throttled (≤ 1 per 20 s) refetch of `/analysis` when the price moves. The frontend has one default watchlist in the sidebar; the API supports many named lists and the UI for them is future work.
+
+**Phase 8 notes (additions after the cutover).**
+- *Data sources.* Prices, daily candles, indices and the main company data all come from the Dhaka Stock Exchange's own site. `market_data` now keeps more of the company page: contacts, capital and loans, yearly EPS/NAV/profit, dividends, shareholding snapshots (`CompanyInfo`, `YearFinancial`, `holding_history` on `Fundamentals`, stored in the same JSONB row). Rows carry a `schema` number; a row stored before newer fields existed is re-synced on first use, so no migration or manual backfill is needed. Statements, director trades and the credit rating still come from two third-party public pages (see ROADMAP item 1).
+- *`dse.indicators`* is a pure library (not a feature): a registry of 88 indicators (`id, name, group, placement, params, outputs, scale, levels, compute`), vectorised and causal, with shared maths and a `required_columns` check that finds which price columns an indicator reads by perturbing its input. Any feature may use it; it imports no feature or framework (contract enforced). Tests include a causality test (no indicator reads future bars) and golden values (RSI reproduces the published Wilder/StockCharts example).
+- *`charts`* feature: candles and indicator series behind `GET /charts/{symbol}` and `GET /charts/indicators`. Port `CandleSource` with three adapters (stored daily history via the market_data facade, the exchange's index endpoints, intraday bars from ticks recorded through the live_feed facade). Output is cached under a content-addressed key, concurrent identical requests share one computation, work runs in a thread behind a concurrency cap, and responses carry an `ETag` (`304` supported). An index has closing values only (`ohlc=false`), so indicators that need open/high/low/volume are skipped with a warning.
+- *`company`* feature: the company dossier (`/stocks/{symbol}/company`), ratios with their basis, health flags, and watchlist alerts (`/alerts`). Sources sit behind one port: the exchange's data through the market_data facade, plus two third-party pages fetched politely and cached. A source that fails is reported in the response and does not break the others.
+- *`scanner`* gained `picks` (value and entry-timing scores, buckets, sector include/exclude) and `exclude_sectors` on every universe filter; *`analysis`* gained `candle_story` (what the last candles say, and the entry, stop, target and watch levels).
+- *Frontend:* features `company`, `picks`, `chart` (generic, metadata-driven) and `indicators` (catalog, picker, settings); one navigation catalog (`shared/lib/navigation.ts`) with a `plan` per view for a future paid tier; fonts self-hosted by `next/font`. 18 import-linter contracts.
 
 **Upstream identity.** The DSE adapters (snapshot poller, company pages) identify themselves honestly (`dse-analyzer/1.0 (non-commercial research tool; polite polling…)`, configurable via `DSE_UPSTREAM__USER_AGENT`) instead of imitating a browser as the legacy app did, and send no browser-mimicking headers. DSE accepts this (checked: snapshot 630 quotes, company page OK) while it answers generic tool clients such as plain `curl` with 403. A 403 is now its own error (`UpstreamForbiddenError`, clear message) and the poller waits 15 minutes before knocking again rather than retrying every minute or two. Scraping a site's public pages is still a decision for the operator: check DSE's terms of use, or ask the exchange for authorised data access.
 
@@ -162,8 +171,8 @@ api replicas (stateless) ── read Redis/Postgres, SSE fan-out from Redis pub/
 ## 4. Dependency rules (enforced by import-linter in CI)
 
 1. **Layers inside a feature:** `presentation → application → domain`; `infrastructure → application/domain`.
-   `domain` imports only stdlib, `shared_kernel`, and (analysis/scanner only) `numpy`/`pandas` as computational
-   libraries. Never FastAPI, SQLAlchemy, httpx, redis.
+   `domain` imports only stdlib, `shared_kernel`, and (analysis, scanner and charts only) `numpy`/`pandas` as
+   computational libraries. Never FastAPI, SQLAlchemy, httpx, redis.
 2. **Ports & adapters:** repositories/gateways are `Protocol`s in `domain`; implementations live in
    `infrastructure`; wiring happens only in composition roots (`main.py`, `worker.py`) and per-feature
    `presentation/dependencies.py`.
@@ -171,6 +180,8 @@ api replicas (stateless) ── read Redis/Postgres, SSE fan-out from Redis pub/
    No imports of another feature's `domain` internals, repositories or ORM models.
 4. **No cycles** between features (contract: `independence` + `layers`).
 5. `core` imports no feature. Features import `core` and `shared_kernel`.
+5a. `dse.indicators` is a library: any feature may import it, it imports no feature, `core` or framework
+   (only pandas/numpy). No feature depends on `charts` or `company`.
 6. Frontend: `app/` imports `features/*` public `index.ts` only; features import `shared/*` but never another
    feature's internals; ESLint `import/no-restricted-paths` + `boundaries` plugin.
 
@@ -230,4 +241,5 @@ api replicas (stateless) ── read Redis/Postgres, SSE fan-out from Redis pub/
 ## 9. Architecture decision records
 `docs/architecture/adr/` — 0001 modular monolith + strangler migration · 0002 worker/API split over Redis ·
 0003 Postgres + Alembic replaces SQLite · 0004 pandas allowed in analytics domain · 0005 JWT + refresh cookie ·
-0006 SSE (not WebSocket) for one-way live data.
+0006 SSE (not WebSocket) for one-way live data · 0007 charts: a standalone indicator engine, a thin charts
+feature and a generic chart component.

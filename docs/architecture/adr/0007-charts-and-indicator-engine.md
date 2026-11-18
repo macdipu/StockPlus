@@ -18,9 +18,11 @@ feature, framework or I/O (import-linter enforces it). Any feature may use it. A
 decorated function and its tests.
 
 **2. `features/charts`: delivery only.**
-- Port `CandleSource` with adapters: DSE daily bars (Postgres, through the market_data facade), StockNow
-  (intraday and index history), later a licensed feed. A small policy picks the source from (symbol kind,
-  resolution); replacing a source touches one adapter.
+- Port `CandleSource` with three adapters, all on the exchange's own data: daily bars of a company (Postgres,
+  through the market_data facade), indices (the exchange's `index-history` and `index-intraday` endpoints,
+  closing values only so `ohlc=false`), and intraday bars of a company (ticks recorded from the live feed, through
+  the live_feed facade). A small policy picks the source from (symbol kind, resolution); replacing a source, for
+  example with a licensed feed, touches one adapter.
 - Endpoints: `GET /charts/indicators` (catalog, with a content-hash `version`) and
   `GET /charts/{symbol}?resolution=&indicators=rsi(14),macd`. Stocks and indices (DSEX, DS30, DSES) share them.
 - The charts feature never depends on `analysis`, `scanner` or `company`; no feature depends on it.
@@ -48,6 +50,10 @@ account later (saved layouts and templates, a natural paid feature) without chan
 - One source of truth for indicator numbers across UI, API, agents and (later) scanner and alerts.
 - Scaling levers, in order: Redis cache (already content-addressed), single flight, bounded thread pool,
   precomputation in the worker, process pool or queue, CDN for `304`-friendly responses.
+- A closes-only series (an index) cannot feed indicators that read open, high, low or volume. The catalog says
+  which columns each indicator `requires` (found by perturbing the input, not by a hand-kept list), the chart
+  API skips and reports such indicators, and the picker shows why they are unavailable.
+- Intraday history of a company exists only from when recording began.
 - Not built: indicators that need data beyond one symbol's OHLCV (Advance/Decline, Correlation Coefficient,
   Technical Ratings, Volume Profile). The catalog lists only what can be computed correctly.
 - `analysis/domain/indicators.py` keeps its own maths for now (golden parity tests). Moving it onto the engine
