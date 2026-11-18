@@ -12,8 +12,3 @@ export function useSavedFilters(): [PickFilters, (f: PickFilters) => void] {
   const f = useSyncExternalStore(store.subscribe, store.get, store.getServer);
   return [{ ...DEFAULT_FILTERS, ...f }, store.set];
 }
-
-/** Sector names that mean "banks and insurance" in DSE's list (Bank, Insurance, Life Insurance, …). */
-export function banksAndInsurance(sectors: readonly string[]): string[] {
-  return sectors.filter((s) => /bank|insurance/i.test(s));
-}

@@ -6,7 +6,7 @@ import { useWatchlist } from "@/features/watchlist";
 import { num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
-import { banksAndInsurance, DEFAULT_FILTERS, useSavedFilters } from "../hooks/use-saved-filters";
+import { DEFAULT_FILTERS, useSavedFilters } from "../hooks/use-saved-filters";
 import { usePicks } from "../hooks/use-picks";
 import { BUCKETS, type Bucket, type Pick, type PickFilters } from "../schemas/picks";
 
@@ -36,7 +36,6 @@ function SectorPicker({ sectors, f, onChange }: { sectors: readonly string[]; f:
     const next = list.includes(s) ? list.filter((x) => x !== s) : [...list, s];
     onChange(mode === "exclude" ? { ...f, exclude: next, include: f.include.filter((x) => x !== s) } : { ...f, include: next, exclude: f.exclude.filter((x) => x !== s) });
   };
-  const bi = banksAndInsurance(sectors);
   return (
     <div>
       <div className="row">
@@ -45,9 +44,6 @@ function SectorPicker({ sectors, f, onChange }: { sectors: readonly string[]; f:
           <button type="button" role="tab" aria-selected={mode === "exclude"} className={mode === "exclude" ? "on" : ""} onClick={() => setMode("exclude")}>Leave out</button>
           <button type="button" role="tab" aria-selected={mode === "include"} className={mode === "include" ? "on" : ""} onClick={() => setMode("include")}>Only these</button>
         </div>
-        <button type="button" className="btn small" onClick={() => onChange({ ...f, include: [], exclude: bi })} disabled={!bi.length} title={bi.join(", ")}>
-          All except banks &amp; insurance
-        </button>
         <button type="button" className="btn ghost small" onClick={() => onChange({ ...f, include: [], exclude: [] })}>All sectors</button>
       </div>
       <div className="chips" role="group" aria-label={mode === "exclude" ? "Sectors to leave out" : "Sectors to keep"}>
