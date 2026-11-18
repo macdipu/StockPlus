@@ -61,6 +61,8 @@ If your Docker runtime rejects the API's host port range (`invalid host port 800
 - **For AI agents**: `/llms.txt`; each share page server-renders a "Key facts" block
   (`data-agent="stock-facts"`, `data-field="…"`) and schema.org JSON-LD, and links JSON/Markdown alternates.
 
+Open work and future scope: [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## Test
 
 ```bash
