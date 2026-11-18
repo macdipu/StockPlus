@@ -177,3 +177,35 @@ ol.plain { margin: 0; padding-left: 18px; }
 .launcher { display: flex; gap: 8px; margin-bottom: 10px; }
 .launcher-input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; }
 .grid2.launcher-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+
+/* ---- chart options: style picker and the analysis switch ---- */
+.chartopts { display: flex; align-items: center; gap: 10px; }
+.seg-label { align-self: center; padding: 0 8px 0 10px; }
+
+/* ---- indicator picker (modal) and chips ---- */
+.modal-backdrop { position: fixed; inset: 0; background: rgb(8 14 12 / 0.55); display: grid; place-items: start center; padding: 6vh 16px; z-index: 50; overflow: auto; }
+.modal { width: min(640px, 100%); max-height: 84vh; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.modal-head h3 { margin: 0; font-size: 17px; }
+.modal-search { width: 100%; padding: 10px 12px; font-size: 15px; }
+.modal-body { overflow: auto; margin: 10px -6px 0; padding: 0 6px; min-height: 120px; }
+.plain-list { list-style: none; margin: 0; padding: 0; }
+.ind-group { font-size: 13px; margin: 14px 0 4px; color: var(--mute); font-weight: 600; }
+.ind-row { display: grid; width: 100%; text-align: left; gap: 1px; padding: 8px 10px; border: 0; background: none; font: inherit; color: var(--ink); border-radius: 8px; cursor: pointer; }
+.ind-row:hover:not(:disabled) { background: var(--chip); }
+.ind-row:disabled { opacity: 0.5; cursor: not-allowed; }
+.ind-name { font-weight: 500; }
+.ind-added { color: var(--brand); }
+.ind-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; align-items: center; }
+.ind-chip { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 12.5px; background: var(--card); }
+.ind-chip .swatch { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.ind-chip button { border: 0; background: none; color: var(--mute); cursor: pointer; font: inherit; padding: 2px 6px; border-radius: 999px; }
+.ind-chip button:hover { color: var(--ink); background: var(--chip); }
+.ind-params { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin: 0 0 8px; }
+.ind-params .inp { width: 90px; }
+.stylepicker { position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 210px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px; display: grid; }
+.menu button { text-align: left; border: 0; background: none; font: inherit; color: var(--ink); padding: 7px 10px; border-radius: 7px; cursor: pointer; }
+.menu button:hover { background: var(--chip); }
+.menu button.on { font-weight: 600; box-shadow: inset 2px 0 0 var(--brand); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }

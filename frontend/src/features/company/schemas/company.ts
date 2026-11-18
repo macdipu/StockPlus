@@ -80,17 +80,6 @@ export const companySchema = z.object({
 });
 export type Company = z.infer<typeof companySchema>;
 
-export const barSchema = z.object({
-  time: z.number(),
-  open: z.number(),
-  high: z.number(),
-  low: z.number(),
-  close: z.number(),
-  volume: z.number(),
-});
-export type Bar = z.infer<typeof barSchema>;
-export type Resolution = "1" | "5" | "30" | "60" | "D";
-
 export const alertSchema = z.object({
   symbol: z.string(),
   kind: z.string(),

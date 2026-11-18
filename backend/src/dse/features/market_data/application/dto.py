@@ -34,6 +34,38 @@ class DividendDto(BaseModel):
     stock_pct: float
 
 
+class CompanyInfoDto(BaseModel):
+    """Contacts, capital and status. Money is BDT million."""
+
+    head_office: str | None
+    registered_office: str | None
+    factory_address: str | None
+    phone: str | None
+    fax: str | None
+    email: str | None
+    website: str | None
+    secretary_name: str | None
+    secretary_email: str | None
+    secretary_phone: str | None
+    authorized_capital_mn: float | None
+    reserve_mn: float | None
+    short_term_loan_mn: float | None
+    long_term_loan_mn: float | None
+    operational_status: str | None
+    agm_date: str | None
+    market_lot: int | None
+
+
+class YearFinancialDto(BaseModel):
+    year: int
+    eps: float | None
+    nav: float | None
+    profit_mn: float | None
+    pe: float | None
+    cash_dividend_pct: float | None
+    dividend_yield_pct: float | None
+
+
 class FundamentalsDto(BaseModel):
     eps_ttm: float | None
     eps_ttm_basis: str
@@ -59,6 +91,12 @@ class FundamentalsDto(BaseModel):
     shareholding: ShareholdingDto
     week_high_52: float | None
     week_low_52: float | None
+    paid_up_capital: float | None  # BDT
+    year_end: str | None  # month name, e.g. "June"
+    listing_year: int | None
+    info: CompanyInfoDto | None
+    year_history: list[YearFinancialDto]  # oldest first
+    holding_history: list[ShareholdingDto]  # oldest first
 
 
 class ProfileDto(BaseModel):

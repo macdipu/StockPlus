@@ -1,0 +1,200 @@
+{
+ "profile": {
+  "symbol": "ENVOYTEX",
+  "name": "Envoy Textiles Limited",
+  "sector": "Textile",
+  "category": "A",
+  "board": "PUBLIC",
+  "asset_type": "EQ",
+  "isin": "BD0455ENVTX4",
+  "last_close": 85.5,
+  "last_bar_day": "2026-11-17",
+  "synced_at": "2026-11-18T12:00:00",
+  "fundamentals": {
+   "eps_ttm": 8.4,
+   "eps_ttm_basis": "last audited year EPS",
+   "eps_annual": null,
+   "eps_q1": null,
+   "eps_q2": null,
+   "eps_q3": null,
+   "eps_half_year": null,
+   "eps_nine_months": null,
+   "eps_period_ends": {},
+   "pe": 10.178571428571429,
+   "pe_dse_trailing": null,
+   "nav": 58.32,
+   "pb": 1.4660493827160495,
+   "face_value": 10.0,
+   "total_shares": 167734767,
+   "market_cap": 14341322578.5,
+   "free_float_pct": 25.538701824411,
+   "dividend_per_share": 3.0,
+   "dividend_yield_pct": 7.5,
+   "last_dividend": {
+    "year": 2025,
+    "cash_pct": 30.0,
+    "stock_pct": 0.0
+   },
+   "dividends": [
+    {
+     "year": 2025,
+     "cash_pct": 30.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2024,
+     "cash_pct": 20.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2023,
+     "cash_pct": 15.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2022,
+     "cash_pct": 15.0,
+     "stock_pct": 0.0
+    },
+    {
+     "year": 2021,
+     "cash_pct": 10.0,
+     "stock_pct": 0.0
+    }
+   ],
+   "shareholding": {
+    "as_of": "Oct 31, 2026",
+    "sponsor_pct": 65.41,
+    "government_pct": 0.0,
+    "institution_pct": 18.75,
+    "foreign_pct": 0.16,
+    "public_pct": 15.68
+   },
+   "week_high_52": 89.4,
+   "week_low_52": 45.3,
+   "paid_up_capital": 1677347670.0,
+   "year_end": "June",
+   "listing_year": 2012,
+   "info": {
+    "head_office": "Envoy Tower, 18/E, Lake Circus Kalabagan (West Panthapath), Dhaka - 1205",
+    "registered_office": "Envoy Tower, 18/E, Lake Circus Kalabagan (West Panthapath), Dhaka - 1205",
+    "factory_address": "Jamirdia, Bhaluka, Mymensing.",
+    "phone": "+88 02 41021684-87, 41021689-95",
+    "fax": "+88 02 -41021703",
+    "email": "info@envoytextiles.com",
+    "website": "www.envoytextiles.com",
+    "secretary_name": "M Saiful Islam Chowdhury FCS",
+    "secretary_email": "saiful.chowdhury@envoytextiles.com",
+    "secretary_phone": "880-2-41021684-87",
+    "authorized_capital_mn": 4750.0,
+    "reserve_mn": 7009.71,
+    "short_term_loan_mn": 7385.44569,
+    "long_term_loan_mn": 3014.139179,
+    "operational_status": "Active",
+    "agm_date": "06-12-2025",
+    "market_lot": 1
+   },
+   "year_history": [
+    {
+     "year": 2018,
+     "eps": 2.01,
+     "nav": 38.01,
+     "profit_mn": 329.94,
+     "pe": 17.29,
+     "cash_dividend_pct": null,
+     "dividend_yield_pct": 2.88
+    },
+    {
+     "year": 2019,
+     "eps": 3.31,
+     "nav": 38.35,
+     "profit_mn": 554.43,
+     "pe": null,
+     "cash_dividend_pct": 15.0,
+     "dividend_yield_pct": 4.27
+    },
+    {
+     "year": 2020,
+     "eps": 1.63,
+     "nav": 40.57,
+     "profit_mn": 274.12,
+     "pe": 12.97,
+     "cash_dividend_pct": 5.0,
+     "dividend_yield_pct": 2.36
+    },
+    {
+     "year": 2021,
+     "eps": 0.56,
+     "nav": 37.79,
+     "profit_mn": 94.77,
+     "pe": 52.04,
+     "cash_dividend_pct": 5.0,
+     "dividend_yield_pct": 1.7
+    },
+    {
+     "year": 2022,
+     "eps": 2.99,
+     "nav": 38.21,
+     "profit_mn": 501.31,
+     "pe": 14.79,
+     "cash_dividend_pct": 15.0,
+     "dividend_yield_pct": 3.39
+    },
+    {
+     "year": 2023,
+     "eps": 1.95,
+     "nav": 38.57,
+     "profit_mn": 327.28,
+     "pe": 22.5,
+     "cash_dividend_pct": 15.0,
+     "dividend_yield_pct": 3.42
+    },
+    {
+     "year": 2024,
+     "eps": 3.58,
+     "nav": 51.93,
+     "profit_mn": 600.39,
+     "pe": 9.95,
+     "cash_dividend_pct": 20.0,
+     "dividend_yield_pct": 5.62
+    },
+    {
+     "year": 2025,
+     "eps": 8.4,
+     "nav": 58.32,
+     "profit_mn": 1408.9,
+     "pe": 4.76,
+     "cash_dividend_pct": 30.0,
+     "dividend_yield_pct": 7.5
+    }
+   ],
+   "holding_history": [
+    {
+     "as_of": "2025-06-30",
+     "sponsor_pct": 65.18,
+     "government_pct": 0.0,
+     "institution_pct": 26.11,
+     "foreign_pct": 0.06,
+     "public_pct": 8.65
+    },
+    {
+     "as_of": "2026-09-30",
+     "sponsor_pct": 65.41,
+     "government_pct": 0.0,
+     "institution_pct": 19.6,
+     "foreign_pct": 0.15,
+     "public_pct": 14.84
+    },
+    {
+     "as_of": "2026-10-31",
+     "sponsor_pct": 65.41,
+     "government_pct": 0.0,
+     "institution_pct": 18.75,
+     "foreign_pct": 0.16,
+     "public_pct": 15.68
+    }
+   ]
+  }
+ },
+ "announcements": []
+}

@@ -1,13 +1,23 @@
 """Entity -> DTO mapping (one direction: the application never accepts DTOs back as entities)."""
 
+import dataclasses
+
 from dse.features.market_data.application.dto import (
     AnnouncementDto,
     BarDto,
+    CompanyInfoDto,
     DividendDto,
     FundamentalsDto,
     ShareholdingDto,
+    YearFinancialDto,
 )
-from dse.features.market_data.domain.entities import Announcement, DailyBar, Dividend, Fundamentals
+from dse.features.market_data.domain.entities import (
+    Announcement,
+    DailyBar,
+    Dividend,
+    Fundamentals,
+    ShareholdingPattern,
+)
 
 
 def bar_dto(b: DailyBar) -> BarDto:
@@ -24,6 +34,17 @@ def bar_dto(b: DailyBar) -> BarDto:
 
 def _div(d: Dividend) -> DividendDto:
     return DividendDto(year=d.year, cash_pct=d.cash_pct, stock_pct=d.stock_pct)
+
+
+def _holding(s: ShareholdingPattern) -> ShareholdingDto:
+    return ShareholdingDto(
+        as_of=s.as_of,
+        sponsor_pct=s.sponsor_pct,
+        government_pct=s.government_pct,
+        institution_pct=s.institution_pct,
+        foreign_pct=s.foreign_pct,
+        public_pct=s.public_pct,
+    )
 
 
 def fundamentals_dto(f: Fundamentals, price: float | None) -> FundamentalsDto:
@@ -62,6 +83,12 @@ def fundamentals_dto(f: Fundamentals, price: float | None) -> FundamentalsDto:
         ),
         week_high_52=f.week_high_52,
         week_low_52=f.week_low_52,
+        paid_up_capital=f.paid_up_capital,
+        year_end=f.year_end,
+        listing_year=f.listing_year,
+        info=CompanyInfoDto(**dataclasses.asdict(f.info)) if f.info else None,
+        year_history=[YearFinancialDto(**dataclasses.asdict(y)) for y in f.year_history],
+        holding_history=[_holding(h) for h in f.holding_history],
     )
 
 

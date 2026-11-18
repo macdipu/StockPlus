@@ -8,7 +8,7 @@ const TONE = { entry: "", stop: "dn", target: "up", watch: "" } as const;
 
 /**
  * The one trade plan on the page: levels (buy zone from nearby support, stop, targets, watch levels), the same
- * plan in words, and what the last five candles say. The same levels are drawn on the Advanced chart.
+ * plan in words, and what the last five candles say. The same levels are drawn on the chart at Analysis: Full.
  */
 export function TradePlanCard({ analysis }: { analysis: Analysis }) {
   const st = analysis.candle_story;

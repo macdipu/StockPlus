@@ -20,7 +20,14 @@ from dse.core.tasks import cancel_and_wait
 from dse.features.analysis.infrastructure.gateways import FacadeAnalysisInputs, FacadeHistorySource
 from dse.features.analysis.presentation.dependencies import AnalysisContainer
 from dse.features.analysis.presentation.router import router as analysis_router
-from dse.features.company.infrastructure.gateways import FacadeAnalysis, LiveFeedPrices
+from dse.features.charts.application.sources import RoutedCandles
+from dse.features.charts.application.use_cases import GetChart, ListIndicators
+from dse.features.charts.infrastructure.cache import RedisChartCache
+from dse.features.charts.infrastructure.dse_index import DseIndexCandles
+from dse.features.charts.infrastructure.gateways import DseDailyCandles, RecordedTickCandles
+from dse.features.charts.presentation.dependencies import ChartsContainer
+from dse.features.charts.presentation.router import router as charts_router
+from dse.features.company.infrastructure.gateways import CompanySourceSet, FacadeAnalysis, LiveFeedPrices
 from dse.features.company.infrastructure.http_sources import HttpCompanySources
 from dse.features.company.presentation.dependencies import CompanyContainer
 from dse.features.company.presentation.router import alerts_router
@@ -102,17 +109,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             redis, user_agent=settings.upstream.user_agent, timeout_s=settings.upstream.timeout_s
         )
         app.state.company = CompanyContainer.build(
-            company_sources,
-            company_sources,
+            CompanySourceSet(app.state.market_data.facade, company_sources),
             LiveFeedPrices(app.state.live_feed.facade),
             FacadeAnalysis(app.state.analysis.facade),
             clock,
+        )
+        index_candles = DseIndexCandles(
+            redis, user_agent=settings.upstream.user_agent, timeout_s=settings.upstream.timeout_s
+        )
+        catalog = ListIndicators()
+        app.state.charts = ChartsContainer(
+            chart=GetChart(
+                RoutedCandles(
+                    DseDailyCandles(app.state.market_data.facade),
+                    index_candles,
+                    RecordedTickCandles(app.state.live_feed.facade, clock.today),
+                ),
+                RedisChartCache(redis),
+                catalog,
+            ),
+            indicators=catalog,
         )
         hub_task = asyncio.create_task(hub.run(), name="live-feed-hub")
         yield
         await cancel_and_wait(hub_task)
         await source.aclose()
         await company_sources.aclose()
+        await index_candles.aclose()
         await redis.aclose()
         await db.dispose()
 
@@ -149,6 +172,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     v1.include_router(analysis_router)
     v1.include_router(scanner_router)
     v1.include_router(company_router)
+    v1.include_router(charts_router)
     v1.include_router(alerts_router)
     app.include_router(v1)
     return app

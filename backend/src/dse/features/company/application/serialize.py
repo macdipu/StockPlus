@@ -22,7 +22,7 @@ def _plain(o: Any) -> Any:
 
 def dossier_to_dict(d: CompanyDossier) -> dict[str, Any]:
     """Price-independent part of the dossier. `with_price` adds the price-dependent ratios at read time."""
-    sn, am, ts = d.stocknow, d.amarstock, d.topstock
+    sn, am, ts = d.exchange, d.amarstock, d.topstock
     by_year: dict[str, dict[str, Any]] = {}
     for key, series in (("eps", sn.eps_annual), ("nav", sn.nav), ("nocfps", sn.nocfps)):
         for pv in series:
@@ -30,6 +30,10 @@ def dossier_to_dict(d: CompanyDossier) -> dict[str, Any]:
     for dv in sn.dividends:
         row = by_year.setdefault(dv.period_end, {"period_end": dv.period_end})
         row["cash_dividend_pct"], row["stock_dividend_pct"] = dv.cash_pct, dv.stock_pct
+    for y in ts.years:  # cash flow per share comes from TopStock's yearly figures, matched to the fiscal year
+        found: dict[str, Any] | None = next((r for e, r in by_year.items() if e[:4] == str(y.year)), None)
+        if found is not None and y.nocfps is not None:
+            found["nocfps"] = y.nocfps
     annual_ends = {pv.period_end for pv in sn.eps_annual} | {dv.period_end for dv in sn.dividends}
     return {
         "symbol": d.symbol,

@@ -1,8 +1,5 @@
 """Parse the three public sources into dossier parts. Pure functions; every shape assumption lives here.
 
-stocknow   GET /api/v1/instruments/{SYM}/fundamentals/{k1,k2,…}?groupBy=meta_date,meta_key&yearLimit=10
-           → {"2026-06-30": {"earning_per_share": [{"meta_value": "8.24", "meta_date": …}], …}, …}
-           GET /api/v1/instruments/{SYM}/news → {"data": [{"date", "title", "details", …}], …}
 amarstock  GET /stock/{SYM}: server-rendered HTML; the statements are <table>s whose header row is the
            years and whose last row is EPS (profit & loss), NAV (balance sheet) or NOCFPS (cash flow).
            Numbers use South-Asian grouping ("1,40,88,95,470"). Tags are often left unclosed.
@@ -12,70 +9,21 @@ topstock   GET /stock/{SYM}: Next.js page; JSON objects ("extFinancials", "finan
 
 import json
 import re
-from collections.abc import Mapping
 from datetime import date, datetime
 from html.parser import HTMLParser
 from typing import Any
 
 from dse.features.company.domain.entities import (
     AmarStockPart,
-    Capital,
-    Contact,
     CreditRating,
     DirectorTrade,
-    DividendRecord,
     Events,
     FinancialYear,
-    NewsItem,
-    PeriodValue,
-    QuarterlyEps,
-    Shareholding,
     Statement,
     StatementRow,
-    StockNowPart,
     TopStockPart,
 )
 
-STOCKNOW_KEYS = (
-    "earning_per_share",
-    "q1_eps_cont_op",
-    "q2_eps_cont_op",
-    "q3_eps_cont_op",
-    "half_year_eps_cont_op",
-    "q3_nine_months_eps",
-    "net_asset_val_per_share",
-    "nocf_per_share",
-    "cash_dividend",
-    "stock_dividend",
-    "share_percentage_director",
-    "share_percentage_govt",
-    "share_percentage_institute",
-    "share_percentage_foreign",
-    "share_percentage_public",
-    "long_term_loan",
-    "short_term_loan",
-    "reserve_and_surp",
-    "paid_up_capital",
-    "authorized_capital",
-    "total_no_securities",
-    "record_date",
-    "last_agm_held",
-    "office_address",
-    "phone_number",
-    "fax_number",
-    "email",
-    "website",
-    "listing_year",
-    "operational_status",
-    "year_end",
-)
-_QUARTERS = {
-    "q1_eps_cont_op": "q1",
-    "q2_eps_cont_op": "q2",
-    "q3_eps_cont_op": "q3",
-    "half_year_eps_cont_op": "h1",
-    "q3_nine_months_eps": "9m",
-}
 MAX_NEWS = 15
 
 
@@ -98,142 +46,6 @@ def _num(v: Any) -> float | None:
 def _text(v: Any) -> str | None:
     s = str(v).strip() if v is not None else ""
     return s or None
-
-
-# ============================================================================================ stocknow
-def _by_key(payload: Mapping[str, Any]) -> dict[str, list[tuple[str, Any]]]:
-    """{meta_key: [(meta_date, meta_value), …]} sorted by date, whatever the grouping shape."""
-    out: dict[str, list[tuple[str, Any]]] = {}
-
-    def add(row: Any) -> None:
-        if isinstance(row, dict) and row.get("meta_key"):
-            out.setdefault(str(row["meta_key"]), []).append(
-                (str(row.get("meta_date") or ""), row.get("meta_value"))
-            )
-
-    for group in payload.values():
-        if isinstance(group, dict):
-            for rows in group.values():
-                for row in rows if isinstance(rows, list) else [rows]:
-                    add(row)
-        elif isinstance(group, list):
-            for row in group:
-                add(row)
-    for rows in out.values():
-        rows.sort(key=lambda t: t[0])
-    return out
-
-
-def _series(rows: list[tuple[str, Any]]) -> tuple[PeriodValue, ...]:
-    seen: dict[str, float] = {}
-    for d, v in rows:
-        f = _num(v)
-        if f is not None and d and not d.startswith("0000"):
-            seen[d] = f
-    return tuple(PeriodValue(d, v) for d, v in sorted(seen.items()))
-
-
-def _last(rows: list[tuple[str, Any]] | None) -> tuple[str | None, Any]:
-    return rows[-1] if rows else (None, None)
-
-
-def _iso_dmy(v: Any) -> str | None:
-    s = _text(v)
-    if not s:
-        return None
-    for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(s, fmt).date().isoformat()
-        except ValueError:
-            continue
-    return s
-
-
-def parse_stocknow(payload: Mapping[str, Any], news: Mapping[str, Any] | None = None) -> StockNowPart:
-    k = _by_key(payload)
-    quarterly = tuple(
-        sorted(
-            (
-                QuarterlyEps(pv.period_end, label, pv.value)
-                for key, label in _QUARTERS.items()
-                for pv in _series(k.get(key, []))
-            ),
-            key=lambda q: (q.period_end, q.period),
-        )
-    )
-    cash = {pv.period_end: pv.value for pv in _series(k.get("cash_dividend", []))}
-    stock = {pv.period_end: pv.value for pv in _series(k.get("stock_dividend", []))}
-    dividends = tuple(
-        DividendRecord(d, cash.get(d, 0.0), stock.get(d, 0.0)) for d in sorted(set(cash) | set(stock))
-    )
-    holders: dict[str, dict[str, float | None]] = {}
-    for key, field in (
-        ("share_percentage_director", "director"),
-        ("share_percentage_govt", "government"),
-        ("share_percentage_institute", "institute"),
-        ("share_percentage_foreign", "foreign"),
-        ("share_percentage_public", "public"),
-    ):
-        for pv in _series(k.get(key, [])):
-            holders.setdefault(pv.period_end, {})[field] = pv.value
-    shareholding = tuple(
-        Shareholding(
-            as_of=d,
-            director=h.get("director"),
-            government=h.get("government"),
-            institute=h.get("institute"),
-            foreign=h.get("foreign"),
-            public=h.get("public"),
-        )
-        for d, h in sorted(holders.items())
-    )
-    loans_as_of, lt = _last(k.get("long_term_loan"))
-    shares = _num(_last(k.get("total_no_securities"))[1])
-    listing = _num(_last(k.get("listing_year"))[1])
-    record = _last(k.get("record_date"))
-    items = (news or {}).get("data") if isinstance(news, Mapping) else None
-    return StockNowPart(
-        contact=Contact(
-            address=max(
-                (t for _, v in k.get("office_address", []) if (t := _text(v))), key=len, default=None
-            ),
-            phone=_text(_last(k.get("phone_number"))[1]),
-            fax=_text(_last(k.get("fax_number"))[1]),
-            email=_text(_last(k.get("email"))[1]),
-            website=_text(_last(k.get("website"))[1]),
-        ),
-        listing_year=int(listing) if listing else None,
-        year_end=_text(_last(k.get("year_end"))[1]),
-        operational_status=_text(_last(k.get("operational_status"))[1]),
-        capital=Capital(
-            authorized_mn=_num(_last(k.get("authorized_capital"))[1]),
-            paid_up_mn=_num(_last(k.get("paid_up_capital"))[1]),
-            reserve_mn=_num(_last(k.get("reserve_and_surp"))[1]),
-            long_term_loan_mn=_num(lt),
-            short_term_loan_mn=_num(_last(k.get("short_term_loan"))[1]),
-            total_shares=int(shares) if shares else None,
-            loans_as_of=loans_as_of,
-        ),
-        eps_annual=_series(k.get("earning_per_share", [])),
-        eps_quarterly=quarterly,
-        nav=_series(k.get("net_asset_val_per_share", [])),
-        nocfps=_series(k.get("nocf_per_share", [])),
-        dividends=dividends,
-        shareholding=shareholding,
-        events=Events(record_date=_iso_dmy(record[1]), last_agm=_iso_dmy(_last(k.get("last_agm_held"))[1])),
-        news=tuple(_news(n) for n in (items or [])[:MAX_NEWS] if isinstance(n, dict)),
-    )
-
-
-def _news(n: Mapping[str, Any]) -> NewsItem:
-    d = _text(n.get("date")) or (_text(n.get("post_date")) or "")[:10]
-    try:
-        day = date.fromisoformat(d) if d else None
-    except ValueError:
-        day = None
-    body = _text(n.get("details")) or _text(n.get("summary_en")) or ""
-    title = _text(n.get("title")) or (body.split(":")[0][:80] if body else "Announcement")
-    return NewsItem(day=day, title=title, body=body)
 
 
 # ============================================================================================ amarstock

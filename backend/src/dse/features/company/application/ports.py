@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from dse.features.company.domain.entities import AmarStockPart, StockNowPart, TopStockPart
+from dse.features.company.domain.entities import AmarStockPart, ExchangePart, TopStockPart
 
 
 class CompanySources(Protocol):
@@ -10,7 +10,7 @@ class CompanySources(Protocol):
 
     def url(self, source: str, symbol: str) -> str: ...
 
-    async def stocknow(self, symbol: str, refresh: bool = False) -> StockNowPart: ...
+    async def exchange(self, symbol: str, refresh: bool = False) -> ExchangePart: ...
 
     async def amarstock(self, symbol: str, refresh: bool = False) -> AmarStockPart: ...
 
@@ -20,12 +20,6 @@ class CompanySources(Protocol):
 class PriceLookup(Protocol):
     async def last_price(self, symbol: str) -> float | None:
         """Live price, or None when the feed does not know the symbol yet."""
-        ...
-
-
-class BarSource(Protocol):
-    async def bars(self, symbol: str, resolution: str, pages: int) -> list[dict[str, Any]]:
-        """Oldest first: {"time": unix seconds UTC, "open", "high", "low", "close", "volume"}."""
         ...
 
 

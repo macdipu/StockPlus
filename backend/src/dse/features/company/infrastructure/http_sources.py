@@ -1,4 +1,4 @@
-"""HTTP adapters for the company sources and intraday bars.
+"""HTTP adapters for the third-party company pages (AmarStock, TopStockBD).
 
 Politeness is enforced here, once: one request at a time per host, spaced `min_interval_s` apart, an honest
 User-Agent, and every raw response cached in Redis (dossier sources for hours, bars for a minute), so a busy
@@ -15,23 +15,18 @@ from urllib.parse import quote
 import httpx
 from redis.asyncio import Redis
 
-from dse.features.company.domain.entities import AmarStockPart, StockNowPart, TopStockPart
+from dse.features.company.domain.entities import AmarStockPart, TopStockPart
 from dse.features.company.infrastructure.parsers import (
-    STOCKNOW_KEYS,
     flight_objects,
     parse_amarstock,
-    parse_stocknow,
     parse_topstock,
 )
 from dse.shared_kernel.errors import NotFoundError, UpstreamForbiddenError, UpstreamUnavailableError
 
-STOCKNOW = "https://stocknow.com.bd"
 AMARSTOCK = "https://www.amarstock.com"
 TOPSTOCK = "https://www.topstockbd.com"
 TOPSTOCK_KEYS = ("extFinancials", "financials", "rating", "declaration")
 SOURCE_TTL_S = 6 * 3600
-BARS_TTL_S = {"1": 60, "5": 120, "30": 300, "60": 300, "D": 600}
-STOCKNOW_RES = {"1": "1", "5": "5", "30": "30", "60": "60", "D": "1D"}
 
 
 class _Host:
@@ -55,7 +50,7 @@ class HttpCompanySources:
         self._client = client or httpx.AsyncClient(
             timeout=timeout_s, follow_redirects=True, headers={"User-Agent": user_agent}
         )
-        self._hosts = {h: _Host(min_interval_s) for h in (STOCKNOW, AMARSTOCK, TOPSTOCK)}
+        self._hosts = {h: _Host(min_interval_s) for h in (AMARSTOCK, TOPSTOCK)}
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -63,7 +58,6 @@ class HttpCompanySources:
     def url(self, source: str, symbol: str) -> str:
         s = quote(symbol)
         return {
-            "stocknow": f"{STOCKNOW}/stocks/{s}",
             "amarstock": f"{AMARSTOCK}/stock/{s}",
             "topstock": f"{TOPSTOCK}/stock/{s}",
         }[source]
@@ -99,32 +93,6 @@ class HttpCompanySources:
         return text
 
     # ---------------------------------------------------------------------------------------- sources
-    async def stocknow(self, symbol: str, refresh: bool = False) -> StockNowPart:
-        s = quote(symbol)
-
-        async def fundamentals() -> str:
-            path = (
-                f"/api/v1/instruments/{s}/fundamentals/{','.join(STOCKNOW_KEYS)}"
-                "?groupBy=meta_date,meta_key&yearLimit=10"
-            )
-            return (await self._get(STOCKNOW, path)).text
-
-        async def news() -> str:
-            r = await self._get(STOCKNOW, f"/api/v1/instruments/{s}/news")
-            data = r.json()
-            items = data.get("data") if isinstance(data, dict) else None
-            return json.dumps({"data": (items or [])[:20]})
-
-        raw = await self._cached(f"company:stocknow:{symbol}", SOURCE_TTL_S, refresh, fundamentals)
-        try:
-            raw_news = await self._cached(f"company:stocknow-news:{symbol}", SOURCE_TTL_S, refresh, news)
-        except UpstreamUnavailableError:
-            raw_news = '{"data": []}'
-        payload = json.loads(raw)
-        if not isinstance(payload, dict) or not payload:
-            raise NotFoundError(f"stocknow has no fundamentals for {symbol}")
-        return await asyncio.to_thread(parse_stocknow, payload, json.loads(raw_news))
-
     async def amarstock(self, symbol: str, refresh: bool = False) -> AmarStockPart:
         async def page() -> str:
             return (await self._get(AMARSTOCK, f"/stock/{quote(symbol)}")).text
@@ -140,49 +108,6 @@ class HttpCompanySources:
 
         raw = await self._cached(f"company:topstock:{symbol}", SOURCE_TTL_S, refresh, page)
         return await asyncio.to_thread(parse_topstock, _as_flight_html(json.loads(raw)))
-
-    # ---------------------------------------------------------------------------------------- bars
-    async def bars(self, symbol: str, resolution: str, pages: int) -> list[dict[str, Any]]:
-        res = STOCKNOW_RES[resolution]
-        out: dict[int, dict[str, Any]] = {}
-        for page in range(pages):
-            skip = page * 300
-
-            async def load(skip: int = skip) -> str:
-                path = f"/api/v1/instruments/{quote(symbol)}/history?data2=true&resolution={res}&skip={skip}"
-                return (await self._get(STOCKNOW, path)).text
-
-            raw = await self._cached(
-                f"bars:{symbol}:{resolution}:{skip}", BARS_TTL_S[resolution], False, load
-            )
-            rows = parse_bars(json.loads(raw))
-            for b in rows:
-                out[b["time"]] = b
-            if len(rows) < 300:
-                break
-        return [out[t] for t in sorted(out)]
-
-
-def parse_bars(data: Any) -> list[dict[str, Any]]:
-    """stocknow history arrays [opens, highs, lows, closes, volumes, unix times] → bar dicts."""
-    if not isinstance(data, list) or len(data) < 6:
-        raise UpstreamUnavailableError("stocknow history shape changed")
-    o, h, lo, c, v, t = data[:6]
-    bars = []
-    for i in range(min(len(o), len(h), len(lo), len(c), len(v), len(t))):
-        if None in (o[i], h[i], lo[i], c[i], t[i]):
-            continue
-        bars.append(
-            {
-                "time": int(t[i]),
-                "open": float(o[i]),
-                "high": float(h[i]),
-                "low": float(lo[i]),
-                "close": float(c[i]),
-                "volume": int(v[i] or 0),
-            }
-        )
-    return bars
 
 
 def _as_flight_html(objects: dict[str, Any]) -> str:

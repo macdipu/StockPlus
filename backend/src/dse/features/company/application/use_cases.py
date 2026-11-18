@@ -5,18 +5,17 @@ import dataclasses
 import logging
 from typing import Any
 
-from dse.features.company.application.ports import AnalysisLookup, BarSource, CompanySources, PriceLookup
+from dse.features.company.application.ports import AnalysisLookup, CompanySources, PriceLookup
 from dse.features.company.application.serialize import dossier_to_dict, with_price
 from dse.features.company.domain.alerts import Alert, alerts_for
 from dse.features.company.domain.entities import (
     AmarStockPart,
     CompanyDossier,
+    ExchangePart,
     SourceStatus,
-    StockNowPart,
     TopStockPart,
 )
 from dse.shared_kernel.clock import Clock
-from dse.shared_kernel.errors import ValidationFailedError
 
 log = logging.getLogger("dse.company")
 
@@ -40,9 +39,9 @@ class GetCompanyDossier:
         return with_price(dossier_to_dict(dossier), dossier, price)
 
     async def _fetch(self, symbol: str, refresh: bool) -> CompanyDossier:
-        names = ("stocknow", "amarstock", "topstock")
+        names = ("dse", "amarstock", "topstock")
         results = await asyncio.gather(
-            self._sources.stocknow(symbol, refresh),
+            self._sources.exchange(symbol, refresh),
             self._sources.amarstock(symbol, refresh),
             self._sources.topstock(symbol, refresh),
             return_exceptions=True,
@@ -59,26 +58,11 @@ class GetCompanyDossier:
         return CompanyDossier(
             symbol=symbol,
             fetched_at=self._clock.now().isoformat(timespec="seconds"),
-            stocknow=sn if isinstance(sn, StockNowPart) else StockNowPart(),
+            exchange=sn if isinstance(sn, ExchangePart) else ExchangePart(),
             amarstock=am if isinstance(am, AmarStockPart) else AmarStockPart(),
             topstock=ts if isinstance(ts, TopStockPart) else TopStockPart(),
             sources=tuple(status),
         )
-
-
-RESOLUTIONS = {"1": "1 minute", "5": "5 minutes", "30": "30 minutes", "60": "1 hour", "D": "1 day"}
-
-
-class GetBars:
-    """OHLCV candles at an intraday or daily resolution (the chart's timeframe tabs)."""
-
-    def __init__(self, source: BarSource) -> None:
-        self._source = source
-
-    async def __call__(self, symbol: str, resolution: str, pages: int = 1) -> list[dict[str, Any]]:
-        if resolution not in RESOLUTIONS:
-            raise ValidationFailedError(f"resolution must be one of {', '.join(RESOLUTIONS)}")
-        return await self._source.bars(symbol, resolution, max(1, min(pages, 4)))
 
 
 class GetWatchlistAlerts:

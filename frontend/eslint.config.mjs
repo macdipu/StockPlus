@@ -8,7 +8,7 @@ import typescript from "eslint-config-next/typescript";
  *   - a feature never imports another feature's internals (only its public index) and never imports app/;
  *   - shared/ never imports features or app/.
  */
-const FEATURES = ["auth", "live", "watchlist", "stock", "market", "scanner", "data", "tools", "company", "picks"];
+const FEATURES = ["auth", "live", "watchlist", "stock", "market", "scanner", "data", "tools", "company", "picks", "chart", "indicators"];
 
 const restrict = (patterns) => ({
   "no-restricted-imports": ["error", { patterns }],

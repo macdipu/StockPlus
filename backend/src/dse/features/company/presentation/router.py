@@ -1,11 +1,10 @@
 """HTTP adapter for company details and multi-timeframe bars. Thin: validate, call one use case, wrap."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, Query
 
 from dse.core.http import Envelope, envelope
-from dse.features.company.application.use_cases import RESOLUTIONS
 from dse.features.company.presentation import schemas
 from dse.features.company.presentation.dependencies import CompanyContainer, container
 from dse.shared_kernel.symbol import Symbol
@@ -28,24 +27,6 @@ async def get_company(
 ) -> dict[str, Any]:
     data = await c.dossier(Symbol(symbol).value, refresh)
     return envelope(data, fetchedAt=data["fetched_at"])
-
-
-@router.get(
-    "/{symbol}/bars",
-    response_model=Envelope[list[schemas.Bar]],
-    summary="OHLCV candles at 1/5/30/60-minute or daily resolution, oldest first",
-)
-async def get_bars(
-    symbol: SymbolPath,
-    c: Container,
-    resolution: Annotated[
-        Literal["1", "5", "30", "60", "D"],
-        Query(description=", ".join(f"{k} = {v}" for k, v in RESOLUTIONS.items())),
-    ] = "D",
-    pages: Annotated[int, Query(ge=1, le=4, description="300 bars per page")] = 1,
-) -> dict[str, Any]:
-    bars = await c.bars(Symbol(symbol).value, resolution, pages)
-    return envelope(bars, count=len(bars), resolution=resolution, timezone="UTC (Dhaka = UTC+6)")
 
 
 alerts_router = APIRouter(tags=["company"])

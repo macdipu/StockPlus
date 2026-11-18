@@ -1,4 +1,4 @@
 export { CompanyDetails } from "./components/CompanyDetails";
-export { useBars, useCompany } from "./hooks/use-company";
+export { useCompany } from "./hooks/use-company";
 export { companyApi } from "./services/company-api";
-export type { Bar, Company, Resolution, StockAlert } from "./schemas/company";
+export type { Company, StockAlert } from "./schemas/company";

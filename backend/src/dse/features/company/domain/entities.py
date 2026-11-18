@@ -2,12 +2,12 @@
 page's own fundamentals. Pure Python: no framework, no I/O.
 
 Assembled from three public sources, each optional (a dossier is still useful when one is down):
-  stocknow    history of EPS (annual, quarterly), NAV, NOCF, dividends, shareholding, capital and loans;
-              contact details; news
+  dse         the exchange's own company page: contacts, capital and loans, yearly EPS/NAV/profit, dividends,
+              shareholding snapshots, this year's quarterly EPS, announcements
   amarstock   full financial statements (profit & loss, balance sheet, cash flow); director buy/sell
   topstock    yearly financial summary (revenue, profit, equity, debt, cash flow); credit rating
 
-Money from stocknow (capital, reserve, loans) is in BDT million. Money in `FinancialYear` is in BDT.
+Money from the exchange (capital, reserve, loans) is in BDT million. Money in `FinancialYear` is in BDT.
 Statement values keep the source's units (BDT); per-share rows stay per share.
 """
 
@@ -17,7 +17,10 @@ from datetime import date
 
 @dataclass(frozen=True, slots=True)
 class Contact:
-    address: str | None = None
+    address: str | None = None  # head office
+    registered_office: str | None = None
+    factory_address: str | None = None
+    secretary: str | None = None
     phone: str | None = None
     fax: str | None = None
     email: str | None = None
@@ -157,7 +160,7 @@ class SourceStatus:
 
 
 @dataclass(frozen=True, slots=True)
-class StockNowPart:
+class ExchangePart:
     contact: Contact = field(default_factory=Contact)
     listing_year: int | None = None
     year_end: str | None = None
@@ -190,15 +193,15 @@ class TopStockPart:
 class CompanyDossier:
     symbol: str
     fetched_at: str
-    stocknow: StockNowPart = field(default_factory=StockNowPart)
+    exchange: ExchangePart = field(default_factory=ExchangePart)
     amarstock: AmarStockPart = field(default_factory=AmarStockPart)
     topstock: TopStockPart = field(default_factory=TopStockPart)
     sources: tuple[SourceStatus, ...] = ()
 
     @property
     def events(self) -> Events:
-        """StockNow's dates, filled in with TopStock's declaration where StockNow has none."""
-        a, b = self.stocknow.events, self.topstock.events
+        """The exchange's dates, filled in with TopStock's declaration where the exchange has none."""
+        a, b = self.exchange.events, self.topstock.events
         return Events(
             record_date=a.record_date or b.record_date,
             last_agm=a.last_agm or b.last_agm,

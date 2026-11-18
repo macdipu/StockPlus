@@ -45,6 +45,45 @@ class ShareholdingPattern:
     public_pct: float | None
 
 
+FUNDAMENTALS_SCHEMA = 2  # bump when the company page yields more; stored rows older than this are re-synced
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyInfo:
+    """Contacts, capital and status from the exchange's company page. Money is BDT million."""
+
+    head_office: str | None = None
+    registered_office: str | None = None
+    factory_address: str | None = None
+    phone: str | None = None
+    fax: str | None = None
+    email: str | None = None
+    website: str | None = None
+    secretary_name: str | None = None
+    secretary_email: str | None = None
+    secretary_phone: str | None = None
+    authorized_capital_mn: float | None = None
+    reserve_mn: float | None = None
+    short_term_loan_mn: float | None = None
+    long_term_loan_mn: float | None = None
+    operational_status: str | None = None
+    agm_date: str | None = None
+    market_lot: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class YearFinancial:
+    """One financial year as the exchange reports it. `profit_mn` is BDT million; EPS, NAV per share."""
+
+    year: int
+    eps: float | None = None
+    nav: float | None = None
+    profit_mn: float | None = None
+    pe: float | None = None
+    cash_dividend_pct: float | None = None
+    dividend_yield_pct: float | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class Dividend:
     year: int
@@ -97,6 +136,10 @@ class Fundamentals:
     week_low_52: float | None
     year_end: str | None = None
     listing_year: int | None = None
+    info: CompanyInfo | None = None
+    year_history: tuple[YearFinancial, ...] = ()
+    holding_history: tuple[ShareholdingPattern, ...] = ()
+    schema: int = 0  # 0 = stored before these fields existed
 
     def ttm_eps(self) -> TtmEps:
         """Annual EPS if it is the newest report; otherwise the newest year-to-date figure, annualised."""

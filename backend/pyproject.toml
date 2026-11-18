@@ -67,7 +67,7 @@ packages = ["dse"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests", "src/dse/features"]
+testpaths = ["tests", "src/dse/features", "src/dse/indicators"]
 markers = ["integration: needs Postgres + Redis (docker compose up -d db redis)"]
 
 [tool.importlinter]
@@ -79,6 +79,13 @@ name = "core is infrastructure-only and never depends on features"
 type = "forbidden"
 source_modules = ["dse.core", "dse.shared_kernel"]
 forbidden_modules = ["dse.features"]
+
+[[tool.importlinter.contracts]]
+# The indicator engine is a pure library: any feature may use it, it knows no feature and no framework.
+name = "indicator engine is a pure library"
+type = "forbidden"
+source_modules = ["dse.indicators"]
+forbidden_modules = ["fastapi", "sqlalchemy", "redis", "httpx", "pydantic", "dse.core", "dse.features"]
 
 [[tool.importlinter.contracts]]
 name = "shared kernel is pure"
@@ -97,6 +104,7 @@ containers = [
   "dse.features.identity",
   "dse.features.watchlists",
   "dse.features.company",
+  "dse.features.charts",
 ]
 layers = ["presentation", "infrastructure", "application", "domain"]
 exhaustive = false
@@ -112,6 +120,7 @@ source_modules = [
   "dse.features.identity.domain",
   "dse.features.watchlists.domain",
   "dse.features.company.domain",
+  "dse.features.charts.domain",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "pydantic", "dse.core"]
 
@@ -126,6 +135,7 @@ source_modules = [
   "dse.features.identity.application",
   "dse.features.watchlists.application",
   "dse.features.company.application",
+  "dse.features.charts.application",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "httpx", "redis", "dse.core"]
 
@@ -244,6 +254,7 @@ allow_indirect_imports = true
 ignore_imports = [
   "dse.features.company.infrastructure.gateways -> dse.features.live_feed.application.facade",
   "dse.features.company.infrastructure.gateways -> dse.features.analysis.application.facade",
+  "dse.features.company.infrastructure.gateways -> dse.features.market_data.application.facade",
 ]
 
 [[tool.importlinter.contracts]]
@@ -259,3 +270,37 @@ source_modules = [
 ]
 forbidden_modules = ["dse.features.company"]
 ignore_imports = ["dse.features.*.tests.** -> dse.main"]  # tests may boot the whole app
+
+[[tool.importlinter.contracts]]
+name = "charts reaches other features only through their application facade"
+type = "forbidden"
+source_modules = ["dse.features.charts"]
+forbidden_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.identity",
+  "dse.features.watchlists",
+  "dse.features.company",
+]
+allow_indirect_imports = true
+ignore_imports = [
+  "dse.features.charts.infrastructure.gateways -> dse.features.market_data.application.facade",
+  "dse.features.charts.infrastructure.gateways -> dse.features.live_feed.application.facade",
+]
+
+[[tool.importlinter.contracts]]
+name = "no other feature depends on charts"
+type = "forbidden"
+source_modules = [
+  "dse.features.market_data",
+  "dse.features.live_feed",
+  "dse.features.analysis",
+  "dse.features.scanner",
+  "dse.features.identity",
+  "dse.features.watchlists",
+  "dse.features.company",
+]
+forbidden_modules = ["dse.features.charts"]
+ignore_imports = ["dse.features.*.tests.** -> dse.main"]

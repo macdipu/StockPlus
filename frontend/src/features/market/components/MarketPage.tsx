@@ -1,7 +1,8 @@
 "use client";
 
 import type { UseQueryResult } from "@tanstack/react-query";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { PriceChart } from "@/features/chart";
 import { routes } from "@/shared/lib/navigation";
 import { Card } from "@/shared/ui/Card";
 import { DataTable } from "@/shared/ui/DataTable";
@@ -40,6 +41,29 @@ function Movers({ title, by }: { title: string; by: "gainers" | "losers" | "valu
   );
 }
 
+const INDICES = [
+  { code: "DSEX", label: "DSEX", hint: "The broad index of the Dhaka Stock Exchange" },
+  { code: "DS30", label: "DS30", hint: "The 30 largest, most liquid companies" },
+  { code: "DSES", label: "DSES", hint: "Shariah-compliant companies" },
+] as const;
+
+/** The market's own chart: a DSE index with the same timeframes, styles and indicators as a share. */
+function IndexChart() {
+  const [code, setCode] = useState<(typeof INDICES)[number]["code"]>("DSEX");
+  return (
+    <Card title="Market index">
+      <div className="seg" role="group" aria-label="Index" style={{ marginBottom: 10 }}>
+        {INDICES.map((i) => (
+          <button key={i.code} type="button" aria-pressed={code === i.code} title={i.hint} className={code === i.code ? "on" : ""} onClick={() => setCode(i.code)}>
+            {i.label}
+          </button>
+        ))}
+      </div>
+      <PriceChart key={code} symbol={code} scope="market" />
+    </Card>
+  );
+}
+
 export function MarketPage() {
   const sectors = useSectors();
   const pe = usePe();
@@ -57,6 +81,7 @@ export function MarketPage() {
 
   return (
     <>
+      <IndexChart />
       <Card title="Sectors">
         <Async q={sectors}>
           {(rows) => (

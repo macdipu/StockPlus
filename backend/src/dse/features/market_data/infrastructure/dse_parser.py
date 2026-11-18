@@ -13,8 +13,10 @@ from decimal import Decimal
 from typing import Any
 
 from dse.features.market_data.domain.entities import (
+    FUNDAMENTALS_SCHEMA,
     Announcement,
     BarSource,
+    CompanyInfo,
     CompanyPage,
     DailyBar,
     Dividend,
@@ -24,6 +26,7 @@ from dse.features.market_data.domain.entities import (
     MarketSnapshot,
     Quote,
     ShareholdingPattern,
+    YearFinancial,
 )
 from dse.shared_kernel.errors import NotFoundError, UpstreamUnavailableError
 from dse.shared_kernel.symbol import Symbol
@@ -91,6 +94,87 @@ def _eps(c: dict[str, Any]) -> EpsReport:
     )
 
 
+def _txt(v: Any) -> str | None:
+    s = str(v).strip() if v is not None else ""
+    return None if s in ("", "N/A", "n/a") else s
+
+
+def _holding_date(text: str | None) -> str | None:
+    """ "Sep 30, 2026" and "Dec 31, 2025 (year ended)" -> ISO date."""
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text.split("(")[0].strip(), "%b %d, %Y").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _info(c: dict[str, Any]) -> CompanyInfo:
+    raw_sec, raw_loans = c.get("companySecretary"), c.get("loanStatus")
+    sec: dict[str, Any] = raw_sec if isinstance(raw_sec, dict) else {}
+    loans: dict[str, Any] = raw_loans if isinstance(raw_loans, dict) else {}
+    lot = _f(c.get("marketLot"))
+    return CompanyInfo(
+        head_office=_txt(c.get("hq")),
+        registered_office=_txt(c.get("registeredOffice")),
+        factory_address=_txt(c.get("factoryAddress")),
+        phone=_txt(c.get("phone")),
+        fax=_txt(c.get("fax")),
+        email=_txt(c.get("email")),
+        website=_txt(c.get("website")),
+        secretary_name=_txt(sec.get("name")),
+        secretary_email=_txt(sec.get("email")),
+        secretary_phone=_txt(sec.get("phone")) or _txt(sec.get("cell")),
+        authorized_capital_mn=_f(c.get("authorizedCapital")),
+        reserve_mn=_f(c.get("reserveWithoutOci")),
+        short_term_loan_mn=_f(loans.get("shortTerm")),
+        long_term_loan_mn=_f(loans.get("longTerm")),
+        operational_status=_txt(c.get("operationalStatus")),
+        agm_date=_txt(c.get("agmDate")),
+        market_lot=int(lot) if lot else None,
+    )
+
+
+def _year_history(c: dict[str, Any]) -> tuple[YearFinancial, ...]:
+    paid = {int(d["year"]): d for d in c.get("dividendHistory") or [] if d.get("year")}
+    out = []
+    for r in sorted(c.get("multiYearFinancials") or [], key=lambda x: x.get("year") or 0):
+        if not r.get("year"):
+            continue
+        year = int(r["year"])
+        out.append(
+            YearFinancial(
+                year=year,
+                eps=_f(r.get("epsBasic")),
+                nav=_f(r.get("nav")),
+                profit_mn=_f(r.get("profit")),
+                pe=_f(r.get("pe")),
+                cash_dividend_pct=_f(r.get("dividendPct"))
+                if r.get("dividendPct")
+                else _f((paid.get(year) or {}).get("cash")),
+                dividend_yield_pct=_f(r.get("dividendYield")),
+            )
+        )
+    return tuple(out)
+
+
+def _holding_history(c: dict[str, Any]) -> tuple[ShareholdingPattern, ...]:
+    out = []
+    for h in c.get("sharePattern") or []:
+        p = h.get("pattern") or {}
+        out.append(
+            ShareholdingPattern(
+                as_of=_holding_date(h.get("date")) or h.get("date"),
+                sponsor_pct=_f(p.get("sponsor")),
+                government_pct=_f(p.get("government")),
+                institution_pct=_f(p.get("institution")),
+                foreign_pct=_f(p.get("foreign")),
+                public_pct=_f(p.get("public")),
+            )
+        )
+    return tuple(out)
+
+
 def parse_company_page(html: str, symbol: Symbol, fetched_at: datetime) -> CompanyPage:
     data = extract_flight(html)
     c = data.get("company")
@@ -129,6 +213,10 @@ def parse_company_page(html: str, symbol: Symbol, fetched_at: datetime) -> Compa
         week_low_52=_f(c.get("weekLow52")),
         year_end=c.get("yearEnd"),
         listing_year=int(c["listingYear"]) if c.get("listingYear") else None,
+        info=_info(c),
+        year_history=_year_history(c),
+        holding_history=_holding_history(c),
+        schema=FUNDAMENTALS_SCHEMA,
     )
     instrument = Instrument(
         symbol=symbol,

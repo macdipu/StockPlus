@@ -12,12 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dse.features.market_data.domain.entities import (
     Announcement,
     BarSource,
+    CompanyInfo,
     DailyBar,
     Dividend,
     EpsReport,
     Fundamentals,
     Instrument,
     ShareholdingPattern,
+    YearFinancial,
 )
 from dse.features.market_data.infrastructure.orm import (
     AnnouncementRow,
@@ -95,12 +97,16 @@ def _fund_to_json(f: Fundamentals) -> dict[str, Any]:
 
 
 def _fund_from_json(d: dict[str, Any]) -> Fundamentals:
+    """Rows stored before the newer fields (info, history, schema) load with defaults."""
     return Fundamentals(
         **{
             **d,
             "eps": EpsReport(**d["eps"]),
             "shareholding": ShareholdingPattern(**d["shareholding"]),
             "dividends": tuple(Dividend(**x) for x in d["dividends"]),
+            "info": CompanyInfo(**d["info"]) if d.get("info") else None,
+            "year_history": tuple(YearFinancial(**x) for x in d.get("year_history") or []),
+            "holding_history": tuple(ShareholdingPattern(**x) for x in d.get("holding_history") or []),
         }
     )
 

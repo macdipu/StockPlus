@@ -50,7 +50,7 @@ def _holding_change(sh: tuple[Shareholding, ...], months: int) -> tuple[float | 
 
 
 def ratios(d: CompanyDossier, price: float | None) -> list[Ratio]:
-    sn = d.stocknow
+    sn = d.exchange
     out: list[Ratio] = []
     fy = _latest_year(d)
     if fy:
@@ -119,6 +119,11 @@ def ratios(d: CompanyDossier, price: float | None) -> list[Ratio]:
             )
         )
     nocf = _latest(sn.nocfps)
+    if not nocf:  # the exchange does not publish cash flow per share; TopStock's yearly figures do
+        with_cash = [y for y in d.topstock.years if y.nocfps is not None]
+        same_year = [y for y in with_cash if eps and str(y.year) == eps[-1].period_end[:4]]
+        pick = same_year[-1] if same_year else (max(with_cash, key=lambda y: y.year) if with_cash else None)
+        nocf = [PeriodValue(str(pick.year), float(pick.nocfps))] if pick and pick.nocfps is not None else []
     if eps and nocf and eps[-1].value > 0:
         out.append(
             Ratio(
@@ -195,8 +200,8 @@ def flags(d: CompanyDossier, price: float | None) -> list[Flag]:
                 f"Annual EPS {'grew' if g > 0 else 'fell'} {abs(g):.0f}% last year.",
             )
         )
-    paid = [x for x in d.stocknow.dividends if x.cash_pct > 0 or x.stock_pct > 0]
-    recent = sorted(d.stocknow.dividends, key=lambda x: x.period_end)[-5:]
+    paid = [x for x in d.exchange.dividends if x.cash_pct > 0 or x.stock_pct > 0]
+    recent = sorted(d.exchange.dividends, key=lambda x: x.period_end)[-5:]
     if recent:
         n = sum(1 for x in recent if x.cash_pct > 0)
         out.append(
@@ -206,7 +211,7 @@ def flags(d: CompanyDossier, price: float | None) -> list[Flag]:
         )
     elif not paid:
         out.append(Flag("warn", "No dividend history found."))
-    change, since = _holding_change(d.stocknow.shareholding, 6)
+    change, since = _holding_change(d.exchange.shareholding, 6)
     if change is not None and abs(change) >= 0.5:
         out.append(
             Flag(
@@ -215,7 +220,7 @@ def flags(d: CompanyDossier, price: float | None) -> list[Flag]:
                 f"{abs(change):.2f} points since {since}.",
             )
         )
-    sh = sorted(d.stocknow.shareholding, key=lambda s: s.as_of)
+    sh = sorted(d.exchange.shareholding, key=lambda s: s.as_of)
     if sh and sh[-1].director is not None and sh[-1].director < 30:
         out.append(
             Flag("warn", f"Sponsors/directors hold only {sh[-1].director:.1f}% (DSE rule: at least 30%).")

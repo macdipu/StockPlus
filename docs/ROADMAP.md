@@ -8,7 +8,7 @@ Size is a rough guide: S is under a day, M a few days, L a week or more.
 | # | Item | Why | What to do | Size |
 |---|---|---|---|---|
 | 1 | **Data rights** | Company details come from StockNow, AmarStock and TopStockBD public pages. StockNow locks its EPS/NAV/dividend history behind VIP in its own UI, yet its API returns it without a login. Fine for personal research; risky for a paid product. DSE's own terms also apply. | Read each site's terms. Replace with a licensed source, or get written permission. Keep the source list shown on each page. Gate the company feature behind a config switch until cleared. | M |
-| 2 | **Paywall and plans** | `plan` exists on every view in `frontend/src/shared/lib/navigation.ts` and is `free` everywhere. Nothing is enforced. | Add a plan to the user account, enforce it in the API (not only the UI), add a paywall component and billing. Candidates for Pro: custom rules with saved scans, Advanced chart, notifications, full financial statements. | L |
+| 2 | **Paywall and plans** | `plan` exists on every view in `frontend/src/shared/lib/navigation.ts` and is `free` everywhere. Nothing is enforced. | Add a plan to the user account, enforce it in the API (not only the UI), add a paywall component and billing. Candidates for Pro: custom rules with saved scans, the chart's Full analysis level, notifications, full financial statements. | L |
 
 ## Features that fall short today
 
@@ -30,7 +30,7 @@ Size is a rough guide: S is under a day, M a few days, L a week or more.
 | # | Item | What to do | Size |
 |---|---|---|---|
 | 8 | Visual check of the redesign | Review light and dark mode and phone width. Move the fixed chart colours in `TradingChart.tsx` and `chart-model.ts` onto the theme tokens. | S |
-| 9 | Browser tests for new features | Picks and sector filters, Advanced chart tab, notifications, company details. Add a contract test that runs the three site parsers on a schedule to catch page changes. | M |
+| 9 | Browser tests for new features | Picks and sector filters, notifications, company details. Add a contract test that runs the three site parsers on a schedule to catch page changes. | M |
 | 10 | Push and deploy | Push `main`, open a pull request. Fold `docker-compose.local.yml` into a documented dev profile. Add a production deployment setup (secrets, domain, TLS, backups). | M |
 
 ## Notes

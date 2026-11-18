@@ -43,9 +43,11 @@ If your Docker runtime rejects the API's host port range (`invalid host port 800
   (each with its basis) and plain-language health flags. Sources: stocknow.com.bd (JSON), amarstock.com and
   topstockbd.com (public pages), fetched politely (one request at a time per host, honest User-Agent, 6 h
   Redis cache). Check each site's terms of use before relying on them.
-- **Chart timeframes** 1min / 5min / 30min / 1h / D (`/api/v1/stocks/{symbol}/bars?resolution=`), and
-  **Advanced**: the daily chart with the whole analysis drawn on it (shaded buy zone, stop, targets, watch
-  levels, patterns, Bollinger bands, RSI and MACD panes) beside the written plan.
+- **Chart timeframes** 1min / 5min / 30min / 1h / D (`/api/v1/stocks/{symbol}/bars?resolution=`), six chart
+  styles (candles, hollow, bars, line, area, Heikin Ashi) and an **Analysis** level: Off (prices and volume
+  only), Basic (moving averages, support/resistance, pattern labels) or Full (adds the trade plan drawn on the
+  chart: shaded buy zone, stop, targets, watch levels, Bollinger bands, RSI and MACD, beside the written plan).
+  Style and level are remembered per browser.
 - **Candle analysis**: `candle_story` in `/analysis` (and the Markdown brief) says what the last five candles
   show and where to enter, exit, take profit and what to watch.
 - **Navigation**: four sections, Market · Find shares · Stock · Tools. "Find shares" holds three views:

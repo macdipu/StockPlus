@@ -2,20 +2,20 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { type LiveBar } from "@/features/chart";
 import { CompanyDetails } from "@/features/company";
 import { useLiveSymbols, useMarket, useQuote } from "@/features/live";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { TabBar } from "@/shared/ui/TabBar";
-import { analysisKey, useAnalysis, useTechnicals } from "../hooks/use-stock-queries";
+import { analysisKey, useAnalysis } from "../hooks/use-stock-queries";
 import { pushRecent } from "../store/recent-store";
-import { applyQuote } from "../utils/chart-model";
 import { AnalysisCards } from "./AnalysisSections";
 import { TradePlanCard } from "./TradePlanCard";
 import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
-import { TradingChart } from "./TradingChart";
+import { StockChart } from "./StockChart";
 
 const REFRESH_EVERY_MS = 20_000;
 
@@ -46,7 +46,6 @@ export function StockPage({ symbol }: { symbol: string }) {
   useLiveSymbols([code], { primary: true });
   const queryClient = useQueryClient();
   const analysis = useAnalysis(code);
-  const technicals = useTechnicals(code);
   const quote = useQuote(code);
   const sessionDay = useMarket()?.session.day ?? null;
   const tab = useHashTab();
@@ -71,10 +70,13 @@ export function StockPage({ symbol }: { symbol: string }) {
     if (previous === null || previous === key || Date.now() - lastRefresh.current < REFRESH_EVERY_MS) return;
     lastRefresh.current = Date.now();
     void queryClient.invalidateQueries({ queryKey: analysisKey(code) });
-    void queryClient.invalidateQueries({ queryKey: ["stock", code, "technicals"] });
   }, [quote, code, queryClient]);
 
-  const bars = useMemo(() => applyQuote(technicals.data ?? [], quote, sessionDay), [technicals.data, quote, sessionDay]);
+  // Today's candle from the live quote, merged into the daily chart (the saved daily history ends yesterday).
+  const live = useMemo<LiveBar | null>(() => {
+    if (!quote || !sessionDay || quote.ltp == null || !(quote.volume > 0)) return null;
+    return { day: sessionDay, open: quote.open || quote.ltp, high: quote.high || quote.ltp, low: quote.low || quote.ltp, close: quote.close || quote.ltp, volume: quote.volume };
+  }, [quote, sessionDay]);
 
   useEffect(() => {
     const ltp = quote?.ltp ?? analysis.data?.price.ltp;
@@ -99,7 +101,7 @@ export function StockPage({ symbol }: { symbol: string }) {
           <>
             <SignalCard analysis={a} />
             <Card label="Chart">
-              {technicals.isError ? <ErrorNotice error={technicals.error} /> : <TradingChart symbol={code} bars={bars} analysis={a} />}
+              <StockChart symbol={code} analysis={a} live={live} />
             </Card>
             <TradePlanCard analysis={a} />
           </>

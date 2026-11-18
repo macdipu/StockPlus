@@ -16,6 +16,7 @@ from dse.features.market_data.application.dto import (
     SyncReport,
 )
 from dse.features.market_data.application.mappers import announcement_dto, bar_dto, fundamentals_dto
+from dse.features.market_data.domain.entities import FUNDAMENTALS_SCHEMA
 from dse.features.market_data.domain.ports import MarketDataSource, MarketDataUnitOfWork
 from dse.shared_kernel.clock import Clock
 from dse.shared_kernel.errors import DomainError, NotFoundError
@@ -53,7 +54,11 @@ class EnsureFresh:
     async def __call__(self, symbol: Symbol) -> None:
         async with self._uow() as uow:
             synced = await uow.instruments.synced_at(symbol)
-        if synced is None or synced.date() < self._clock.today():
+            fund = await uow.fundamentals.get(symbol)
+        outdated = (
+            fund is not None and fund.schema < FUNDAMENTALS_SCHEMA
+        )  # stored before newer fields existed
+        if synced is None or synced.date() < self._clock.today() or outdated:
             await self._sync(symbol)
 
 
