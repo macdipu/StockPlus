@@ -52,8 +52,10 @@ test.describe("Stock tab", () => {
     await expect(plan).toHaveCount(0);
     await expect(page.getByText("Prices and volume only.")).toBeVisible();
 
-    for (const style of ["Hollow candles", "Bars (OHLC)", "Line (close)", "Area (close)", "Heikin Ashi (smoothed)"]) {
-      await page.getByLabel("Chart style").selectOption({ label: style });
+    const styles = ["Hollow candles", "Bars", "HLC bars", "Line", "Line with markers", "Step line", "Area", "HLC area", "Baseline", "Columns", "High-low", "Heikin Ashi"];
+    for (const style of styles) {
+      await page.getByRole("button", { name: "Chart style" }).click();
+      await page.getByRole("menuitemradio", { name: style, exact: true }).click();
       await expect(chart()).toBeVisible();
     }
     await page.getByRole("tab", { name: "5min" }).click(); // levels and styles apply to every timeframe
@@ -61,9 +63,31 @@ test.describe("Stock tab", () => {
 
     await page.reload(); // both choices are remembered in this browser
     await expect(level("Off")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByLabel("Chart style")).toHaveValue("heikin");
+    await expect(page.getByRole("button", { name: "Chart style" })).toContainText("Heikin Ashi");
     await level("Full").click();
     await expect(plan).toBeVisible();
+  });
+
+  test("indicators can be searched, added with settings, and removed", async ({ page }) => {
+    await page.goto(`/stock/${SYNCED[0]}`);
+    await expect(page.getByTestId("price-chart").locator("canvas").first()).toBeVisible();
+    await page.getByRole("button", { name: /^Indicators/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Indicators" });
+    await expect(dialog.getByRole("heading", { name: /Momentum/ })).toBeVisible(); // grouped when not searching
+    await dialog.getByLabel("Search indicators").fill("relative strength");
+    await dialog.locator('[data-indicator="rsi"]').click();
+    await page.keyboard.press("Escape");
+    const chip = page.locator('[data-indicator="rsi(14)"]');
+    await expect(chip).toContainText("Relative Strength Index (14)");
+
+    await page.getByRole("button", { name: "Settings for Relative Strength Index" }).click();
+    await page.getByLabel("Relative Strength Index Length").fill("21");
+    await page.getByRole("button", { name: "Apply" }).click();
+    await expect(page.locator('[data-indicator="rsi(21)"]')).toBeVisible();
+    await expect(page.locator('[data-indicator="rsi(14)"]')).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Remove Relative Strength Index" }).click();
+    await expect(page.locator('[data-indicator="rsi(21)"]')).toHaveCount(0);
   });
 
   test("/stock without a symbol offers search, suggestions and recently viewed stocks", async ({ page }) => {

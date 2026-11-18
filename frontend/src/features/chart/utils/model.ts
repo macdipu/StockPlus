@@ -146,7 +146,7 @@ export function buildLayers({ data, resolution, specs, annotations }: LayerInput
     const idx = Math.max(0, specs.indexOf(ind.key));
     const series = seriesFor(ind, idx, times, { up: UP + "aa", down: DOWN + "aa" });
     if (ind.placement === "overlay") overlays.push(...series.filter((s) => s.kind !== "histogram"));
-    else panes.push({ key: ind.key, title: ind.name, series, scale: ind.scale, levels: ind.levels });
+    else panes.push({ key: ind.key, title: ind.key.toUpperCase(), series, scale: ind.scale, levels: ind.levels });
   }
   return { overlays, panes, priceLines: [...(annotations?.priceLines ?? [])], markers: [...(annotations?.markers ?? [])], bands: [...(annotations?.bands ?? [])] };
 }

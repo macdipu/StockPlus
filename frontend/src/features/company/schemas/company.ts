@@ -8,7 +8,7 @@ export const companySchema = z.object({
   fetched_at: z.string(),
   price: n,
   profile: z.object({
-    contact: z.object({ address: s, phone: s, fax: s, email: s, website: s }),
+    contact: z.object({ address: s, registered_office: s.optional(), factory_address: s.optional(), secretary: s.optional(), phone: s, fax: s, email: s, website: s }),
     listing_year: n,
     year_end: s,
     operational_status: s,

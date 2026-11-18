@@ -41,4 +41,27 @@ test.describe("Market tab", () => {
     await link.click();
     await expect(page).toHaveURL(new RegExp(`/stock/${symbol}`));
   });
+
+  test("the market index chart uses closing values only and says which indicators it cannot draw", async ({ page }) => {
+    await page.goto("/market");
+    const card = page.getByRole("region", { name: "Market index" });
+    await expect(card.getByTestId("price-chart").locator("canvas").first()).toBeVisible();
+    await expect(card.getByText(/closing values only/)).toBeVisible();
+    await card.getByRole("button", { name: "DS30" }).click();
+    await expect(card.getByTestId("price-chart").locator("canvas").first()).toBeVisible();
+
+    await card.getByRole("button", { name: "Chart style" }).click(); // candles need open/high/low: not offered for an index
+    await expect(page.getByRole("menuitemradio", { name: "Candles", exact: true })).toBeDisabled();
+    await expect(page.getByRole("menuitemradio", { name: "Area", exact: true })).toBeEnabled();
+    await page.keyboard.press("Escape");
+
+    await card.getByRole("button", { name: /^Indicators/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Indicators" });
+    await dialog.getByLabel("Search indicators").fill("on balance volume");
+    await expect(dialog.locator('[data-indicator="obv"]')).toBeDisabled(); // needs volume
+    await dialog.getByLabel("Search indicators").fill("relative strength");
+    await dialog.locator('[data-indicator="rsi"]').click(); // closes only: fine
+    await page.keyboard.press("Escape");
+    await expect(card.locator('[data-indicator="rsi(14)"]')).toBeVisible();
+  });
 });

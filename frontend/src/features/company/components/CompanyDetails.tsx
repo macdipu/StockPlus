@@ -63,7 +63,10 @@ function Overview({ c }: { c: Company }) {
           ["Last dividend declared", e.declared_dividend_pct != null ? `${e.declared_dividend_pct}% ${e.declared_dividend_type ?? ""} on ${fmtDate(e.declaration_date)}` : DASH],
           ["Record date", fmtDate(e.record_date)],
           ["Last AGM", fmtDate(e.last_agm)],
-          ["Address", ct.address ?? DASH],
+          ["Head office", ct.address ?? DASH],
+          ...(ct.registered_office && ct.registered_office !== ct.address ? ([["Registered office", ct.registered_office]] as const) : []),
+          ...(ct.factory_address ? ([["Factory", ct.factory_address]] as const) : []),
+          ...(ct.secretary ? ([["Company secretary", ct.secretary]] as const) : []),
           ["Phone", ct.phone ?? DASH],
           ["Email", ct.email ?? DASH],
           ["Website", ct.website ? <a href={ct.website.startsWith("http") ? ct.website : `https://${ct.website}`} target="_blank" rel="noreferrer">{ct.website}</a> : DASH],
@@ -152,7 +155,8 @@ function PerShare({ c }: { c: Company }) {
 
 function Quarterly({ c }: { c: Company }) {
   return (
-    <Card title="Quarterly EPS (un-audited)">
+    <Card title="Quarterly EPS (un-audited, this financial year)">
+      {c.quarterly_eps.length === 0 ? <p className="small mute" style={{ margin: 0 }}>The exchange has not published interim results for this financial year yet.</p> : null}
       <div className="tablewrap" style={{ maxHeight: 300 }}>
         <table className="num">
           <thead><tr><th>Period end</th><th>Period</th><th className="r">EPS</th></tr></thead>
@@ -185,6 +189,7 @@ function Holding({ c }: { c: Company }) {
     : [];
   return (
     <Card title="Shareholding">
+      <p className="small mute" style={{ marginTop: 0 }}>The exchange publishes the year-end figures and the two most recent snapshots.</p>
       {latest ? (
         <>
           <div className="stack" role="img" aria-label={`Shareholding as of ${latest.as_of}`}>

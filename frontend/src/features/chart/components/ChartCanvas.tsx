@@ -175,7 +175,8 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
       const drawCandles = (cs: readonly Candle[]) => {
         const k = colors();
         main.set(cs);
-        volume.setData(cs.map((b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? `${k.up}88` : `${k.down}88` })));
+        // a series with no volume (an index) draws no volume bars at all
+        volume.setData(cs.some((b) => b.volume > 0) ? cs.map((b) => ({ time: b.time, value: b.volume, color: b.close >= b.open ? `${k.up}88` : `${k.down}88` })) : []);
         // History can arrive after the chart exists (first only today's live candle is known): zoom to the latest
         // ~120 candles whenever a whole batch arrives. One new live candle keeps the viewport where it is.
         if (cs.length - drawn > 1) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, cs.length - 120), to: cs.length + 4 });

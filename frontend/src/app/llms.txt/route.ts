@@ -20,7 +20,11 @@ const BODY = `# DSE Live Analyzer
 - [Company JSON](/api/v1/stocks/GP/company): profile, contact, credit rating, capital and loans, EPS/NAV/NOCF
   history, quarterly EPS, dividends, shareholding history, financial statements, director trades, events,
   news, ratios (each with its basis) and health flags. Units are listed in data.units.
-- [Candles](/api/v1/stocks/GP/bars?resolution=5): OHLCV at resolution 1, 5, 30, 60 (minutes) or D; unix UTC.
+- [Chart data](/api/v1/charts/GP?resolution=D&indicators=rsi(14),macd): candles plus indicator series (one
+  value per candle) at resolution 1, 5, 30, 60 (minutes) or D; unix UTC. Works for indices (DSEX, DS30, DSES,
+  closing values only: "ohlc" is false and indicators needing volume or high/low are skipped with a warning).
+- [Indicator catalog](/api/v1/charts/indicators): 88 indicators, their parameters, what they show and what columns
+  they need.
 - [Daily candles](/api/v1/stocks/GP/candles), [technicals](/api/v1/stocks/GP/technicals).
 
 ## Whole market

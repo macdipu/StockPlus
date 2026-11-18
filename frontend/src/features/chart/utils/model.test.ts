@@ -6,6 +6,7 @@ const data = (over: Partial<ChartData> = {}): ChartData => ({
   symbol: "GP",
   resolution: "D",
   source: "dse-daily",
+  ohlc: true,
   candles: { time: [1_700_000_000, 1_700_086_400, 1_700_172_800], open: [10, 11, 12], high: [12, 13, 14], low: [9, 10, 11], close: [11, 12, 13], volume: [100, 200, 300] },
   indicators: [
     { key: "sma(2)", id: "sma", name: "SMA", group: "Moving averages", placement: "overlay", params: { length: 2 }, outputs: [{ key: "sma", label: "SMA", kind: "line" }], scale: null, levels: [], repaints: false, series: { sma: [null, 11.5, 12.5] } },
@@ -33,6 +34,7 @@ describe("buildLayers and buildCandles", () => {
     expect(hist.points).toHaveLength(1);
     expect(hist.points[0]!.color).toMatch(/^#f0646c/); // negative column is red
     expect(m.panes[0]!.series[0]!.title).toBe("MACD MACD");
+    expect(m.panes[0]!.title).toBe("MACD"); // short, upper-case title for the panel
   });
 
   it("an indicator keeps its colour from its position in the request", () => {
