@@ -213,3 +213,4 @@ ol.plain { margin: 0; padding-left: 18px; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }
 .freshness { justify-content: flex-end; margin-bottom: 10px; }
 @media (max-width: 700px) { .hide-sm { display: none; } }
+@media (max-width: 520px) { .seg-label { display: none; } .seg { max-width: 100%; overflow-x: auto; } }

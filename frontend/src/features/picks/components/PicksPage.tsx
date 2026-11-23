@@ -71,9 +71,9 @@ function Row({ p, watched, onWatch }: { p: Pick; watched: boolean; onWatch: () =
     <tr data-symbol={p.symbol} data-bucket={p.bucket}>
       <td>
         <Link href={`/stock/${p.symbol}`}><b>{p.symbol}</b></Link>
-        <div className="small mute" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name ?? ""}</div>
+        <div className="small mute" style={{ maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name ?? ""}</div>
+        <div className="small mute">{p.sector ?? "–"}{p.category ? ` · ${p.category}` : ""}</div>
       </td>
-      <td className="small hide-sm">{p.sector ?? "–"} <span className="mute">{p.category ?? ""}</span></td>
       <td className="r num">{num(p.ltp)}<div className={`small ${tone(p.change_pct)}`}>{pct(p.change_pct, 2)}</div></td>
       <td className="r num">{num(p.pe, 1)}</td>
       <td className="r num hide-sm">{num(p.pb, 2)}</td>
@@ -83,7 +83,7 @@ function Row({ p, watched, onWatch }: { p: Pick; watched: boolean; onWatch: () =
       <td className="hide-sm"><ScoreBar v={p.entry_score} label="Entry" /></td>
       <td className="r num"><b>{num(p.pick_score, 0)}</b></td>
       <td><span className={`bucket ${p.bucket}`}>{p.bucket_label}</span></td>
-      <td className="small" style={{ minWidth: 220 }}>
+      <td className="small" style={{ minWidth: 170 }}>
         {p.reasons.length ? <span className="up">{p.reasons.slice(0, 3).join("; ")}</span> : null}
         {p.warnings.length ? <div className="dn">{p.warnings.slice(0, 2).join("; ")}</div> : null}
       </td>
@@ -151,13 +151,13 @@ export function PicksPage() {
             <table data-agent="picks">
               <thead>
                 <tr>
-                  <th>Share</th><th className="hide-sm">Sector</th><th className="r">Price</th><th className="r">P/E</th><th className="r hide-sm">P/B</th><th className="r hide-sm">Yield</th><th className="r hide-sm">RSI</th>
+                  <th>Share</th><th className="r">Price</th><th className="r">P/E</th><th className="r hide-sm">P/B</th><th className="r hide-sm">Yield</th><th className="r hide-sm">RSI</th>
                   <th>Value</th><th className="hide-sm">Entry</th><th className="r">Score</th><th>Bucket</th><th>Why</th><th />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((p) => <Row key={p.symbol} p={p} watched={w.has(p.symbol)} onWatch={() => w.add(p.symbol)} />)}
-                {rows.length === 0 ? <tr><td colSpan={13} className="mute">No shares match these filters.</td></tr> : null}
+                {rows.length === 0 ? <tr><td colSpan={12} className="mute">No shares match these filters.</td></tr> : null}
               </tbody>
             </table>
           </div>
