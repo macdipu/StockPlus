@@ -1,8 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { ApiError } from "@/shared/api";
 import { stockApi } from "../services/stock-api";
+import type { PeContext } from "../utils/summary";
 
 const key = (symbol: string, part: string, ...rest: unknown[]) => ["stock", symbol.toUpperCase(), part, ...rest] as const;
 
@@ -50,3 +52,13 @@ export const useChartPatterns = (symbol: string, enabled = true) =>
 /** The order book of one share. DSE refreshes it about every 10 s, so a gentle poll while the tab is open. */
 export const useDepth = (symbol: string) =>
   useQuery({ queryKey: key(symbol, "depth"), queryFn: async () => (await stockApi.depth(symbol)).data, staleTime: 8_000, refetchInterval: 15_000 });
+
+/** The market and sector P/E medians a share is compared with (shared across shares, so cached for a while). */
+export function usePeContext(sector: string | null): PeContext | null {
+  const q = useQuery({ queryKey: ["market", "pe-context"], queryFn: async () => (await stockApi.peContext()).data, staleTime: 30 * 60_000 });
+  return useMemo(() => {
+    if (!q.data) return null;
+    const s = sector ? q.data.by_sector[sector] : undefined;
+    return { marketMedian: q.data.market.median_pe, marketWeighted: q.data.market.weighted_pe, sector: sector && s ? { name: sector, companies: s.instruments, median: s.median_pe } : null };
+  }, [q.data, sector]);
+}

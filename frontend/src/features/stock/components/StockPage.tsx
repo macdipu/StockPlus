@@ -3,19 +3,21 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { type LiveBar } from "@/features/chart";
-import { CompanyDetails } from "@/features/company";
+import { CompanyDetails, useCompany } from "@/features/company";
 import { useLiveSymbols, useMarket, useQuote } from "@/features/live";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { TabBar } from "@/shared/ui/TabBar";
-import { analysisKey, useAnalysis } from "../hooks/use-stock-queries";
+import { analysisKey, useAnalysis, usePeContext } from "../hooks/use-stock-queries";
 import { pushRecent } from "../store/recent-store";
+import { buildSummary } from "../utils/summary";
 import { AnalysisCards } from "./AnalysisSections";
 import { TradePlanCard } from "./TradePlanCard";
 import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
 import { DepthCard } from "./DepthCard";
+import { ComingUpCard, PlanSummaryCard, ReasonsCard, Scorecard, SnapshotCard, VerdictCard } from "./SummaryCards";
 import { PriceTableCard, SeasonalityCards } from "./HistoryCards";
 import { StockChart } from "./StockChart";
 
@@ -53,6 +55,9 @@ export function StockPage({ symbol }: { symbol: string }) {
   const queryClient = useQueryClient();
   const analysis = useAnalysis(code);
   const quote = useQuote(code);
+  const company = useCompany(code);
+  const pe = usePeContext(analysis.data?.fundamentals.sector ?? null);
+  const summary = useMemo(() => (analysis.data ? buildSummary(analysis.data, company.data, pe) : null), [analysis.data, company.data, pe]);
   const sessionDay = useMarket()?.session.day ?? null;
   const tab = useHashTab();
   const known = analysis.isSuccess;
@@ -105,11 +110,26 @@ export function StockPage({ symbol }: { symbol: string }) {
       <div role="tabpanel" id={`stock-panel-${tab}`} aria-labelledby={`stock-tab-${tab}`}>
         {tab === "overview" && (
           <>
-            <SignalCard analysis={a} />
+            {summary ? (
+              <>
+                <SnapshotCard analysis={a} company={company.data} />
+                <VerdictCard analysis={a} summary={summary} />
+                <Scorecard summary={summary} />
+                <div className="grid2">
+                  <ReasonsCard summary={summary} />
+                  <PlanSummaryCard analysis={a} />
+                </div>
+                <ComingUpCard company={company.data} />
+              </>
+            ) : null}
             <Card label="Chart">
               <StockChart symbol={code} analysis={a} live={live} />
             </Card>
             <TradePlanCard analysis={a} />
+            <details className="card howrated">
+              <summary><b>How the signal was reached</b> <span className="small mute">the checks behind it and how setups like this have done</span></summary>
+              <SignalCard analysis={a} compact />
+            </details>
           </>
         )}
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}

@@ -191,3 +191,24 @@ trade plan goes on the Summary tab.
 - fair value opens with its median, the middle half of methods and the full range, and says when the methods disagree;
 - the signal card says in words what the action means and whether setups like it had an edge, with the jargon labels replaced.
 Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 px).
+
+**Phase B done (the Summary, as the top of the Overview tab so the URL, tab name and existing tests keep working):**
+- "At a glance": sector, category and market status, a 52-week range bar with the buy zone, stop and target marked, and six
+  facts (market value, P/E, dividend yield, free float, typical daily turnover, credit rating).
+- "Our reading": the short-term signal pill (captioned) beside one plain sentence and the action it points to.
+- Four tiles, Business quality, Value, Timing and Risk, each with a rating word, the numbers behind it, and every rule that
+  applied as a sentence with its number (a green tick, red cross or neutral dot). "How these ratings are reached" lists the rules.
+- "The case for and against": the three strongest reasons each way; "If you act": buy zone, stop, target, reward per unit
+  of risk and the honest sentence about the odds; "Coming up and recent": dividend declared, record date, last AGM, news.
+- Then the chart and the full trade plan as before, with the signal's checks and past results in a collapsed section.
+
+**Things worth knowing:**
+- The backend has two "buy zones": the trade plan's (from nearby support, drawn on the chart) and the setup plan's tighter
+  range around today's price. The page now uses the trade plan's everywhere, and a test pins it. The backend should
+  eventually expose one.
+- The market median P/E (23.4) is pulled up by small shares; a share only counts as cheap on P/E when it is also at or below
+  the size-weighted market P/E (9.3), and both are shown.
+- Telecom has 3 companies, so GP is compared with the market, not its sector (needs 5 or more).
+- Risk reads High only with three points of risk; one or two flags on a blue chip read Moderate.
+- The tile rules are rules of thumb. They have not been back-tested the way the Picks buckets were; the page says so.
+- Not yet: strength against the index (phase C), a what-changed note (phase F), the Valuation tab (phase E).

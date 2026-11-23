@@ -7,19 +7,24 @@ import { actionSentence, edgeReading } from "../utils/reading";
 
 const rate = (v: number | null | undefined) => (v == null ? "–" : pctPlain(v * 100, 0));
 
-export function SignalCard({ analysis }: { analysis: Analysis }) {
+/** The model's checks and how setups like this have done. `compact` drops the pill and the card frame, for use inside a
+ * disclosure that already names it (the pill and the plain reading are at the top of the page). */
+export function SignalCard({ analysis, compact = false }: { analysis: Analysis; compact?: boolean }) {
   const { signal, setup, probability: p } = analysis;
   const sim = p.similar_setups;
   const edge = edgeReading(sim.p_target_first, p.all_days_baseline.p_target_first, sim.n, p.reliable);
-  return (
-    <Card label="Signal">
-      <div className="hero" style={{ alignItems: "center" }}>
-        <SignalPill action={signal.action} />
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <p style={{ margin: "0 0 4px" }}><b>{actionSentence(signal.action)}.</b></p>
-          <p className={`small ${edge.tone}`} style={{ margin: 0 }}>{edge.text}</p>
+  const body = (
+    <>
+      {compact ? null : (
+        <div className="hero" style={{ alignItems: "center" }}>
+          <SignalPill action={signal.action} />
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <p style={{ margin: "0 0 4px" }}><b>{actionSentence(signal.action)}.</b></p>
+            <p className={`small ${edge.tone}`} style={{ margin: 0 }}>{edge.text}</p>
+          </div>
         </div>
-      </div>
+      )}
+      {compact ? <p className={`small ${edge.tone}`}>{edge.text}</p> : null}
       <div className="kv" style={{ marginTop: 10 }}>
         <Stat label="Setup score (of 6 checks passed)">{setup.score} / {setup.max}</Stat>
         <Stat label="Reward for each unit of risk" tone={setup.plan.rr_ok ? "up" : "dn"}>{num(setup.plan.rr)}</Stat>
@@ -46,6 +51,7 @@ export function SignalCard({ analysis }: { analysis: Analysis }) {
           </ul>
         </div>
       </div>
-    </Card>
+    </>
   );
+  return compact ? <div>{body}</div> : <Card label="Signal">{body}</Card>;
 }

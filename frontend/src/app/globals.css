@@ -245,3 +245,25 @@ ol.plain { margin: 0; padding-left: 18px; }
 .linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--brand); cursor: pointer; text-align: left; }
 .linklike.dn { color: var(--dn); }
 .linklike:hover { text-decoration: underline; }
+/* ---- stock summary */
+.rangebar { display: grid; gap: 4px; }
+.rangetrack { position: relative; height: 12px; border-radius: 6px; background: var(--chip); margin: 10px 4px 4px; }
+.rzone { position: absolute; top: 0; height: 100%; background: var(--decide-soft); border: 1px solid var(--decide); border-radius: 3px; }
+.rtick { position: absolute; top: -3px; width: 2px; height: 18px; background: var(--mute); }
+.rtick.dn { background: var(--dn); } .rtick.up { background: var(--up); }
+.rprice { position: absolute; top: -4px; width: 12px; height: 20px; margin-left: -6px; border-radius: 3px; background: var(--ink); border: 2px solid var(--card); }
+.rangeends { display: flex; justify-content: space-between; }
+.legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; vertical-align: -1px; margin-right: 2px; }
+.legend-dot.zone { background: var(--decide-soft); border: 1px solid var(--decide); } .legend-dot.stop { background: var(--dn); } .legend-dot.target { background: var(--up); }
+.scorecard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 10px; }
+@media (max-width: 760px) { .scorecard { grid-template-columns: minmax(0, 1fr); } }
+.tile { margin-bottom: 0; display: grid; gap: 10px; align-content: start; }
+.tilehead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rating { font-weight: 700; font-size: 13px; padding: 2px 10px; border-radius: 999px; background: var(--chip); }
+.rating.up { color: var(--up); } .rating.dn { color: var(--dn); } .rating.warn { color: var(--decide); } .rating.mute { color: var(--mute); }
+.tilefacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin: 0; }
+.tilefacts div { display: grid; } .tilefacts dd { margin: 0; font-weight: 600; }
+.tileevidence { display: grid; gap: 4px; padding-left: 0; list-style: none; margin: 0; }
+.tileevidence .ink { color: var(--ink); }
+.howrated { margin: 0 0 18px; } .howrated summary { cursor: pointer; }
+.warn { color: var(--decide); }
