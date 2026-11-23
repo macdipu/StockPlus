@@ -1,6 +1,6 @@
 # DSE Live Analyzer — Architecture Assessment & Target Design
 
-Status: **migration complete (phases 0–7); later additions in the Phase 8 notes** · Baseline commit `7508812` (legacy app, 49 tests green)
+Status: **migration complete (phases 0–7); later additions in the Phase 8 and Phase 9 notes** · Baseline commit `7508812` (legacy app, 49 tests green)
 
 | Phase | State |
 |---|---|
@@ -13,6 +13,7 @@ Status: **migration complete (phases 0–7); later additions in the Phase 8 note
 | 6 frontend | ✅ done — see below |
 | 7 cutover | ✅ done: legacy removed, compose points at the new stack |
 | 8 additions | ✅ done: company details, charts and indicators, picks, candle analysis, redesigned frontend (see below and ADR 0007) |
+| 9 additions (Nov 2026) | ✅ done: rescan and freshness, market depth, chart layers, drawings and patterns, the analyst-style stock page, the Picks back-test (see the Phase 9 notes at the end) |
 
 **Phase 1 notes.** `market_data` feature: domain (entities, TTM-EPS policy, EOD rule), ports, use cases (Sync, EnsureFresh read-through, Profile, Candles, Announcements, Backfill, AppendEndOfDay), DSE adapter (parser + polite HTTP), Postgres repositories (PAGE-over-SNAPSHOT precedence enforced in SQL), migration `0002_market_data` (drift-checked, reversible), `/api/v1/stocks/{symbol}`, `/candles`, `/announcements`, CLI `python -m dse.cli {sync,backfill,eod}`. Contract test reproduces the legacy output for recorded DSE bytes.
 Known gaps carried forward: none from Phase 1 (moving averages are served by `analysis`, see Phase 3).
@@ -245,3 +246,51 @@ api replicas (stateless) ── read Redis/Postgres, SSE fan-out from Redis pub/
 feature and a generic chart component.
 
 **Market depth.** `live_feed` serves `GET /api/v1/quotes/{symbol}/depth` from DSE's own `/api/live/depth?code=SYMBOL` (buyers and sellers with price, quantity and order count; DSE caches it 10-15 s). `DseDepthFeed` is the adapter (honest User-Agent, 403 reported with the same message as the snapshot feed); `CachedDepthFeed` keeps the parsed answer in Redis for 10 s and takes one in-process lock per share, so any number of viewers cost DSE about one request per share per 10 s per API replica. The pure model and arithmetic (quantity-weighted average price, totals, spread) are in `domain/depth.py`. The stock page's "Market depth" tab polls every 15 s. Block trades are not provided: no source was found that is both public and allowed.
+
+## Phase 9 notes (Nov 2026 additions)
+
+**Rescan and freshness (`scanner`, `live_feed`, worker).** `GET /scanner/universe` already reported the worker's last build; the
+frontend now shows it ("Updated 12s ago") on every page that reads the universe. `POST /scanner/rescan` publishes on the Redis
+channel `scanner:rescan` (throttled with `SET NX EX 10`); the worker listens (`RedisRescanChannel.requests`), clears the poll's
+stored ETag (`PollSnapshot.force_full_fetch`, so the exchange sends the full snapshot instead of a 304), polls under a lock
+shared with the poll loop, and triggers `UniverseRefresher.trigger(force=True)`, which makes `MaterialiseUniverse` reload
+history and rebuild both views. The page waits for a newer universe version, then refetches. `GET /market/directory` serves
+code, name, sector and category for search.
+
+**Picks back-test (`scanner`).** `scanner/application/backtest.py` replays the live scoring over past sessions: for each sampled
+day it calls `build_universe_rows(live=False, session_day=D)` (the existing "last completed session" view, so only bars before
+D are used), ranks with `picks.rank`, and reads the outcome from the following bars (`domain/backtest_stats.py`: open of the day
+to the close h sessions later, minus the average share that day; rank correlation computed as Pearson on ranks, so no scipy).
+Liquidity is read from the bars (average traded value over the previous 20 sessions) because replayed rows have no live turnover.
+`python -m dse.cli backtest-picks [--out file]` / `make backtest`; the published result is
+`scanner/data/picks_backtest.json`, served by `GET /market/picks/track-record` and shown on the Picks page. Known bias: today's
+fundamentals are used at every past date. Findings and limits: `docs/research/picks-backtest-2026-11.md`.
+
+**Analysis additions (`analysis`).** `domain/chart_patterns.py` finds swing highs and lows and, from them, double top/bottom,
+head and shoulders (and inverse), triangles, wedges, channels and ranges (`GET /stocks/{symbol}/chart-patterns`; recent only,
+overlaps collapsed, at most three, each with a fit score that is not a probability). `domain/changes.py` turns the scanner row,
+which already carries previous-bar values for crossings, into a short "what changed since the previous session" list
+(`GET /stocks/{symbol}/changes`, no stored history). Both are pure and tested on hand-built data. `company/domain/insights.py`
+omits the gross-margin ratio when gross profit equals revenue.
+
+**Frontend additions.**
+- `features/universe`: the freshness label and Rescan button, shared by Market, Picks, Rules and the table.
+- `features/chart`: layers are toggled by the host (`stock` passes presets, annotations and shapes); levels and the plan are drawn
+  by a series primitive (`utils/ray-line.ts`: one tag, one axis number, from the last 40 candles) instead of full-width price
+  lines; the user's drawings are another primitive (`utils/drawings-layer.ts`) over pure geometry, hit-testing and drag maths
+  (`utils/drawings.ts`), stored per share and timeframe in the browser (`store/drawings-store.ts`); chart patterns reuse the
+  same primitive as non-selectable shapes. Clicks on the chart are read from the element, because the library drops the second
+  of two quick clicks.
+- `features/stock` is organised around pure modules in `utils/` that turn analysis data into plain readings, each unit-tested:
+  `reading` (signal wording, edge, one dividend yield, fair-value summary), `summary` (the four tiles, the verdict, the case
+  for and against, one buy zone), `valuation` (which fair-value methods fit this share), `technicals` (the plain technical
+  reading and indicator meanings), `strength` (return against DSEX, sparkline points), `history` (price table, seasonality),
+  `search`, `chart-model`. Components only render what these return. The thresholds are conventions, shown to the user under
+  "How these ratings are reached", and are not back-tested (ROADMAP items 14 and 7).
+- Stock tabs: Overview (summary, chart, plan), Valuation, Technicals, Market depth, History, Company. The tab is in the URL
+  hash; the old `#prices` and `#seasonality` links land on History.
+
+**Decisions.** Pure rule modules over data the backend already serves, rather than new backend fields, for everything that is a
+reading of existing numbers; backend changes only where a number was wrong (gross margin) or missing (changes, patterns, depth,
+directory, track record). The page uses the trade plan's buy zone everywhere (the backend has a second, tighter one: ROADMAP
+item 13). The Picks track record is a committed file, refreshed by hand, not a database table.
