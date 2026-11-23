@@ -6,7 +6,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import StreamingResponse
 
 from dse.core.http import envelope
@@ -17,6 +17,7 @@ from dse.shared_kernel.symbol import Symbol
 
 router = APIRouter(tags=["live"])
 Container = Annotated[LiveFeedContainer, Depends(container)]
+SymbolPath = Annotated[str, Path(description="DSE trading code", examples=["GP"], max_length=24)]
 SymbolsQuery = Annotated[
     str | None, Query(description="Comma-separated DSE codes; omit for all", examples=["GP,BATBC"])
 ]
@@ -35,6 +36,15 @@ def parse_symbols(raw: str | None, limit: int | None = None) -> list[str] | None
 async def get_quotes(c: Container, symbols: SymbolsQuery = None) -> dict[str, Any]:
     rows = await c.get_quotes(parse_symbols(symbols, 500))
     return envelope([q.model_dump(mode="json") for q in rows], count=len(rows))
+
+
+@router.get(
+    "/quotes/{symbol}/depth",
+    summary="Market depth: buyers and sellers waiting at each price, with totals and average prices",
+    description="Straight from the exchange's own depth feed, cached for 10 seconds.",
+)
+async def get_depth(symbol: SymbolPath, c: Container) -> dict[str, Any]:
+    return envelope((await c.get_depth(Symbol(symbol))).model_dump(mode="json"))
 
 
 @router.get("/market", summary="Session, indices, breadth, totals, top movers")

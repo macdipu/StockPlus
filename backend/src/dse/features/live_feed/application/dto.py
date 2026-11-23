@@ -124,3 +124,27 @@ class MinuteBarDto(BaseModel):
     low: float
     close: float
     volume: int
+
+
+class DepthLevelDto(BaseModel):
+    price: float
+    quantity: int
+    orders: int
+
+
+class DepthSideDto(BaseModel):
+    levels: list[DepthLevelDto]
+    total_quantity: int
+    total_orders: int
+    average_price: float | None
+
+
+class DepthDto(BaseModel):
+    symbol: str
+    buyers: DepthSideDto
+    sellers: DepthSideDto
+    spread: float | None
+    as_of: str | None  # DSE's own timestamp text
+    fetched_at: str  # when this server obtained it (ISO, UTC)
+    market_open: bool | None
+    stats: dict[str, float | int | str | None]

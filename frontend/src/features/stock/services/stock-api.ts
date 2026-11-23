@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { envelope, metaSchema, request } from "@/shared/api";
 import { candlesSchema } from "../schemas/candles";
+import { depthSchema } from "../schemas/depth";
 import { chartPatternsSchema } from "../schemas/chart-patterns";
 import {
   analysisSchema,
@@ -19,6 +20,7 @@ export const stockApi = {
   technicals: (symbol: string, limit = 260) =>
     request(`/stocks/${sym(symbol)}/technicals`, { query: { limit }, schema: envelope(z.array(technicalBarSchema)) }),
   directory: () => request("/market/directory", { schema: envelope(z.array(directoryRow)) }),
+  depth: (symbol: string) => request(`/quotes/${sym(symbol)}/depth`, { schema: depthSchema }),
   chartPatterns: (symbol: string) => request(`/stocks/${sym(symbol)}/chart-patterns`, { schema: chartPatternsSchema }),
   candles: (symbol: string, limit = 2000) => request(`/stocks/${sym(symbol)}/candles`, { query: { limit }, schema: candlesSchema }),
   vpa: (symbol: string, days = 20) =>

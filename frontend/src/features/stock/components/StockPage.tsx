@@ -15,6 +15,7 @@ import { TradePlanCard } from "./TradePlanCard";
 import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
+import { DepthCard } from "./DepthCard";
 import { PriceTableCard, SeasonalityCards } from "./HistoryCards";
 import { StockChart } from "./StockChart";
 
@@ -23,6 +24,7 @@ const REFRESH_EVERY_MS = 20_000;
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "technicals", label: "Technicals" },
+  { key: "depth", label: "Market depth" },
   { key: "history", label: "History" },
   { key: "company", label: "Company" },
 ] as const;
@@ -111,6 +113,7 @@ export function StockPage({ symbol }: { symbol: string }) {
           </>
         )}
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
+        {tab === "depth" && <DepthCard symbol={code} />}
         {tab === "history" && (
           <>
             <PriceTableCard symbol={code} live={live} />

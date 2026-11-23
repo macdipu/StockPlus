@@ -36,6 +36,7 @@ from dse.features.identity.infrastructure.throttle import RedisLoginThrottle
 from dse.features.identity.presentation.dependencies import IdentityContainer
 from dse.features.identity.presentation.router import router as identity_router
 from dse.features.live_feed.application.hub import FeedHub
+from dse.features.live_feed.infrastructure.dse_depth import CachedDepthFeed, DseDepthFeed
 from dse.features.live_feed.infrastructure.redis_adapters import RedisEventStream, RedisLiveStateStore
 from dse.features.live_feed.presentation.dependencies import LiveFeedContainer
 from dse.features.live_feed.presentation.router import router as live_feed_router
@@ -77,8 +78,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.db, app.state.redis = db, redis
         app.state.market_data = MarketDataContainer(db, source, clock)
         hub = FeedHub(RedisEventStream(redis), queue_size=settings.live.subscriber_queue)
+        depth_feed = DseDepthFeed(
+            settings.upstream.base_url,
+            user_agent=settings.upstream.user_agent,
+            timeout_s=settings.upstream.timeout_s,
+        )
         app.state.live_feed = LiveFeedContainer(
-            RedisLiveStateStore(redis), hub, clock, settings.live, db, DHAKA
+            RedisLiveStateStore(redis),
+            hub,
+            clock,
+            settings.live,
+            db,
+            DHAKA,
+            CachedDepthFeed(depth_feed, redis),
         )
         sec = settings.security
         jwt_codec = JwtCodec(
@@ -137,6 +149,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         await cancel_and_wait(hub_task)
         await source.aclose()
+        await depth_feed.aclose()
         await company_sources.aclose()
         await index_candles.aclose()
         await redis.aclose()

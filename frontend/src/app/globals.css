@@ -232,3 +232,7 @@ ol.plain { margin: 0; padding-left: 18px; }
 .drawstyle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; min-height: 30px; } /* always present: a row that appears on select would shift the chart and drop the selection */
 .swatchbtn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
 .swatchbtn.on { border-color: var(--ink); }
+.depthgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.depthtitle { margin: 0 0 6px; font-size: 14px; text-align: center; }
+.depthtable td, .depthtable th { padding: 5px 8px; }
+@media (max-width: 520px) { .depthgrid { gap: 10px; } .depthtable td, .depthtable th { padding: 4px 4px; } }

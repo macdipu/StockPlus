@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from types import TracebackType
 from typing import Protocol
 
+from dse.features.live_feed.domain.depth import MarketDepth
 from dse.features.live_feed.domain.entities import LiveSnapshot, Tick
 from dse.shared_kernel.symbol import Symbol
 
@@ -19,6 +20,12 @@ class FetchResult:
 
 class SnapshotFeed(Protocol):
     async def fetch(self, etag: str | None) -> FetchResult: ...
+
+
+class DepthFeed(Protocol):
+    async def fetch(self, symbol: Symbol) -> MarketDepth:
+        """Raises NotFoundError for an unknown code, Upstream* errors when DSE cannot be reached."""
+        ...
 
 
 class TickRepository(Protocol):

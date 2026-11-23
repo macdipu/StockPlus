@@ -11,12 +11,14 @@ from dse.features.live_feed.application.facade import LiveFeedFacade
 from dse.features.live_feed.application.hub import FeedHub
 from dse.features.live_feed.application.ports import LiveStateStore
 from dse.features.live_feed.application.use_cases import (
+    GetDepth,
     GetFeedStatus,
     GetMarket,
     GetMinuteBars,
     GetMovers,
     GetQuotes,
 )
+from dse.features.live_feed.domain.ports import DepthFeed
 from dse.features.live_feed.infrastructure.repositories import SqlLiveFeedUnitOfWork
 from dse.shared_kernel.clock import Clock
 
@@ -31,6 +33,7 @@ class LiveFeedContainer:
     settings: LiveSettings
     db: Database
     tz: tzinfo
+    depth: DepthFeed
 
     @property
     def get_quotes(self) -> GetQuotes:
@@ -47,6 +50,10 @@ class LiveFeedContainer:
     @property
     def get_feed_status(self) -> GetFeedStatus:
         return GetFeedStatus(self.store, self.clock, self.settings.stale_after_s)
+
+    @property
+    def get_depth(self) -> GetDepth:
+        return GetDepth(self.depth, self.clock)
 
     @property
     def get_minute_bars(self) -> GetMinuteBars:

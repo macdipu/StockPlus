@@ -8,10 +8,13 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import Awaitable, Callable, Sequence
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from typing import Any, Literal
 
 from dse.features.live_feed.application.dto import (
+    DepthDto,
+    DepthLevelDto,
+    DepthSideDto,
     FeedCounters,
     FeedEvent,
     FeedStatusDto,
@@ -21,6 +24,7 @@ from dse.features.live_feed.application.dto import (
 )
 from dse.features.live_feed.application.mappers import feed_status_dto, market_dto, quote_dto
 from dse.features.live_feed.application.ports import EventPublisher, LiveStateStore, OnceGuard
+from dse.features.live_feed.domain.depth import DepthLevel, side_totals, spread
 from dse.features.live_feed.domain.entities import (
     LiveSnapshot,
     MinuteBar,
@@ -28,7 +32,7 @@ from dse.features.live_feed.domain.entities import (
     Tick,
     minute_bars,
 )
-from dse.features.live_feed.domain.ports import LiveFeedUnitOfWork, SnapshotFeed
+from dse.features.live_feed.domain.ports import DepthFeed, LiveFeedUnitOfWork, SnapshotFeed
 from dse.shared_kernel.clock import Clock
 from dse.shared_kernel.errors import ServiceNotReadyError, UpstreamForbiddenError
 from dse.shared_kernel.symbol import Symbol
@@ -318,3 +322,35 @@ class GetMinuteBars:
                 symbol, int(start.timestamp() * 1000), int((start + timedelta(days=1)).timestamp() * 1000)
             )
         return minute_bars(ticks, self._tz)
+
+
+class GetDepth:
+    """The order book of one share: buyers and sellers by price, totals, average prices and the spread."""
+
+    def __init__(self, feed: DepthFeed, clock: Clock) -> None:
+        self._feed, self._clock = feed, clock
+
+    async def __call__(self, symbol: Symbol) -> DepthDto:
+        d = await self._feed.fetch(symbol)
+
+        def side(levels: tuple[DepthLevel, ...]) -> DepthSideDto:
+            t = side_totals(levels)
+            return DepthSideDto(
+                levels=[
+                    DepthLevelDto(price=lv.price, quantity=lv.quantity, orders=lv.orders) for lv in levels
+                ],
+                total_quantity=t.quantity,
+                total_orders=t.orders,
+                average_price=round(t.average_price, 2) if t.average_price is not None else None,
+            )
+
+        return DepthDto(
+            symbol=d.symbol,
+            buyers=side(d.bids),
+            sellers=side(d.asks),
+            spread=spread(d.bids, d.asks),
+            as_of=d.as_of,
+            fetched_at=self._clock.now().astimezone(UTC).isoformat(timespec="seconds"),
+            market_open=d.market_open,
+            stats=d.stats,
+        )

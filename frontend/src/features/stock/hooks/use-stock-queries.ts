@@ -46,3 +46,7 @@ export const useNames = () =>
 /** Possible chart patterns on the daily chart. They only change when a new bar closes. */
 export const useChartPatterns = (symbol: string, enabled = true) =>
   useQuery({ queryKey: key(symbol, "chart-patterns"), queryFn: async () => (await stockApi.chartPatterns(symbol)).data, staleTime: 5 * 60_000, enabled });
+
+/** The order book of one share. DSE refreshes it about every 10 s, so a gentle poll while the tab is open. */
+export const useDepth = (symbol: string) =>
+  useQuery({ queryKey: key(symbol, "depth"), queryFn: async () => (await stockApi.depth(symbol)).data, staleTime: 8_000, refetchInterval: 15_000 });
