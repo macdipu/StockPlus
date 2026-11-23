@@ -113,7 +113,7 @@ export function StockPage({ symbol }: { symbol: string }) {
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
         {tab === "history" && (
           <>
-            <PriceTableCard symbol={code} />
+            <PriceTableCard symbol={code} live={live} />
             <SeasonalityCards symbol={code} />
           </>
         )}

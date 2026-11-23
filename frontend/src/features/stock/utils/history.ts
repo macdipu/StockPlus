@@ -1,5 +1,24 @@
 import type { DailyBar } from "../schemas/candles";
 
+export interface TodayBar {
+  day: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/** Today's session from the live quote on top of the saved history (which ends yesterday): replaces a same-day
+ * bar, appends a newer one, ignores an older one. Trades are not in the live quote, so they stay unknown. */
+export function withToday(bars: readonly DailyBar[], live: TodayBar | null | undefined): readonly DailyBar[] {
+  if (!live || !(live.volume > 0)) return bars;
+  const last = bars.at(-1);
+  const today: DailyBar = { ...live, trades: null };
+  if (!last || live.day > last.day) return [...bars, today];
+  return live.day === last.day ? [...bars.slice(0, -1), { ...today, trades: last.trades }] : bars;
+}
+
 export interface PriceRow extends DailyBar {
   change: number | null;
   changePct: number | null;
