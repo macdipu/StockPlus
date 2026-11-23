@@ -4,6 +4,7 @@ import { candlesSchema } from "../schemas/candles";
 import { depthSchema } from "../schemas/depth";
 import { peContextSchema } from "../schemas/pe-context";
 import { indexChartSchema } from "../schemas/index-chart";
+import { changesSchema } from "../schemas/changes";
 import { chartPatternsSchema } from "../schemas/chart-patterns";
 import {
   analysisSchema,
@@ -25,6 +26,7 @@ export const stockApi = {
   indexCloses: () => request("/charts/DSEX", { query: { resolution: "D", indicators: "", pages: 1 }, schema: indexChartSchema }),
   peContext: () => request("/market/pe", { schema: peContextSchema }),
   depth: (symbol: string) => request(`/quotes/${sym(symbol)}/depth`, { schema: depthSchema }),
+  changes: (symbol: string) => request(`/stocks/${sym(symbol)}/changes`, { schema: changesSchema }),
   chartPatterns: (symbol: string) => request(`/stocks/${sym(symbol)}/chart-patterns`, { schema: chartPatternsSchema }),
   candles: (symbol: string, limit = 2000) => request(`/stocks/${sym(symbol)}/candles`, { query: { limit }, schema: candlesSchema }),
   vpa: (symbol: string, days = 20) =>

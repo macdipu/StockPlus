@@ -58,6 +58,15 @@ async def get_vpa(
 
 
 @router.get(
+    "/stocks/{symbol}/changes",
+    summary="What changed since the previous session: crossings, breakouts, big moves, volume, patterns",
+)
+async def get_changes(symbol: SymbolPath, c: Container) -> dict[str, Any]:
+    r = await c.changes(Symbol(symbol).value)
+    return envelope(r.model_dump(mode="json"), count=len(r.changes))
+
+
+@router.get(
     "/stocks/{symbol}/chart-patterns",
     summary="Possible chart patterns on the daily chart (double top/bottom, head and shoulders, triangles)",
     description=(

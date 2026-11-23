@@ -253,3 +253,19 @@ Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 p
 
 **Review status:** A, B, C, E and G are done. Left from the plan: D (more on events and news; the Overview already shows
 dividend, record date, AGM and news), F (what changed since yesterday, needs a stored previous analysis).
+
+**Phase F done ("What changed"):**
+- **No stored history was needed.** The scanner's row builder already carries the previous bar's values, so the change list
+  is computed on request from the same bars: a pure rule set in `analysis/domain/changes.py` and
+  `GET /api/v1/stocks/{symbol}/changes`.
+- **Rules:** price crossing its 200, 50 or 21-day average; the 9 and 21-day averages crossing; MACD crossing its signal;
+  RSI moving into or out of oversold and overbought, or across 50; a new 52-week high, a 20-day breakout or breakdown; a
+  move of 4% or more; a gap of 2% or more; volume at 2x its average or more; the volume-price label; a candle pattern on the
+  last session. Most important first, at most five, each a plain sentence with its number; when nothing applies the card says
+  so ("No notable change...").
+- **Where:** a "What changed" card on the Overview, right under the reading. It says "Since the session of <date>".
+- The thresholds (4%, 2%, 2x, RSI 30/50/70) are conventional and not back-tested. "Since the previous session" means since
+  the last completed bar before today's; it does not compare with an earlier snapshot of this page.
+
+**Review status:** A, B, C, E, F and G are done. Only D (more on events and news) is left, and the Overview already shows
+the dividend, record date, AGM and the latest news.

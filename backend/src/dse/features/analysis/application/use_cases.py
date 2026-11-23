@@ -11,6 +11,8 @@ import pandas as pd
 from dse.features.analysis.application.brief import render_brief
 from dse.features.analysis.application.dto import (
     AnalysisDto,
+    ChangeDto,
+    ChangesDto,
     ChartLineDto,
     ChartPatternDto,
     ChartPointDto,
@@ -25,7 +27,9 @@ from dse.features.analysis.application.dto import (
 from dse.features.analysis.application.knowledge import build, clean, day, num, technical_bars
 from dse.features.analysis.application.ports import AnalysisInputs, HistorySource
 from dse.features.analysis.domain import chart_patterns, tools, vpa
+from dse.features.analysis.domain.changes import describe_changes
 from dse.features.analysis.domain.frames import merge_live, to_frame
+from dse.features.analysis.domain.universe_row import MIN_BARS, build_row
 from dse.shared_kernel.errors import DomainError, NotFoundError, ValidationFailedError
 
 
@@ -218,3 +222,29 @@ class GetChartPatterns:
             )
             for f in found
         ]
+
+
+class GetChanges:
+    """What changed since the previous session: average crossings, RSI and MACD moves, breakouts, big moves,
+    volume spikes and new candle patterns, computed from the same bars (no history is stored)."""
+
+    def __init__(self, inputs: AnalysisInputs) -> None:
+        self._inputs = inputs
+
+    async def __call__(self, symbol: str) -> ChangesDto:
+        return await asyncio.to_thread(self._build, await self._inputs.load(symbol))
+
+    @staticmethod
+    def _build(inp: Any) -> ChangesDto:
+        df = merge_live(to_frame(inp.bars), inp.live)
+        if len(df) < MIN_BARS:
+            return ChangesDto(
+                symbol=inp.symbol, bar_date=None, previous_bar_date=None, changes=[], enough_history=False
+            )
+        row = build_row(inp.symbol, df, {**inp.fundamentals, "category": inp.category}, None)
+        return ChangesDto(
+            symbol=inp.symbol,
+            bar_date=df.index[-1].date(),
+            previous_bar_date=df.index[-2].date(),
+            changes=[ChangeDto(kind=c.kind, text=c.text, tone=c.tone) for c in describe_changes(row)],
+        )

@@ -17,7 +17,7 @@ import { FundamentalsCard, MarketComparisonCard, ValuationCard } from "./Fundame
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
 import { DepthCard } from "./DepthCard";
-import { ComingUpCard, PlanSummaryCard, ReasonsCard, Scorecard, SnapshotCard, VerdictCard } from "./SummaryCards";
+import { ChangesCard, ComingUpCard, PlanSummaryCard, ReasonsCard, Scorecard, SnapshotCard, VerdictCard } from "./SummaryCards";
 import { PriceTableCard, SeasonalityCards } from "./HistoryCards";
 import { StockChart } from "./StockChart";
 
@@ -116,6 +116,7 @@ export function StockPage({ symbol }: { symbol: string }) {
               <>
                 <SnapshotCard analysis={a} company={company.data} />
                 <VerdictCard analysis={a} summary={summary} />
+                <ChangesCard symbol={code} />
                 <Scorecard summary={summary} />
                 <div className="grid2">
                   <ReasonsCard summary={summary} />

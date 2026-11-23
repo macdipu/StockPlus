@@ -78,3 +78,7 @@ export function useRelativeStrength(symbol: string): RelativeStrength | null {
     return { m1: relativeStrength(stock, idx, SESSIONS_1M), m3: relativeStrength(stock, idx, SESSIONS_3M) };
   }, [candles, index.data]);
 }
+
+/** What changed since the previous session. It moves with the price, so it refreshes with the analysis. */
+export const useChanges = (symbol: string) =>
+  useQuery({ queryKey: key(symbol, "changes"), queryFn: async () => (await stockApi.changes(symbol)).data, staleTime: 30_000, refetchInterval: 60_000 });

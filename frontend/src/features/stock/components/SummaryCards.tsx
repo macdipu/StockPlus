@@ -2,6 +2,7 @@ import type { Company } from "@/features/company";
 import { crore, num, pct } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { SignalPill } from "@/shared/ui/Pill";
+import { useChanges } from "../hooks/use-stock-queries";
 import type { Analysis } from "../schemas/analysis";
 import { dividendYield, edgeReading } from "../utils/reading";
 import { sparkPoints } from "../utils/strength";
@@ -209,6 +210,31 @@ export function ComingUpCard({ company }: { company: Company | undefined }) {
         </>
       ) : (
         <p className="small mute" style={{ margin: 0 }}>Company data is loading or not available.</p>
+      )}
+    </Card>
+  );
+}
+
+/** What is different from the previous session, in a few plain lines, or a note that nothing notable happened. */
+export function ChangesCard({ symbol }: { symbol: string }) {
+  const q = useChanges(symbol);
+  const d = q.data;
+  if (!d || !d.enough_history) return null; // nothing to compare against yet: say nothing rather than guess
+  return (
+    <Card title="What changed">
+      <p className="small mute" style={{ marginTop: 0 }}>
+        {d.previous_bar_date && d.bar_date ? `Since the session of ${d.previous_bar_date}.` : "Since the previous session."}
+      </p>
+      {d.changes.length ? (
+        <ul className="plain small tileevidence">
+          {d.changes.map((c) => (
+            <li key={c.kind} className={c.tone === "good" ? "up" : c.tone === "bad" ? "dn" : "mute"}>
+              <span aria-hidden="true">{c.tone === "good" ? "▲" : c.tone === "bad" ? "▼" : "●"}</span> <span className="ink">{c.text}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="small" style={{ marginBottom: 0 }}>No notable change: no average was crossed, no breakout, and the move and volume of the day were ordinary.</p>
       )}
     </Card>
   );

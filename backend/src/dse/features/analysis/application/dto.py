@@ -184,3 +184,17 @@ class ChartPatternDto(BaseModel):
     points: list[ChartPointDto]
     lines: list[ChartLineDto]
     summary: str
+
+
+class ChangeDto(BaseModel):
+    kind: str
+    text: str
+    tone: Literal["good", "bad", "info"]
+
+
+class ChangesDto(BaseModel):
+    symbol: str
+    bar_date: date | None
+    previous_bar_date: date | None
+    changes: list[ChangeDto]
+    enough_history: bool = True
