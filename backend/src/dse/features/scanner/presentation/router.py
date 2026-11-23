@@ -232,6 +232,15 @@ class PickRow(BaseModel):
 
 
 @router.get(
+    "/market/picks/track-record",
+    tags=["market"],
+    summary="How each Picks bucket did in the latest back-test (research, with its limits)",
+)
+async def picks_track_record(c: Container) -> dict[str, Any]:
+    return envelope(c.track_record())
+
+
+@router.get(
     "/market/picks",
     tags=["market"],
     response_model=Envelope[list[PickRow]],

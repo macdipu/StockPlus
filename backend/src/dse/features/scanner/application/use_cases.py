@@ -24,6 +24,7 @@ from dse.features.scanner.application.dto import (
 from dse.features.scanner.application.ports import (
     RescanChannel,
     StoredUniverse,
+    TrackRecordSource,
     UniverseNotifier,
     UniverseSource,
     UniverseStore,
@@ -362,3 +363,13 @@ class RequestRescan:
         u = await self._view.peek()
         accepted = await self._channel.request()
         return RescanDto(accepted=accepted, version=u.version if u else None)
+
+
+class GetTrackRecord:
+    """How each Picks bucket did over the following sessions in the latest back-test, with its caveats."""
+
+    def __init__(self, source: TrackRecordSource) -> None:
+        self._source = source
+
+    def __call__(self) -> dict[str, Any] | None:
+        return self._source.load()

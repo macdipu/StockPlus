@@ -8,6 +8,7 @@ import asyncio
 import getpass
 import json
 import sys
+from pathlib import Path
 
 from dse.core.clock import SystemClock
 from dse.core.config import get_settings
@@ -89,7 +90,11 @@ async def _run(args: argparse.Namespace) -> int:
             result = await asyncio.to_thread(
                 run_backtest, history, horizons=horizons, step=args.step, min_history=args.min_history
             )
-            print(json.dumps(result, indent=1, default=str))
+            result["generated_at"] = clock.today().isoformat()
+            text = json.dumps(result, indent=1, default=str)
+            if args.out:
+                await asyncio.to_thread(Path(args.out).write_text, text)
+            print(text)
         return 0
     finally:
         await source.aclose()
@@ -114,6 +119,10 @@ def main() -> int:
     p.add_argument("--horizons", default="5,10,20", help="sessions ahead, comma separated")
     p.add_argument("--step", type=int, default=3, help="replay every Nth session")
     p.add_argument("--min-history", type=int, default=120, help="sessions of history before the first replay")
+    p.add_argument(
+        "--out",
+        help="also write the JSON here (the published track record is scanner/data/picks_backtest.json)",
+    )
     p = sub.add_parser("create-user", help="create an account (use --role admin for the first admin)")
     p.add_argument("email")
     p.add_argument("--role", choices=[r.value for r in Role], default=Role.USER.value)

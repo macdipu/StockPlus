@@ -7,6 +7,7 @@ import { useWatchlist } from "@/features/watchlist";
 import { num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
+import { TrackRecord } from "./TrackRecord";
 import { DEFAULT_FILTERS, useSavedFilters } from "../hooks/use-saved-filters";
 import { usePicks } from "../hooks/use-picks";
 import { BUCKETS, type Bucket, type Pick, type PickFilters } from "../schemas/picks";
@@ -129,6 +130,7 @@ export function PicksPage() {
           {meta ? <span className="small mute">{meta.live ? "Live session" : "Last close"}{meta.trade_time ? ` · market ${meta.trade_time}` : ""} · {meta.count} shares</span> : null}
         </div>
       </Card>
+      <TrackRecord />
       <Card label="Picks">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div className="seg" role="tablist" aria-label="Bucket">

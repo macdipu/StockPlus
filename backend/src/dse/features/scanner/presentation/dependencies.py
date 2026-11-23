@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-from dse.features.scanner.application.ports import RescanChannel
+from dse.features.scanner.application.ports import RescanChannel, TrackRecordSource
 from dse.features.scanner.application.use_cases import (
     GetDirectory,
     GetPe,
@@ -12,6 +12,7 @@ from dse.features.scanner.application.use_cases import (
     GetRange52w,
     GetSectors,
     GetTable,
+    GetTrackRecord,
     GetUniverseStatus,
     ListFields,
     ListPresets,
@@ -26,6 +27,7 @@ from dse.features.scanner.application.view import UniverseView
 class ScannerContainer:
     view: UniverseView
     rescan_channel: RescanChannel
+    track_record_source: TrackRecordSource
 
     @property
     def run_scan(self) -> RunScan:
@@ -66,6 +68,10 @@ class ScannerContainer:
     @property
     def picks(self) -> GetPicks:
         return GetPicks(self.view)
+
+    @property
+    def track_record(self) -> GetTrackRecord:
+        return GetTrackRecord(self.track_record_source)
 
     @property
     def rescan(self) -> RequestRescan:

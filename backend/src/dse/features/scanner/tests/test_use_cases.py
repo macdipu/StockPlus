@@ -3,6 +3,7 @@
 import asyncio
 from dataclasses import replace
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -329,3 +330,15 @@ async def test_history_changes_rebuild_even_when_the_market_is_quiet(source: Fak
     await r.on_poll(**quiet)  # unchanged since → nothing to do
     await r.join()
     assert source.load_calls == 2
+
+
+def test_track_record_returns_the_published_file_or_none(tmp_path: Path) -> None:
+    from dse.features.scanner.application.use_cases import GetTrackRecord
+    from dse.features.scanner.infrastructure.track_record import FileTrackRecord
+
+    assert GetTrackRecord(FileTrackRecord(tmp_path / "missing.json"))() is None
+    f = tmp_path / "bt.json"
+    f.write_text('{"rows": 3, "by_bucket": {}}')
+    assert GetTrackRecord(FileTrackRecord(f))() == {"rows": 3, "by_bucket": {}}
+    f.write_text("not json")
+    assert GetTrackRecord(FileTrackRecord(tmp_path / "bad-never-written.json"))() is None

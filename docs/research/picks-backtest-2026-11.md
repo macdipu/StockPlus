@@ -51,3 +51,9 @@ By pick score: top fifth +1.40%, bottom fifth −2.02%.
 - More history, as it accumulates; re-run each quarter and compare.
 - Net of fees (about 0.4% per leg) and with a realistic fill price.
 - Test the chart-pattern "fit" the same way once enough pattern signals exist.
+
+## Where it is shown
+The summary is published at `GET /api/v1/market/picks/track-record` (from `backend/src/dse/features/scanner/data/picks_backtest.json`)
+and shown on the Picks page under "How have these buckets done before?", with the limits above beside the numbers.
+To refresh it: `make backtest ARGS="--step 3 --out src/dse/features/scanner/data/picks_backtest.json"` inside the worker
+container, then commit the file.

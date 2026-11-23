@@ -1,4 +1,5 @@
 import { request } from "@/shared/api";
+import { trackRecordSchema } from "../schemas/track-record";
 import { picksResponseSchema, type PickFilters } from "../schemas/picks";
 
 export const picksApi = {
@@ -14,4 +15,5 @@ export const picksApi = {
       },
       schema: picksResponseSchema,
     }),
+  trackRecord: () => request("/market/picks/track-record", { schema: trackRecordSchema }),
 };

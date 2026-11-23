@@ -227,3 +227,5 @@ ol.plain { margin: 0; padding-left: 18px; }
 .shapelist { margin-top: 10px; }
 .shapelist ul { margin: 0 0 6px; }
 .shapelist li { margin-bottom: 4px; }
+.trackrecord > summary { cursor: pointer; }
+.trackrecord[open] > summary { margin-bottom: 10px; }

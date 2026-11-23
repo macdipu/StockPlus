@@ -65,3 +65,9 @@ class RescanChannel(Protocol):
     def requests(self) -> AsyncIterator[None]:
         """Worker side: yields once per accepted request."""
         ...
+
+
+class TrackRecordSource(Protocol):
+    def load(self) -> dict[str, Any] | None:
+        """The latest published Picks back-test (`make backtest`), or None when none is published."""
+        ...

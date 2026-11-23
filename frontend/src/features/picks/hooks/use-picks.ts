@@ -13,3 +13,7 @@ export const usePicks = (f: PickFilters) =>
     placeholderData: keepPreviousData,
   });
 
+
+/** The published back-test of the buckets. It changes only when a new run is published. */
+export const useTrackRecord = () =>
+  useQuery({ queryKey: ["picks", "track-record"], queryFn: async () => (await picksApi.trackRecord()).data, staleTime: 60 * 60_000 });
