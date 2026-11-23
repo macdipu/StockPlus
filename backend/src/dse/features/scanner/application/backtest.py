@@ -24,8 +24,8 @@ NOTES = (
     "only prices known on the day, so it is the cleaner test.",
     "Only shares listed today are included (survivorship), and only about a year of history exists, so the "
     "sample is small and overlapping windows are not independent.",
-    "Returns are open of the signal day to the close the chosen number of sessions later, before fees and slippage, versus the "
-    "average share scored that day.",
+    "Returns are open of the signal day to the close the chosen number of sessions later, before fees and "
+    "slippage, versus the average share scored that day.",
 )
 
 
