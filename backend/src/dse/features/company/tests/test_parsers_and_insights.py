@@ -155,6 +155,22 @@ def test_ratios_state_their_basis_and_flags_are_cautious(dossier: CompanyDossier
     assert any("AA1" in t for t in texts)
 
 
+def test_gross_margin_is_left_out_when_gross_profit_equals_revenue(
+    dossier: CompanyDossier, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Some filers report no cost of sales, so gross profit equals revenue: a 100% margin means nothing."""
+    from dse.features.company.domain.entities import FinancialYear
+
+    def year(gross: float | None) -> FinancialYear:
+        return FinancialYear(year=2025, revenue=100.0, gross_profit=gross, net_profit=20.0, total_equity=50.0)
+
+    monkeypatch.setattr(insights, "_latest_year", lambda _d: year(100.0))
+    assert "gross_margin" not in {x.key for x in insights.ratios(dossier, 85.8)}
+    monkeypatch.setattr(insights, "_latest_year", lambda _d: year(60.0))
+    margin = {x.key: x for x in insights.ratios(dossier, 85.8)}["gross_margin"]
+    assert margin.value == pytest.approx(60.0)
+
+
 def _analysis(where: str, price: float, patterns: list[dict[str, Any]], live: bool = True) -> dict[str, Any]:
     return {
         "symbol": "PADMAOIL",

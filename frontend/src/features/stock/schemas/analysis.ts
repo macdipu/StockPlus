@@ -143,6 +143,7 @@ export const analysisSchema = z.object({
     total_shares: n,
     free_float_pct: n,
     dividend_yield_pct: n,
+    dividend_per_share: n.optional(),
     last_dividend: z.object({ year: z.number(), cash_pct: z.number(), stock_pct: z.number() }).nullable(),
     shareholding: z.object({
       sponsor_pct: n,

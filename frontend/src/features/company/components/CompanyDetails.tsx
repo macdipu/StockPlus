@@ -154,9 +154,9 @@ function PerShare({ c }: { c: Company }) {
 }
 
 function Quarterly({ c }: { c: Company }) {
+  if (c.quarterly_eps.length === 0) return null; // no interim results yet: an empty table says nothing
   return (
     <Card title="Quarterly EPS (un-audited, this financial year)">
-      {c.quarterly_eps.length === 0 ? <p className="small mute" style={{ margin: 0 }}>The exchange has not published interim results for this financial year yet.</p> : null}
       <div className="tablewrap" style={{ maxHeight: 300 }}>
         <table className="num">
           <thead><tr><th>Period end</th><th>Period</th><th className="r">EPS</th></tr></thead>

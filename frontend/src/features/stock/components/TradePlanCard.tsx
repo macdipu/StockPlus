@@ -1,6 +1,7 @@
 import { num } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import type { Analysis } from "../schemas/analysis";
+import { withoutRepeatedWatch } from "../utils/reading";
 
 const BIAS = { bullish: "up", bearish: "dn", neutral: "mute" } as const;
 const KIND = { entry: "Buy zone", stop: "Exit below (stop)", target: "Take profit", watch: "Watch" } as const;
@@ -22,7 +23,7 @@ export function TradePlanCard({ analysis }: { analysis: Analysis }) {
           <div>
             <table data-agent="levels">
               <tbody>
-                {st.annotations.map((a) => (
+                {withoutRepeatedWatch(st.annotations).map((a) => (
                   <tr key={`${a.kind}-${a.price}`} data-field={a.kind}>
                     <th scope="row">{a.kind === "target" && a.label.startsWith("TARGET 2") ? "Second target" : KIND[a.kind]}</th>
                     <td className={`r num ${TONE[a.kind]}`}>{a.price_to != null ? `${num(a.price_to)} – ${num(a.price)}` : num(a.price)}</td>

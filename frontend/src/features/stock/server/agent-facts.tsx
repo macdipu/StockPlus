@@ -97,7 +97,8 @@ export async function AgentFacts({ symbol }: { symbol: string }) {
   };
   return (
     <section className="card facts" aria-label="Key facts" data-agent="stock-facts" data-symbol={symbol}>
-      <h3>Key facts {name ? `· ${name}` : ""}</h3>
+      <details>
+      <summary><b>Key facts and data links</b> <span className="small mute">{name ?? symbol}: the numbers in one list, and the machine-readable data</span></summary>
       {headline ? <p data-field="headline" style={{ marginTop: 0 }}>{headline}</p> : null}
       <dl>
         {facts.map((f) => (
@@ -122,6 +123,7 @@ export async function AgentFacts({ symbol }: { symbol: string }) {
         Machine-readable: <a href={`/api/v1/stocks/${symbol}/analysis`}>analysis.json</a> · <a href={`/api/v1/stocks/${symbol}/company`}>company.json</a> ·{" "}
         <a href={`/api/v1/stocks/${symbol}/brief`}>brief.md</a> · <a href="/llms.txt">llms.txt</a>
       </p>
+      </details>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
     </section>
   );

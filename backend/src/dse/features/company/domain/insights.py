@@ -72,15 +72,18 @@ def ratios(d: CompanyDossier, price: float | None) -> list[Ratio]:
                 f"net profit / revenue, FY{fy.year}",
             )
         )
-        out.append(
-            Ratio(
-                "gross_margin",
-                "Gross margin",
-                _pct(fy.gross_profit, fy.revenue),
-                "%",
-                f"gross profit / revenue, FY{fy.year}",
+        # Some filers report gross profit equal to revenue (no cost of sales line): the ratio would read 100%
+        # and mean nothing, so it is left out rather than shown.
+        if fy.gross_profit is not None and fy.gross_profit != fy.revenue:
+            out.append(
+                Ratio(
+                    "gross_margin",
+                    "Gross margin",
+                    _pct(fy.gross_profit, fy.revenue),
+                    "%",
+                    f"gross profit / revenue, FY{fy.year}",
+                )
             )
-        )
         de = fy.total_debt / fy.total_equity if fy.total_debt is not None and fy.total_equity else None
         out.append(Ratio("debt_to_equity", "Debt to equity", de, "x", f"total debt / equity, FY{fy.year}"))
     cap = sn.capital

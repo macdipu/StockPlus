@@ -176,3 +176,18 @@ few computed fields.
 3. **Where the plan lives.** On Summary (recommended) or only under Chart?
 4. **Peers.** Telecom has three shares, so its median is weak. Use DSE sectors with a "small group" label, or build a better
    peer set later?
+
+## 10. Progress
+**Decisions taken** (audience is everyone): every reading has a plain sentence first and the exact numbers beside it, with
+how a rating is reached available on demand; SELL stays as the model's label but is followed by a plain action sentence; the
+trade plan goes on the Summary tab.
+
+**Phase A done:**
+- one dividend yield on the stock page (last dividend over the price shown, basis named; the exchange's figure only as a fallback);
+- gross margin is omitted when gross profit equals revenue (backend);
+- the empty Quarterly EPS card and empty fundamentals rows are no longer shown;
+- the duplicate "Watch" rows are gone;
+- "Key facts and data links" is collapsed (still in the HTML for crawlers and agents);
+- fair value opens with its median, the middle half of methods and the full range, and says when the methods disagree;
+- the signal card says in words what the action means and whether setups like it had an edge, with the jargon labels replaced.
+Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 px).
