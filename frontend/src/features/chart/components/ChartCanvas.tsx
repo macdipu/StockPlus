@@ -5,11 +5,14 @@ import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 import { num } from "@/shared/lib/format";
 import type { Candle, Layers } from "../utils/model";
+import { RayLine } from "../utils/ray-line";
 import { baselineValue, toHeikinAshi, type ChartStyle } from "../utils/styles";
 
 type Lib = typeof LightweightCharts;
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const SUBPANE_HEIGHT = 110;
+/** Levels are drawn from this many candles back, so they never cross the older history. */
+const RAY_BARS = 40;
 
 function colors() {
   return { up: css("--up"), down: css("--dn"), accent: css("--brand"), mute: css("--mute"), ink: css("--ink"), line: css("--line") };
@@ -146,13 +149,12 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
       if (disposed || !host.current) return;
       const chart = lib.createChart(host.current, { autoSize: true, ...themeOptions(lib), timeScale: { timeVisible: true, secondsVisible: false, borderColor: css("--line") } });
       const main = createMain(lib, chart, style);
-      main.series.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.24 } });
+      main.series.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.2 } });
       const volume = chart.addSeries(lib.HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "volume", lastValueVisible: false, priceLineVisible: false });
-      chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.86, bottom: 0 } });
       const markers = lib.createSeriesMarkers(main.series, []);
-      const STYLE = { solid: lib.LineStyle.Solid, dashed: lib.LineStyle.Dashed, dotted: lib.LineStyle.Dotted };
       let extra: Array<ISeriesApi<SeriesType>> = [];
-      let lines: Array<ReturnType<typeof main.series.createPriceLine>> = [];
+      let rays: RayLine[] = [];
       let drawn = 0;
 
       const drawBands = (l: Layers) => {
@@ -188,7 +190,7 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
         for (const s of extra) chart.removeSeries(s);
         extra = [];
         for (const o of l.overlays) {
-          const s = chart.addSeries(lib.LineSeries, { color: o.color, lineWidth: 1, lineVisible: o.kind !== "dots", pointMarkersVisible: o.kind === "dots", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+          const s = chart.addSeries(lib.LineSeries, { autoscaleInfoProvider: () => null, color: o.color, lineWidth: 1, lineVisible: o.kind !== "dots", pointMarkersVisible: o.kind === "dots", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
           s.setData(o.points);
           extra.push(s);
         }
@@ -213,8 +215,10 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
           for (const level of pane.levels) made[0]?.createPriceLine({ price: level, color: k.mute, lineWidth: 1, lineStyle: lib.LineStyle.Dotted, axisLabelVisible: false, title: "" });
           chart.panes()[i + 1]?.setHeight(SUBPANE_HEIGHT);
         });
-        for (const pl of lines) main.series.removePriceLine(pl);
-        lines = l.priceLines.map((p) => main.series.createPriceLine({ price: p.price, color: p.color, lineWidth: p.width ?? 1, lineStyle: STYLE[p.style], axisLabelVisible: true, title: p.title }));
+        for (const r of rays) main.series.detachPrimitive(r);
+        const from = latest.current.candles[Math.max(0, latest.current.candles.length - RAY_BARS)]?.time;
+        rays = l.priceLines.map((p) => new RayLine({ price: p.price, color: p.color, tag: p.title, style: p.style, width: p.width ?? 1, tagBackground: css("--card"), tagColor: css("--ink") }, from));
+        for (const r of rays) main.series.attachPrimitive(r);
         markers.setMarkers([...l.markers].sort((a, b) => (String(a.time) < String(b.time) ? -1 : String(a.time) > String(b.time) ? 1 : 0)));
         requestAnimationFrame(() => drawBands(l));
       };

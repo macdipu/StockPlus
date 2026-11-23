@@ -25,7 +25,7 @@ there is no way to draw on it.
 
 ## Plan
 
-### Phase 1: declutter (ship first)
+### Phase 1: declutter (done, except the items under "Left for later")
 - Replace Off / Basic / Full with **layer chips** that toggle independently: Levels, Trade plan, Patterns, Averages
   (SMA/EMA), Bands, RSI, MACD, Volume. Two shortcuts, **Clean** (candles + volume only) and **Trader** (today's Full).
   Default is Clean + Levels. Choice saved in local storage.
@@ -64,3 +64,13 @@ there is no way to draw on it.
 ## Open questions
 - "Draw pattern": this plan reads it as drawing tools (Phase 2) plus chart-pattern drawing (Phase 3). Confirm.
 - Default layers: Clean + Levels, or Clean only?
+
+## Phase 1 status
+Built: independent layer toggles (Layers menu with Clean / Everything), default candles plus the nearest two
+support and resistance; levels and the plan are rays from the last 40 candles with one tag and one axis number
+(`chart/utils/ray-line.ts`); lines within 2% of a more important line are dropped; pattern arrows have no text and the
+newest five are listed under the chart; moving-average overlays no longer stretch the price scale. Pure helpers
+(`nearestLevels`, `dedupeLines`, `recentPatterns`) have unit tests; the e2e test uses the new Layers control.
+
+Left for later: collapsible RSI/MACD panes, a hover card with the pattern name on the chart, click-to-jump from the
+pattern list, a bottom sheet for Layers on phones (the dropdown fits at 390px today).

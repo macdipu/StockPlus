@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levelLines, minuteToTimestamp, patternMarkers } from "./chart-model";
+import { dedupeLines, levelLines, minuteToTimestamp, nearestLevels, patternMarkers, recentPatterns } from "./chart-model";
 
 describe("patternMarkers", () => {
   const colors = { up: "u", down: "d", neutral: "n" };
@@ -23,6 +23,29 @@ describe("levelLines", () => {
   it("labels resistance and support", () => {
     const l = levelLines({ price: 10, high_52w: 20, low_52w: 5, above: [12, 15], below: [8] });
     expect(l.map((x) => `${x.kind}:${x.title}`)).toEqual(["resistance:R 12", "resistance:R 15", "support:S 8"]);
+  });
+});
+
+describe("nearestLevels", () => {
+  it("keeps only the closest two on each side", () => {
+    const l = nearestLevels({ price: 100, high_52w: 200, low_52w: 10, above: [150, 104, 110, 120], below: [95, 40, 90, 99] }, 100);
+    expect(l.map((x) => x.price)).toEqual([104, 110, 99, 95]);
+    expect(l.map((x) => x.kind)).toEqual(["resistance", "resistance", "support", "support"]);
+  });
+});
+
+describe("dedupeLines", () => {
+  it("keeps the first of two lines at nearly the same price", () => {
+    const r = dedupeLines([{ price: 87.2, t: "target" }, { price: 87.25, t: "watch" }, { price: 90, t: "level" }]);
+    expect(r.map((x) => x.t)).toEqual(["target", "level"]);
+  });
+});
+
+describe("recentPatterns", () => {
+  const p = (date: string) => ({ date, bars_ago: 0, pattern: "X", direction: "neutral" as const, high: 1, low: 1 });
+  it("returns the newest known-date patterns first, capped", () => {
+    const r = recentPatterns([p("2026-01-01"), p("2026-01-03"), p("2026-01-02"), p("2030-01-01")], new Set(["2026-01-01", "2026-01-02", "2026-01-03"]), 2);
+    expect(r.map((x) => x.date)).toEqual(["2026-01-03", "2026-01-02"]);
   });
 });
 

@@ -214,3 +214,11 @@ ol.plain { margin: 0; padding-left: 18px; }
 .freshness { justify-content: flex-end; margin-bottom: 10px; }
 @media (max-width: 700px) { .hide-sm { display: none; } }
 @media (max-width: 520px) { .seg-label { display: none; } .seg { max-width: 100%; overflow-x: auto; } }
+.layers { position: relative; }
+.layers > summary { list-style: none; cursor: pointer; }
+.layers > summary::-webkit-details-marker { display: none; }
+.layers-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 6; min-width: 230px; display: grid; gap: 6px; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(0 0 0 / 0.18); }
+.layers-panel .row { margin-bottom: 2px; }
+.layer-opt { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.patternlist { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; }
+.ptag { white-space: nowrap; }
