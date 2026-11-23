@@ -3,6 +3,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
 import { PriceChart } from "@/features/chart";
+import { FreshnessBar } from "@/features/universe";
 import { routes } from "@/shared/lib/navigation";
 import { Card } from "@/shared/ui/Card";
 import { DataTable } from "@/shared/ui/DataTable";
@@ -10,6 +11,7 @@ import { columnsFor, symbolHref } from "@/shared/ui/columns";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { useMovers, usePe, useRange52, useSectors } from "../hooks/use-market-queries";
 import type { RangeRow, SectorRow } from "../schemas/market";
+import { MarketSummary } from "./MarketSummary";
 import type { Quote } from "@/shared/api";
 
 function Async<T>({ q, children }: { q: UseQueryResult<T>; children: (data: T) => ReactNode }) {
@@ -81,6 +83,8 @@ export function MarketPage() {
 
   return (
     <>
+      <FreshnessBar />
+      <MarketSummary />
       <IndexChart />
       <Card title="Sectors">
         <Async q={sectors}>

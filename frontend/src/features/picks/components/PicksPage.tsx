@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { RescanButton } from "@/features/universe";
 import { useWatchlist } from "@/features/watchlist";
 import { num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { DEFAULT_FILTERS, useSavedFilters } from "../hooks/use-saved-filters";
-import { usePicks, useRescan } from "../hooks/use-picks";
+import { usePicks } from "../hooks/use-picks";
 import { BUCKETS, type Bucket, type Pick, type PickFilters } from "../schemas/picks";
 
 const BUCKET_LABEL: Record<Bucket, string> = {
@@ -17,24 +18,8 @@ const BUCKET_LABEL: Record<Bucket, string> = {
   avoid: "Avoid for now",
 };
 
-function useNow(everyMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), everyMs);
-    return () => clearInterval(t);
-  }, [everyMs]);
-  return now;
-}
-
-function ago(ms: number): string {
-  const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s ago`;
-  return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
-}
-
 function ScoreBar({ v, label }: { v: number; label: string }) {
-  const color = v >= 65 ? "var(--up)" : v >= 45 ? "#d97706" : "var(--dn)";
+  const color = v >= 65 ? "var(--up)" : v >= 45 ? "var(--decide)" : "var(--dn)";
   return (
     <span title={`${label} ${v}/100`} className="small">
       <span className="bar" style={{ width: 54, height: 6, display: "inline-flex", verticalAlign: "middle" }}>
@@ -88,14 +73,14 @@ function Row({ p, watched, onWatch }: { p: Pick; watched: boolean; onWatch: () =
         <Link href={`/stock/${p.symbol}`}><b>{p.symbol}</b></Link>
         <div className="small mute" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name ?? ""}</div>
       </td>
-      <td className="small">{p.sector ?? "–"} <span className="mute">{p.category ?? ""}</span></td>
+      <td className="small hide-sm">{p.sector ?? "–"} <span className="mute">{p.category ?? ""}</span></td>
       <td className="r num">{num(p.ltp)}<div className={`small ${tone(p.change_pct)}`}>{pct(p.change_pct, 2)}</div></td>
       <td className="r num">{num(p.pe, 1)}</td>
-      <td className="r num">{num(p.pb, 2)}</td>
-      <td className="r num">{p.dividend_yield_pct == null ? "–" : `${num(p.dividend_yield_pct, 1)}%`}</td>
-      <td className="r num">{num(p.rsi14, 0)}</td>
+      <td className="r num hide-sm">{num(p.pb, 2)}</td>
+      <td className="r num hide-sm">{p.dividend_yield_pct == null ? "–" : `${num(p.dividend_yield_pct, 1)}%`}</td>
+      <td className="r num hide-sm">{num(p.rsi14, 0)}</td>
       <td><ScoreBar v={p.value_score} label="Value" /></td>
-      <td><ScoreBar v={p.entry_score} label="Entry" /></td>
+      <td className="hide-sm"><ScoreBar v={p.entry_score} label="Entry" /></td>
       <td className="r num"><b>{num(p.pick_score, 0)}</b></td>
       <td><span className={`bucket ${p.bucket}`}>{p.bucket_label}</span></td>
       <td className="small" style={{ minWidth: 220 }}>
@@ -119,8 +104,6 @@ export function PicksPage() {
   const [shown, setShown] = useState<Bucket | "all">("all");
   const rows = useMemo(() => (q.data?.data ?? []).filter((r) => shown === "all" || r.bucket === shown), [q.data, shown]);
   const meta = q.data?.meta;
-  const rescan = useRescan(meta?.universe_version);
-  const now = useNow();
   const addAll = () => {
     for (const r of rows.filter((x) => x.bucket === "buy_zone").slice(0, 15)) if (!w.has(r.symbol)) w.add(r.symbol);
   };
@@ -157,15 +140,7 @@ export function PicksPage() {
             ))}
           </div>
           <div className="row">
-            {meta ? (
-              <span className="small mute" title={`Analysed ${new Date(meta.built_at_ms).toLocaleString()} (took ${meta.build_ms} ms). Refreshes automatically.`}>
-                Updated {ago(now - meta.built_at_ms)}
-              </span>
-            ) : null}
-            {rescan.isError ? <span className="small" style={{ color: "var(--dn)" }}>Rescan failed</span> : null}
-            <button type="button" className="btn ghost small" disabled={rescan.isPending} onClick={() => rescan.mutate()} title="Pull fresh data from DSE and re-score every share">
-              {rescan.isPending ? "Rescanning…" : "Rescan now"}
-            </button>
+            <RescanButton />
             <button type="button" className="btn small" onClick={addAll} title="Adds the top 15 shares in the buy zone to your watchlist">+ Watch top buy-zone picks</button>
           </div>
         </div>
@@ -176,8 +151,8 @@ export function PicksPage() {
             <table data-agent="picks">
               <thead>
                 <tr>
-                  <th>Share</th><th>Sector</th><th className="r">Price</th><th className="r">P/E</th><th className="r">P/B</th><th className="r">Yield</th><th className="r">RSI</th>
-                  <th>Value</th><th>Entry</th><th className="r">Score</th><th>Bucket</th><th>Why</th><th />
+                  <th>Share</th><th className="hide-sm">Sector</th><th className="r">Price</th><th className="r">P/E</th><th className="r hide-sm">P/B</th><th className="r hide-sm">Yield</th><th className="r hide-sm">RSI</th>
+                  <th>Value</th><th className="hide-sm">Entry</th><th className="r">Score</th><th>Bucket</th><th>Why</th><th />
                 </tr>
               </thead>
               <tbody>
