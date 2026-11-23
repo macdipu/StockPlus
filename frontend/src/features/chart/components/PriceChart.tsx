@@ -9,6 +9,7 @@ import { RESOLUTIONS, RESOLUTION_LABEL, type Resolution } from "../schemas/chart
 import { useDrawings } from "../store/drawings-store";
 import { useChartSpec } from "../store/chart-spec";
 import type { Tool } from "../utils/drawings";
+import { chartHeight } from "../utils/layout";
 import { buildCandles, buildLayers, paletteColor, toChartTime, type Annotations, type LiveBar } from "../utils/model";
 import { needsOhlc } from "../utils/styles";
 import { ChartCanvas } from "./ChartCanvas";
@@ -17,8 +18,6 @@ import { StylePicker } from "./StylePicker";
 
 /** The API accepts this many indicators per chart. */
 const MAX_INDICATORS = 12;
-const BASE_HEIGHT = 440;
-const PANE_HEIGHT = 120;
 /** Where a chart's data comes from, in plain words. */
 const SOURCE_NOTE: Record<string, string> = {
   "dse-daily": "",
@@ -67,6 +66,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
   const [tool, setTool] = useState<Tool>("cursor");
   const [magnet, setMagnet] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const catalog = useCatalog();
 
   const presetSpecs = useMemo(() => presets?.(resolution) ?? [], [presets, resolution]);
@@ -164,23 +164,56 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
           selected={drawings.find((d) => d.id === selectedId) ?? null}
           onStyle={(patch) => setDrawings(drawings.map((d) => (d.id === selectedId ? { ...d, ...patch } : d)))}
           onDeleteSelected={() => setDrawings(drawings.filter((d) => d.id !== selectedId))}
+          drawings={drawings}
+          selectedId={selectedId}
+          onSelectId={setSelectedId}
+          onDeleteId={(id) => setDrawings(drawings.filter((d) => d.id !== id))}
         />
       ) : null}
       {q.isPending ? <Loading what="Loading chart" /> : null}
       {q.isError && !data ? <ErrorNotice error={q.error} /> : null}
+      {layers.panes.length > 0 ? (
+        <div className="panelbar" role="group" aria-label="Indicator panels">
+          <span className="small mute">Panels:</span>
+          {layers.panes.map((p) => {
+            const shut = collapsed.has(p.key);
+            return (
+              <button
+                key={p.key}
+                type="button"
+                className="btn ghost small"
+                aria-pressed={shut}
+                title={shut ? `Show ${p.title}` : `Collapse ${p.title} to give the candles more room`}
+                onClick={() =>
+                  setCollapsed((cur) => {
+                    const next = new Set(cur);
+                    if (shut) next.delete(p.key);
+                    else next.add(p.key);
+                    return next;
+                  })
+                }
+              >
+                {shut ? "▸" : "▾"} {p.title}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {data ? (
         <ChartCanvas
           key={`${dataResolution}-${style}`}
           candles={candles}
           layers={layers}
           style={style}
-          height={BASE_HEIGHT + PANE_HEIGHT * layers.panes.length}
+          height={chartHeight(layers.panes.length, layers.panes.filter((p) => collapsed.has(p.key)).length)}
           label={`${symbol} ${RESOLUTION_LABEL[dataResolution]} chart`}
           tool={tool}
           magnet={magnet}
           drawings={drawings}
           onDrawings={setDrawings}
           onSelect={setSelectedId}
+          selectedId={selectedId}
+          collapsed={collapsed}
         />
       ) : null}
 

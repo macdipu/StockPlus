@@ -236,3 +236,12 @@ ol.plain { margin: 0; padding-left: 18px; }
 .depthtitle { margin: 0 0 6px; font-size: 14px; text-align: center; }
 .depthtable td, .depthtable th { padding: 5px 8px; }
 @media (max-width: 520px) { .depthgrid { gap: 10px; } .depthtable td, .depthtable th { padding: 4px 4px; } }
+.panelbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; }
+.drawlist { flex-basis: 100%; }
+.drawlist summary { cursor: pointer; }
+.drawlist ul { margin: 6px 0 0; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.drawlist li { display: flex; gap: 12px; justify-content: space-between; padding: 3px 6px; border-radius: 6px; }
+.drawlist li.on { background: var(--chip); }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--brand); cursor: pointer; text-align: left; }
+.linklike.dn { color: var(--dn); }
+.linklike:hover { text-decoration: underline; }

@@ -50,6 +50,8 @@ export interface MarkerSpec {
   shape: "arrowUp" | "arrowDown" | "circle";
   color: string;
   text: string;
+  /** Shown in the chart legend while the pointer is on this candle (a pattern name, kept off the candles). */
+  label?: string;
 }
 
 export interface BandSpec {

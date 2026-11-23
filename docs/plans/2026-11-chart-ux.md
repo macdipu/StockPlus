@@ -72,8 +72,9 @@ support and resistance; levels and the plan are rays from the last 40 candles wi
 newest five are listed under the chart; moving-average overlays no longer stretch the price scale. Pure helpers
 (`nearestLevels`, `dedupeLines`, `recentPatterns`) have unit tests; the e2e test uses the new Layers control.
 
-Left for later: collapsible RSI/MACD panes, a hover card with the pattern name on the chart, click-to-jump from the
-pattern list, a bottom sheet for Layers on phones (the dropdown fits at 390px today).
+Since built: collapsible RSI/MACD panels (a Panels row; a shut panel keeps a thin strip and the candles get the room), the
+pattern name in the chart legend while the pointer is on its candle, and a "Your drawings" list (select or delete from it).
+Left for later: click-to-jump from the pattern list, a bottom sheet for Layers on phones (the dropdown fits at 390px today).
 
 ## Phase 2 status
 Built: drawing toolbar (Select, Trend line, Ray, Horizontal line, Rectangle, Fibonacci, Measure) with Snap to candle,

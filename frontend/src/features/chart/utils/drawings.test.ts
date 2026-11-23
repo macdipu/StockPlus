@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dragDrawing, distanceToSegment, fibLevels, hitTest, measureText, parseDrawings, segments, snapPrice, type Drawing, type DrawPoint } from "./drawings";
+import { describeDrawing, dragDrawing, distanceToSegment, fibLevels, hitTest, measureText, parseDrawings, segments, snapPrice, type Drawing, type DrawPoint } from "./drawings";
 
 const p = (time: string, price: number): DrawPoint => ({ time, price });
 // a fake screen: x = day number * 10, y = 200 - price
@@ -98,5 +98,20 @@ describe("parseDrawings keeps a drawing's style", () => {
     expect(d).toBeDefined();
     expect(d && "color" in d).toBe(false);
     expect(d && "width" in d).toBe(false);
+  });
+});
+
+describe("describeDrawing", () => {
+  it("names a horizontal line by its price", () => {
+    expect(describeDrawing({ id: "h", kind: "hline", a: p("2026-01-03", 50) })).toBe("Horizontal line · 50.00");
+  });
+  it("describes a two-point drawing by its dates and prices", () => {
+    expect(describeDrawing({ id: "t", kind: "trend", a: p("2026-07-28", 66.984), b: p("2026-09-07", 78.7) })).toBe(
+      "Trend line · 07-28 to 09-07 · 66.98 to 78.70",
+    );
+  });
+  it("shows clock times for minute-chart drawings", () => {
+    const d: Drawing = { id: "m", kind: "measure", a: { time: 1_700_000_000, price: 1 }, b: { time: 1_700_003_600, price: 2 } };
+    expect(describeDrawing(d)).toContain("22:13 to 23:13");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { COLORS, TOOLS, WIDTHS, type Drawing, type Tool } from "../utils/drawings";
+import { COLORS, TOOLS, WIDTHS, describeDrawing, type Drawing, type Tool } from "../utils/drawings";
 
 interface Props {
   tool: Tool;
@@ -15,10 +15,15 @@ interface Props {
   selected: Drawing | null;
   onStyle: (patch: { color?: string; width?: number }) => void;
   onDeleteSelected: () => void;
+  /** All drawings on this chart, for the list. */
+  drawings: readonly Drawing[];
+  selectedId: string | null;
+  onSelectId: (id: string) => void;
+  onDeleteId: (id: string) => void;
 }
 
 /** Choose what a click on the chart does. "Select" is the normal mode; the rest place a drawing. */
-export function DrawToolbar({ tool, onTool, magnet, onMagnet, count, canDelete, onUndo, onClear, selected, onStyle, onDeleteSelected }: Props) {
+export function DrawToolbar({ tool, onTool, magnet, onMagnet, count, canDelete, onUndo, onClear, selected, onStyle, onDeleteSelected, drawings, selectedId, onSelectId, onDeleteId }: Props) {
   const hint = TOOLS.find((t) => t.key === tool)?.hint ?? "";
   return (
     <div className="drawbar" role="toolbar" aria-label="Drawing tools">
@@ -64,6 +69,23 @@ export function DrawToolbar({ tool, onTool, magnet, onMagnet, count, canDelete, 
           </span>
         )}
       </div>
+      {drawings.length > 0 ? (
+        <details className="drawlist">
+          <summary className="small">Your drawings ({drawings.length})</summary>
+          <ul className="plain small">
+            {drawings.map((d) => (
+              <li key={d.id} className={d.id === selectedId ? "on" : ""}>
+                <button type="button" className="linklike" aria-pressed={d.id === selectedId} onClick={() => onSelectId(d.id)}>
+                  {describeDrawing(d)}
+                </button>
+                <button type="button" className="linklike dn" aria-label={`Delete ${describeDrawing(d)}`} onClick={() => onDeleteId(d.id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </div>
   );
 }

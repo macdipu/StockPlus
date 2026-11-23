@@ -7,12 +7,12 @@ import { num } from "@/shared/lib/format";
 import type { Candle, Layers } from "../utils/model";
 import { DrawingsLayer } from "../utils/drawings-layer";
 import { dragDrawing, hitTest, needsTwoPoints, newId, snapPrice, type Drawing, type DragMode, type DrawPoint, type Tool } from "../utils/drawings";
+import { paneHeight } from "../utils/layout";
 import { RayLine } from "../utils/ray-line";
 import { baselineValue, toHeikinAshi, type ChartStyle } from "../utils/styles";
 
 type Lib = typeof LightweightCharts;
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const SUBPANE_HEIGHT = 110;
 /** Levels are drawn from this many candles back, so they never cross the older history. */
 const RAY_BARS = 40;
 
@@ -138,16 +138,22 @@ interface Props {
   onDrawings: (next: readonly Drawing[]) => void;
   /** The selected drawing changed (null when nothing is selected). */
   onSelect: (id: string | null) => void;
+  /** Selection made outside the chart (the drawings list). */
+  selectedId: string | null;
+  /** Keys of indicator panels shown as a thin strip. */
+  collapsed: ReadonlySet<string>;
 }
 
 /** Draws candles, indicator lines and panels, annotations and shaded bands. Pure drawing: it fetches nothing. */
-export function ChartCanvas({ candles, layers, style, label, height, tool, magnet, drawings, onDrawings, onSelect }: Props) {
+export function ChartCanvas({ candles, layers, style, label, height, tool, magnet, drawings, onDrawings, onSelect, selectedId, collapsed }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const bandHost = useRef<HTMLDivElement>(null);
-  const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void; sync: () => void; cancel: () => void; deleteSelected: () => void } | null>(null);
+  const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void; sync: () => void; cancel: () => void; deleteSelected: () => void; select: (id: string | null) => void; heights: () => void } | null>(null);
   const latest = useRef({ candles, layers });
   const draw = useRef({ tool, magnet, drawings, onDrawings });
   const shapes = useRef<readonly Drawing[]>(layers.shapes);
+  const collapsedRef = useRef(collapsed);
+  const markerLabels = useRef<ReadonlyMap<string, readonly string[]>>(new Map());
   const report = useRef(onSelect);
   useEffect(() => {
     report.current = onSelect;
@@ -228,13 +234,16 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
             made.push(s);
           });
           for (const level of pane.levels) made[0]?.createPriceLine({ price: level, color: k.mute, lineWidth: 1, lineStyle: lib.LineStyle.Dotted, axisLabelVisible: false, title: "" });
-          chart.panes()[i + 1]?.setHeight(SUBPANE_HEIGHT);
+          chart.panes()[i + 1]?.setHeight(paneHeight(collapsedRef.current.has(pane.key)));
         });
         for (const r of rays) main.series.detachPrimitive(r);
         const from = latest.current.candles[Math.max(0, latest.current.candles.length - RAY_BARS)]?.time;
         rays = l.priceLines.map((p) => new RayLine({ price: p.price, color: p.color, tag: p.title, style: p.style, width: p.width ?? 1, tagBackground: css("--card"), tagColor: css("--ink") }, from));
         for (const r of rays) main.series.attachPrimitive(r);
-        markers.setMarkers([...l.markers].sort((a, b) => (String(a.time) < String(b.time) ? -1 : String(a.time) > String(b.time) ? 1 : 0)));
+        const labels = new Map<string, string[]>();
+        for (const m of l.markers) if (m.label) labels.set(String(m.time), [...(labels.get(String(m.time)) ?? []), m.label]);
+        markerLabels.current = labels;
+        markers.setMarkers(l.markers.map(({ label: _label, ...m }) => m).sort((a, b) => (String(a.time) < String(b.time) ? -1 : String(a.time) > String(b.time) ? 1 : 0)));
         requestAnimationFrame(() => drawBands(l));
       };
 
@@ -243,7 +252,8 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
         if (!d) return setLegend("");
         if (d.value != null) return setLegend(`Close ${num(d.value)}`);
         if (d.close == null) return setLegend("");
-        setLegend(`O ${num(d.open)}  H ${num(d.high)}  L ${num(d.low)}  C ${num(d.close)}`);
+        const tags = markerLabels.current.get(String(p.time));
+        setLegend(`O ${num(d.open)}  H ${num(d.high)}  L ${num(d.low)}  C ${num(d.close)}${tags ? `  ·  ${tags.join(", ")}` : ""}`);
       });
       chart.timeScale().subscribeVisibleLogicalRangeChange(() => drawBands(latest.current.layers));
 
@@ -377,7 +387,13 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
         draw.current.onDrawings(draw.current.drawings.filter((d) => d.id !== gone));
       };
 
-      api.current = { drawCandles, drawLayers, sync, cancel, deleteSelected };
+      const select = (id: string | null) => {
+        if (selected === id) return;
+        selected = id;
+        sync();
+      };
+      const heights = () => latest.current.layers.panes.forEach((pane, i) => chart.panes()[i + 1]?.setHeight(paneHeight(collapsedRef.current.has(pane.key))));
+      api.current = { drawCandles, drawLayers, sync, cancel, deleteSelected, select, heights };
       sync();
       drawCandles(latest.current.candles);
       drawLayers(latest.current.layers);
@@ -421,6 +437,13 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
   useEffect(() => {
     api.current?.cancel(); // switching tools abandons a half-drawn shape
   }, [tool]);
+  useEffect(() => {
+    api.current?.select(selectedId);
+  }, [selectedId]);
+  useEffect(() => {
+    collapsedRef.current = collapsed;
+    api.current?.heights();
+  }, [collapsed]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Escape") api.current?.cancel();

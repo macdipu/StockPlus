@@ -51,7 +51,7 @@ function annotate(a: Analysis, layers: ReadonlySet<Layer>, shapes: readonly Char
   const markers: NonNullable<Annotations["markers"]>[number][] = [];
   if (layers.has("patterns") && ctx.resolution === "D") {
     // arrows only: the names are listed under the chart, where they cannot sit on top of candles
-    markers.push(...patternMarkers(recentPatterns(a.candles.patterns, ctx.dates, MAX_PATTERNS), { up, down, neutral: "#94a3b8" }, ctx.dates).map((m) => ({ ...m, text: "" })));
+    markers.push(...patternMarkers(recentPatterns(a.candles.patterns, ctx.dates, MAX_PATTERNS), { up, down, neutral: "#94a3b8" }, ctx.dates).map((m) => ({ ...m, text: "", label: m.text })));
   }
   const drawn = layers.has("shapes") && ctx.resolution === "D" ? patternShapes(shapes, { up, down, neutral: "#6d7cff" }) : [];
   return { priceLines: dedupeLines(lines, MIN_GAP), markers, bands, shapes: drawn };

@@ -172,5 +172,16 @@ export function dragDrawing(orig: Drawing, mode: DragMode, from: DrawPoint, here
   return { ...orig, a: shift(orig.a), ...(orig.b ? { b: shift(orig.b) } : {}) };
 }
 
+function when(t: string | number): string {
+  return typeof t === "number" ? new Date(t * 1000).toISOString().slice(11, 16) : t.slice(5); // minute charts: HH:MM; daily: MM-DD
+}
+
+/** A short line for the drawings list: "Trend line · 07-28 to 09-07 · 66.98 to 78.74". */
+export function describeDrawing(d: Drawing): string {
+  const name = TOOLS.find((t) => t.key === d.kind)?.label ?? d.kind;
+  if (d.kind === "hline" || !d.b) return `${name} · ${d.a.price.toFixed(2)}`;
+  return `${name} · ${when(d.a.time)} to ${when(d.b.time)} · ${d.a.price.toFixed(2)} to ${d.b.price.toFixed(2)}`;
+}
+
 let counter = 0;
 export const newId = (): string => `d${Date.now().toString(36)}${(counter++).toString(36)}`;
