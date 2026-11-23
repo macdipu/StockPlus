@@ -13,12 +13,12 @@ const PRESETS: Record<Exclude<AnalysisLevel, "off">, { daily: readonly string[];
 };
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const ZONE = "#d97706";
 const WATCH = "#7c3aed";
 
 /** The trade plan and support/resistance, as annotations for the generic chart. */
 function annotate(a: Analysis, level: AnalysisLevel, ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }): Annotations | undefined {
   if (level === "off") return undefined;
+  const zone = css("--decide");
   const up = css("--up");
   const down = css("--dn");
   const story = a.candle_story;
@@ -29,10 +29,10 @@ function annotate(a: Analysis, level: AnalysisLevel, ctx: { resolution: Resoluti
   if (level === "full" && story) {
     for (const x of story.annotations) {
       if (x.kind === "entry") {
-        priceLines.push({ price: x.price, color: ZONE, title: x.label, style: "solid", width: 2 });
+        priceLines.push({ price: x.price, color: zone, title: x.label, style: "solid", width: 2 });
         if (x.price_to != null) {
-          priceLines.push({ price: x.price_to, color: ZONE, title: "", style: "solid", width: 2 });
-          bands.push({ from: x.price_to, to: x.price, color: "rgba(217,119,6,0.13)" });
+          priceLines.push({ price: x.price_to, color: zone, title: "", style: "solid", width: 2 });
+          bands.push({ from: x.price_to, to: x.price, color: css("--decide-soft") });
         }
       } else if (x.kind === "stop") priceLines.push({ price: x.price, color: down, title: x.label, style: "solid", width: 2 });
       else if (x.kind === "target") priceLines.push({ price: x.price, color: up, title: x.label, style: "dashed", width: 2 });
@@ -45,7 +45,7 @@ function annotate(a: Analysis, level: AnalysisLevel, ctx: { resolution: Resoluti
     markers.push(...patternMarkers(a.candles.patterns, { up, down, neutral: "#94a3b8" }, ctx.dates));
     if (level === "full" && story && ctx.lastDate) {
       const text = { inside_buy_zone: "IN BUY ZONE", above_buy_zone: "ABOVE ZONE: wait", below_buy_zone: "BELOW ZONE: wait", below_stop: "BELOW STOP: exit" }[story.where];
-      markers.push({ time: ctx.lastDate, position: "aboveBar", shape: "circle", color: story.where === "inside_buy_zone" ? ZONE : story.where === "below_stop" ? down : css("--mute"), text });
+      markers.push({ time: ctx.lastDate, position: "aboveBar", shape: "circle", color: story.where === "inside_buy_zone" ? zone : story.where === "below_stop" ? down : css("--mute"), text });
     }
   }
   return out;
@@ -90,7 +90,7 @@ export function StockChart({ symbol, analysis, live }: { symbol: string; analysi
             ))}
           </ol>
           <ul className="plain small legendkeys">
-            <li><i className="sw" style={{ background: ZONE }} /> Buy zone</li>
+            <li><i className="sw" style={{ background: "var(--decide)" }} /> Buy zone</li>
             <li><i className="sw" style={{ background: "var(--dn)" }} /> Stop: exit below</li>
             <li><i className="sw" style={{ background: "var(--up)" }} /> Take-profit targets</li>
             <li><i className="sw" style={{ background: WATCH }} /> Watch levels</li>

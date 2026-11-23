@@ -39,6 +39,9 @@ export function formatValue(key: string, v: unknown): ReactNode {
   return text(v);
 }
 
+/** Secondary detail that phones can do without; the symbol, price and main figure always stay. */
+const SECONDARY = new Set(["turnover_share_pct", "avg_rsi", "ret_1m", "median_pe", "weighted_pe", "low_52w", "high_52w", "advanced", "declined"]);
+
 /** Columns for a table whose fields are only known at run time (scan results, data matrix, TA values). */
 export function columnsFor<R extends object>(keys: readonly string[], sample?: Record<string, unknown>): Column<R>[] {
   return keys.map((key): Column<R> => {
@@ -46,6 +49,7 @@ export function columnsFor<R extends object>(keys: readonly string[], sample?: R
     return {
       key,
       label: LABELS[key] ?? key,
+      hideNarrow: SECONDARY.has(key),
       align: numeric ? "right" : "left",
       value: (r) => {
         const v = (r as Record<string, unknown>)[key];
