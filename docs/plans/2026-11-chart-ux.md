@@ -83,7 +83,8 @@ Click a drawing with Select and press Delete to remove it; Esc cancels a half-dr
 Fibonacci levels, measure text and stored-data validation are pure and unit-tested (`chart/utils/drawings.ts`).
 Clicks are read from the chart element, because the library swallows the second of two quick clicks.
 
-Left for later: dragging handles to edit a drawing, line colour/width, account storage, a drawings list.
+Editing: select a drawing, then drag a handle to reshape it or drag the line to move it (a horizontal line moves in
+price only); points stay on real candles. Left for later: line colour/width, account storage, a drawings list.
 Side fix: the "Notifications" state was decided during render, which made every page log a React hydration error;
 it now reads the browser permission through `useSyncExternalStore`.
 

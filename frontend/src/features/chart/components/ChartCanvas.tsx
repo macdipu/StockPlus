@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { num } from "@/shared/lib/format";
 import type { Candle, Layers } from "../utils/model";
 import { DrawingsLayer } from "../utils/drawings-layer";
-import { hitTest, needsTwoPoints, newId, snapPrice, type Drawing, type DrawPoint, type Tool } from "../utils/drawings";
+import { dragDrawing, hitTest, needsTwoPoints, newId, snapPrice, type Drawing, type DragMode, type DrawPoint, type Tool } from "../utils/drawings";
 import { RayLine } from "../utils/ray-line";
 import { baselineValue, toHeikinAshi, type ChartStyle } from "../utils/styles";
 
@@ -251,7 +251,9 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       let pending: DrawPoint | null = null;
       let preview: Drawing | null = null;
       let selected: string | null = null;
-      const sync = () => layer.set({ drawings: draw.current.drawings, selected, preview, shapes: shapes.current });
+      let override: Drawing | null = null; // the drawing being dragged, until the mouse is released
+      const current = () => (override ? draw.current.drawings.map((d) => (d.id === override?.id ? override : d)) : draw.current.drawings);
+      const sync = () => layer.set({ drawings: current(), selected, preview, shapes: shapes.current });
       // The library swallows the second of two quick clicks (it reads them as a double-click), so clicks are read from
       // the element itself. A drag (pan) is not a click. The point snaps to the candle under the pointer.
       const pointAt = (x: number, y: number): DrawPoint | null => {
@@ -290,7 +292,55 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
         preview = null;
         sync();
       };
+      // ---- edit: drag a selected drawing's handle to reshape it, or its line to move it. Runs first (capture) and
+      // stops the event so the chart does not also pan.
+      let drag: { mode: DragMode; from: DrawPoint; orig: Drawing } | null = null;
+      const onDragMove = (e: MouseEvent) => {
+        if (!drag) return;
+        const at = local(e);
+        const here = pointAt(at.x, at.y);
+        if (!here) return;
+        override = dragDrawing(drag.orig, drag.mode, drag.from, here, latest.current.candles.map((c) => c.time as string | number));
+        sync();
+      };
+      const onDragEnd = () => {
+        window.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("mouseup", onDragEnd);
+        const done = override;
+        drag = null;
+        if (done) draw.current.onDrawings(current());
+        override = null;
+        sync();
+      };
+      const onDragStart = (e: MouseEvent) => {
+        if (draw.current.tool !== "cursor" || e.button !== 0) return;
+        const at = local(e);
+        const list = draw.current.drawings;
+        let target = list.find((d) => d.id === selected);
+        let mode: DragMode | null = null;
+        for (const m of ["a", "b"] as const) {
+          const pt = target?.[m];
+          const xy = pt ? layer.at(pt) : null;
+          if (xy && Math.hypot(xy.x - at.x, xy.y - at.y) <= 9) mode = m;
+        }
+        if (!mode) {
+          const hit = hitTest(list, at, layer.at, layer.paneWidth());
+          if (!hit) return;
+          selected = hit;
+          target = list.find((d) => d.id === hit);
+          mode = "move";
+          sync();
+        }
+        const from = pointAt(at.x, at.y);
+        if (!target || !from) return;
+        drag = { mode, from, orig: target };
+        down = { x: e.clientX, y: e.clientY }; // the click that follows a drag is not a click
+        e.stopPropagation();
+        window.addEventListener("mousemove", onDragMove);
+        window.addEventListener("mouseup", onDragEnd);
+      };
       const el = host.current;
+      el.addEventListener("mousedown", onDragStart, true);
       el.addEventListener("mousedown", onDown);
       el.addEventListener("click", onClick);
       chart.subscribeCrosshairMove((p) => {
@@ -326,6 +376,9 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       };
       scheme.addEventListener("change", onScheme);
       cleanup = () => {
+        el.removeEventListener("mousedown", onDragStart, true);
+        window.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("mouseup", onDragEnd);
         el.removeEventListener("mousedown", onDown);
         el.removeEventListener("click", onClick);
         scheme.removeEventListener("change", onScheme);

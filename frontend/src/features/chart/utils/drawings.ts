@@ -135,5 +135,27 @@ export function snapPrice(price: number, candle: { open: number; high: number; l
   return [candle.open, candle.high, candle.low, candle.close].reduce((best, v) => (Math.abs(v - price) < Math.abs(best - price) ? v : best));
 }
 
+export type DragMode = "a" | "b" | "move";
+
+/**
+ * The drawing after the pointer moved from `from` to `here` (both already on candles). Dragging a handle replaces that
+ * point; dragging the body shifts every point by the same number of candles and the same price. `times` are the chart's
+ * candle times in order, so a shift lands on real candles and stops at the ends. A horizontal line only moves in price.
+ */
+export function dragDrawing(orig: Drawing, mode: DragMode, from: DrawPoint, here: DrawPoint, times: readonly (string | number)[]): Drawing {
+  const index = (t: string | number) => times.findIndex((x) => String(x) === String(t));
+  if (orig.kind === "hline") return { ...orig, a: { time: orig.a.time, price: orig.a.price + (here.price - from.price) } };
+  if (mode === "a") return { ...orig, a: here };
+  if (mode === "b") return { ...orig, b: here };
+  const di = index(here.time) - index(from.time);
+  const dp = here.price - from.price;
+  const shift = (p: DrawPoint): DrawPoint => {
+    const i = index(p.time);
+    const t = i < 0 ? p.time : (times[Math.max(0, Math.min(times.length - 1, i + di))] ?? p.time);
+    return { time: t, price: p.price + dp };
+  };
+  return { ...orig, a: shift(orig.a), ...(orig.b ? { b: shift(orig.b) } : {}) };
+}
+
 let counter = 0;
 export const newId = (): string => `d${Date.now().toString(36)}${(counter++).toString(36)}`;
