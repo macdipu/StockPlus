@@ -136,16 +136,22 @@ interface Props {
   magnet: boolean;
   drawings: readonly Drawing[];
   onDrawings: (next: readonly Drawing[]) => void;
+  /** The selected drawing changed (null when nothing is selected). */
+  onSelect: (id: string | null) => void;
 }
 
 /** Draws candles, indicator lines and panels, annotations and shaded bands. Pure drawing: it fetches nothing. */
-export function ChartCanvas({ candles, layers, style, label, height, tool, magnet, drawings, onDrawings }: Props) {
+export function ChartCanvas({ candles, layers, style, label, height, tool, magnet, drawings, onDrawings, onSelect }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const bandHost = useRef<HTMLDivElement>(null);
   const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void; sync: () => void; cancel: () => void; deleteSelected: () => void } | null>(null);
   const latest = useRef({ candles, layers });
   const draw = useRef({ tool, magnet, drawings, onDrawings });
   const shapes = useRef<readonly Drawing[]>(layers.shapes);
+  const report = useRef(onSelect);
+  useEffect(() => {
+    report.current = onSelect;
+  });
   const [legend, setLegend] = useState("");
   useEffect(() => {
     latest.current = { candles, layers };
@@ -253,7 +259,15 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       let selected: string | null = null;
       let override: Drawing | null = null; // the drawing being dragged, until the mouse is released
       const current = () => (override ? draw.current.drawings.map((d) => (d.id === override?.id ? override : d)) : draw.current.drawings);
-      const sync = () => layer.set({ drawings: current(), selected, preview, shapes: shapes.current });
+      let reported: string | null = null;
+      const sync = () => {
+        if (selected && !current().some((d) => d.id === selected)) selected = null; // it was deleted elsewhere
+        layer.set({ drawings: current(), selected, preview, shapes: shapes.current });
+        if (selected !== reported) {
+          reported = selected;
+          report.current(selected);
+        }
+      };
       // The library swallows the second of two quick clicks (it reads them as a double-click), so clicks are read from
       // the element itself. A drag (pan) is not a click. The point snaps to the candle under the pointer.
       const pointAt = (x: number, y: number): DrawPoint | null => {

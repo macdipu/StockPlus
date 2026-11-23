@@ -86,7 +86,7 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
         coordinate: () => this.at(d.a)?.y ?? -1,
         text: () => d.a.price.toFixed(2),
         textColor: () => "#ffffff",
-        backColor: () => this.colors().line,
+        backColor: () => d.color ?? this.colors().line,
         visible: () => this.at(d.a) !== null,
         tickVisible: () => true,
       }));
@@ -97,7 +97,7 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
     if (segs.length === 0) return;
     c.save();
     c.strokeStyle = d.color ?? k.line;
-    c.lineWidth = selected ? 2.5 : (d.width ?? 1.5);
+    c.lineWidth = (d.width ?? 2) + (selected ? 1 : 0);
     c.setLineDash(preview || d.dashed ? [5, 4] : []);
     if (d.kind === "rect" && d.b) {
       const a = this.at(d.a);

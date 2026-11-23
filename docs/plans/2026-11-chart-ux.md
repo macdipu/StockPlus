@@ -84,7 +84,9 @@ Fibonacci levels, measure text and stored-data validation are pure and unit-test
 Clicks are read from the chart element, because the library swallows the second of two quick clicks.
 
 Editing: select a drawing, then drag a handle to reshape it or drag the line to move it (a horizontal line moves in
-price only); points stay on real candles. Left for later: line colour/width, account storage, a drawings list.
+price only); points stay on real candles. Style: with a drawing selected, six colours and 1/2/3 px thickness (kept with the drawing), and a Delete button. The style
+row is always present: a row that appears on selection shifted the chart, so the click that followed missed the line and
+dropped the selection. Left for later: account storage, a drawings list.
 Side fix: the "Notifications" state was decided during render, which made every page log a React hydration error;
 it now reads the browser permission through `useSyncExternalStore`.
 

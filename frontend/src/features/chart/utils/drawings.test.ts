@@ -87,3 +87,16 @@ describe("dragDrawing", () => {
     expect(dragDrawing(h, "move", p("2026-01-02", 50), p("2026-01-05", 57), times).a).toEqual(p("2026-01-03", 57));
   });
 });
+
+describe("parseDrawings keeps a drawing's style", () => {
+  const base = { id: "a", kind: "trend", a: { time: "2026-01-01", price: 1 }, b: { time: "2026-01-02", price: 2 } };
+  it("keeps a valid colour and width", () => {
+    expect(parseDrawings([{ ...base, color: "#e5484d", width: 3 }])[0]).toMatchObject({ color: "#e5484d", width: 3 });
+  });
+  it("drops a colour or width it does not recognise, but keeps the drawing", () => {
+    const [d] = parseDrawings([{ ...base, color: "javascript:alert(1)", width: 99 }]);
+    expect(d).toBeDefined();
+    expect(d && "color" in d).toBe(false);
+    expect(d && "width" in d).toBe(false);
+  });
+});

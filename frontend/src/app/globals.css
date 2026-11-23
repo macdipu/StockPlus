@@ -229,3 +229,6 @@ ol.plain { margin: 0; padding-left: 18px; }
 .shapelist li { margin-bottom: 4px; }
 .trackrecord > summary { cursor: pointer; }
 .trackrecord[open] > summary { margin-bottom: 10px; }
+.drawstyle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; min-height: 30px; } /* always present: a row that appears on select would shift the chart and drop the selection */
+.swatchbtn { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatchbtn.on { border-color: var(--ink); }

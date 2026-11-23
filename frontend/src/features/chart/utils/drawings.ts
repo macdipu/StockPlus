@@ -35,6 +35,17 @@ export interface Drawing {
   dots?: readonly DrawPoint[];
 }
 
+/** Colours and line widths the user can give a drawing (stored with it, so they survive a reload). */
+export const COLORS: ReadonlyArray<{ value: string; name: string }> = [
+  { value: "#6d7cff", name: "Blue" },
+  { value: "#e5a50a", name: "Amber" },
+  { value: "#22b573", name: "Green" },
+  { value: "#e5484d", name: "Red" },
+  { value: "#c084fc", name: "Purple" },
+  { value: "#94a3b8", name: "Grey" },
+];
+export const WIDTHS: readonly number[] = [1, 2, 3];
+
 export const needsTwoPoints = (k: DrawKind): boolean => k !== "hline";
 
 const KINDS: readonly string[] = ["trend", "ray", "hline", "rect", "fib", "measure"];
@@ -53,10 +64,14 @@ export function parseDrawings(raw: unknown): Drawing[] {
     const d = r as Record<string, unknown>;
     if (typeof d.id !== "string" || typeof d.kind !== "string" || !KINDS.includes(d.kind) || !isPoint(d.a)) continue;
     const kind = d.kind as DrawKind;
+    const style = {
+      ...(typeof d.color === "string" && /^#[0-9a-fA-F]{6}$/.test(d.color) ? { color: d.color } : {}),
+      ...(typeof d.width === "number" && WIDTHS.includes(d.width) ? { width: d.width } : {}),
+    };
     if (needsTwoPoints(kind)) {
       if (!isPoint(d.b)) continue;
-      out.push({ id: d.id, kind, a: d.a, b: d.b });
-    } else out.push({ id: d.id, kind, a: d.a });
+      out.push({ id: d.id, kind, a: d.a, b: d.b, ...style });
+    } else out.push({ id: d.id, kind, a: d.a, ...style });
   }
   return out;
 }

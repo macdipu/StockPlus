@@ -66,6 +66,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
   const [editing, setEditing] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("cursor");
   const [magnet, setMagnet] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const catalog = useCatalog();
 
   const presetSpecs = useMemo(() => presets?.(resolution) ?? [], [presets, resolution]);
@@ -151,7 +152,19 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
       {data && data.warnings.length ? <p className="small dn" role="status" style={{ margin: "0 0 6px" }}>{data.warnings.join(". ")}.</p> : null}
 
       {data ? (
-        <DrawToolbar tool={tool} onTool={setTool} magnet={magnet} onMagnet={setMagnet} count={drawings.length} canDelete={drawings.length > 0} onUndo={() => setDrawings(drawings.slice(0, -1))} onClear={() => setDrawings([])} />
+        <DrawToolbar
+          tool={tool}
+          onTool={setTool}
+          magnet={magnet}
+          onMagnet={setMagnet}
+          count={drawings.length}
+          canDelete={drawings.length > 0}
+          onUndo={() => setDrawings(drawings.slice(0, -1))}
+          onClear={() => setDrawings([])}
+          selected={drawings.find((d) => d.id === selectedId) ?? null}
+          onStyle={(patch) => setDrawings(drawings.map((d) => (d.id === selectedId ? { ...d, ...patch } : d)))}
+          onDeleteSelected={() => setDrawings(drawings.filter((d) => d.id !== selectedId))}
+        />
       ) : null}
       {q.isPending ? <Loading what="Loading chart" /> : null}
       {q.isError && !data ? <ErrorNotice error={q.error} /> : null}
@@ -167,6 +180,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
           magnet={magnet}
           drawings={drawings}
           onDrawings={setDrawings}
+          onSelect={setSelectedId}
         />
       ) : null}
 
