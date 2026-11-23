@@ -23,7 +23,7 @@ Size is a rough guide: S is under a day, M a few days, L a week or more.
 | # | Item | Why | What to do | Size |
 |---|---|---|---|---|
 | 6 | **Dividend-adjusted candles** | History is not adjusted for cash dividends, so an ex-dividend drop can read as a bearish candle (seen on SQURPHARMA). | Use adjusted history for patterns, or mark ex-dividend dates and suppress candle signals on them. | M |
-| 7 | **Back-test the Picks score** | Weights are rules of thumb, never tested on history. | Replay the score over past sessions, report hit rate and average return per bucket, tune the weights, publish the result in the app. | L |
+| 7 | **Back-test the Picks score** | Weights are rules of thumb, never tested on history. | Replay the score over past sessions, report hit rate and average return per bucket, tune the weights, publish the result in the app. | L First run done: see `docs/research/picks-backtest-2026-11.md` (entry score has a modest real edge; value/pick numbers are biased by today's fundamentals). |
 
 ## Quality and operations
 

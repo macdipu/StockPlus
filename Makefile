@@ -16,7 +16,7 @@ ROLE    ?= admin
 
 .DEFAULT_GOAL := help
 .PHONY: help build up up-full down restart logs ps migrate shell \
-        backfill sync eod create-user set-role \
+        backfill sync eod backtest create-user set-role \
         test test-backend test-frontend test-e2e
 
 help: ## Show this help
@@ -63,6 +63,9 @@ sync: ## Sync instruments now, e.g. SYMBOLS="GP BATBC"
 
 eod: ## Append today's bars from one post-close snapshot
 	$(COMPOSE) exec worker python -m dse.cli eod
+
+backtest: ## Replay the Picks score over past sessions (research): make backtest [ARGS="--step 3 --horizons 5,10,20"]
+	$(COMPOSE) exec worker python -m dse.cli backtest-picks $(ARGS)
 
 create-user: ## Create an account: make create-user EMAIL=you@example.com ROLE=admin
 	@test -n "$(EMAIL)" || (echo "usage: make create-user EMAIL=you@example.com [ROLE=admin]"; exit 1)

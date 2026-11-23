@@ -1,4 +1,7 @@
-"""Command-line composition root:  python -m dse.cli {sync,backfill,eod,create-user,set-role} ..."""
+"""Command-line composition root.
+
+python -m dse.cli {sync,backfill,eod,backtest-picks,create-user,set-role} ...
+"""
 
 import argparse
 import asyncio
@@ -16,6 +19,8 @@ from dse.features.identity.infrastructure.repositories import SqlIdentityUnitOfW
 from dse.features.market_data.application.use_cases import AppendEndOfDay, BackfillUniverse
 from dse.features.market_data.infrastructure.dse_source import DseHttpSource
 from dse.features.market_data.presentation.dependencies import MarketDataContainer
+from dse.features.scanner.application.backtest import run_backtest
+from dse.features.scanner.infrastructure.gateways import load_universe_history
 from dse.shared_kernel.errors import DomainError
 from dse.shared_kernel.principal import Role
 from dse.shared_kernel.symbol import Symbol
@@ -78,6 +83,13 @@ async def _run(args: argparse.Namespace) -> int:
             return 1 if report.failed else 0
         elif args.cmd == "eod":
             print((await AppendEndOfDay(c.uow, source)()).model_dump_json())
+        elif args.cmd == "backtest-picks":
+            history = await load_universe_history(c.facade)
+            horizons = tuple(int(x) for x in args.horizons.split(","))
+            result = await asyncio.to_thread(
+                run_backtest, history, horizons=horizons, step=args.step, min_history=args.min_history
+            )
+            print(json.dumps(result, indent=1, default=str))
         return 0
     finally:
         await source.aclose()
@@ -96,6 +108,12 @@ def main() -> int:
     p.add_argument("symbols", nargs="*")
     p.add_argument("--force", action="store_true")
     sub.add_parser("eod", help="append today's bars from one post-close snapshot")
+    p = sub.add_parser(
+        "backtest-picks", help="replay the Picks score over past sessions (research; prints JSON)"
+    )
+    p.add_argument("--horizons", default="5,10,20", help="sessions ahead, comma separated")
+    p.add_argument("--step", type=int, default=3, help="replay every Nth session")
+    p.add_argument("--min-history", type=int, default=120, help="sessions of history before the first replay")
     p = sub.add_parser("create-user", help="create an account (use --role admin for the first admin)")
     p.add_argument("email")
     p.add_argument("--role", choices=[r.value for r in Role], default=Role.USER.value)

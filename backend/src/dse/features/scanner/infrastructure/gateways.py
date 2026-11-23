@@ -13,6 +13,30 @@ log = logging.getLogger("dse.scanner")
 HISTORY_BARS = 400
 
 
+async def load_universe_history(md: MarketDataFacade) -> list[UniverseInput]:
+    """Bars + fundamentals for every instrument (no quotes): the universe and back-test input."""
+    out = []
+    for h in await md.market_history(HISTORY_BARS):
+        f = h.fundamentals
+        fund = {
+            "name": h.name,
+            "sector": h.sector,
+            "category": h.category,
+            "asset_type": h.asset_type,
+            "eps_ttm": f.eps_ttm if f else None,
+            "nav": f.nav if f else None,
+            "dividend_yield_pct": f.dividend_yield_pct if f else None,
+            "sponsor_pct": f.shareholding.sponsor_pct if f else None,
+            "free_float_pct": f.free_float_pct if f else None,
+            "market_cap": f.market_cap if f else None,
+            "week_high_52": f.week_high_52 if f else None,
+            "week_low_52": f.week_low_52 if f else None,
+        }
+        bars = tuple(Bar(b.day, b.open, b.high, b.low, b.close, float(b.volume), b.trades) for b in h.bars)
+        out.append(UniverseInput(h.symbol, bars, fund))
+    return out
+
+
 class FacadeUniverseSource:
     """UniverseSource: history from market_data, quotes + session from live_feed."""
 
@@ -24,28 +48,7 @@ class FacadeUniverseSource:
         return (s.bars, s.last_bar_day, s.fundamentals)
 
     async def load_history(self) -> list[UniverseInput]:
-        out = []
-        for h in await self._md.market_history(HISTORY_BARS):
-            f = h.fundamentals
-            fund = {
-                "name": h.name,
-                "sector": h.sector,
-                "category": h.category,
-                "asset_type": h.asset_type,
-                "eps_ttm": f.eps_ttm if f else None,
-                "nav": f.nav if f else None,
-                "dividend_yield_pct": f.dividend_yield_pct if f else None,
-                "sponsor_pct": f.shareholding.sponsor_pct if f else None,
-                "free_float_pct": f.free_float_pct if f else None,
-                "market_cap": f.market_cap if f else None,
-                "week_high_52": f.week_high_52 if f else None,
-                "week_low_52": f.week_low_52 if f else None,
-            }
-            bars = tuple(
-                Bar(b.day, b.open, b.high, b.low, b.close, float(b.volume), b.trades) for b in h.bars
-            )
-            out.append(UniverseInput(h.symbol, bars, fund))
-        return out
+        return await load_universe_history(self._md)
 
     async def live_state(self) -> LiveState:
         try:
