@@ -46,7 +46,7 @@ from dse.features.market_data.presentation.router import data_router as data_rou
 from dse.features.market_data.presentation.router import router as market_data_router
 from dse.features.scanner.application.facade import ScannerFacade
 from dse.features.scanner.application.view import UniverseView
-from dse.features.scanner.infrastructure.redis_store import RedisUniverseStore
+from dse.features.scanner.infrastructure.redis_store import RedisRescanChannel, RedisUniverseStore
 from dse.features.scanner.presentation.dependencies import ScannerContainer
 from dse.features.scanner.presentation.router import router as scanner_router
 from dse.features.watchlists.infrastructure.gateways import LiveFeedSymbolDirectory, ScannerScanValidator
@@ -100,7 +100,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             validator=ScannerScanValidator(ScannerFacade()),
             clock=clock,
         )
-        app.state.scanner = ScannerContainer(UniverseView(RedisUniverseStore(redis)))
+        app.state.scanner = ScannerContainer(
+            UniverseView(RedisUniverseStore(redis)), RedisRescanChannel(redis)
+        )
         app.state.analysis = AnalysisContainer(
             FacadeAnalysisInputs(app.state.market_data.facade, app.state.live_feed.facade),
             FacadeHistorySource(app.state.market_data.facade, app.state.live_feed.facade),

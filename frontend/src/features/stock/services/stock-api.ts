@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { envelope, metaSchema, request } from "@/shared/api";
+import { candlesSchema } from "../schemas/candles";
 import {
   analysisSchema,
   intradayBarSchema,
@@ -14,6 +15,7 @@ export const stockApi = {
   analysis: (symbol: string) => request(`/stocks/${sym(symbol)}/analysis`, { schema: envelope(analysisSchema) }),
   technicals: (symbol: string, limit = 260) =>
     request(`/stocks/${sym(symbol)}/technicals`, { query: { limit }, schema: envelope(z.array(technicalBarSchema)) }),
+  candles: (symbol: string, limit = 2000) => request(`/stocks/${sym(symbol)}/candles`, { query: { limit }, schema: candlesSchema }),
   vpa: (symbol: string, days = 20) =>
     request(`/stocks/${sym(symbol)}/vpa`, {
       query: { days },

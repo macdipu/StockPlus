@@ -84,6 +84,15 @@ async def universe_status(c: Container) -> dict[str, Any]:
     return envelope((await c.status()).model_dump(mode="json"))
 
 
+@router.post(
+    "/scanner/rescan",
+    status_code=202,
+    summary="Ask the worker to rebuild the universe now (history reloaded); throttled to one per 10 s",
+)
+async def rescan(c: Container) -> dict[str, Any]:
+    return envelope((await c.rescan()).model_dump(mode="json"))
+
+
 @router.get("/scanner/presets/{key}", summary="Run a preset scanner")
 async def run_preset(
     key: str,

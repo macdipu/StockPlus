@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
+from dse.features.scanner.application.ports import RescanChannel
 from dse.features.scanner.application.use_cases import (
     GetPe,
     GetPicks,
@@ -13,6 +14,7 @@ from dse.features.scanner.application.use_cases import (
     GetUniverseStatus,
     ListFields,
     ListPresets,
+    RequestRescan,
     RunPreset,
     RunScan,
 )
@@ -22,6 +24,7 @@ from dse.features.scanner.application.view import UniverseView
 @dataclass(frozen=True)
 class ScannerContainer:
     view: UniverseView
+    rescan_channel: RescanChannel
 
     @property
     def run_scan(self) -> RunScan:
@@ -58,6 +61,10 @@ class ScannerContainer:
     @property
     def picks(self) -> GetPicks:
         return GetPicks(self.view)
+
+    @property
+    def rescan(self) -> RequestRescan:
+        return RequestRescan(self.view, self.rescan_channel)
 
     @property
     def status(self) -> GetUniverseStatus:

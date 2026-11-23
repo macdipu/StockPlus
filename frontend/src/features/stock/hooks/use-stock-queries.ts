@@ -30,3 +30,7 @@ export const useIntraday = (symbol: string) =>
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+/** Full daily history (oldest first) for the price table and seasonality; it only changes after the close. */
+export const useCandles = (symbol: string) =>
+  useQuery({ queryKey: key(symbol, "candles"), queryFn: async () => (await stockApi.candles(symbol)).data, staleTime: 5 * 60_000 });

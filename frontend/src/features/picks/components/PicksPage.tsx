@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWatchlist } from "@/features/watchlist";
 import { num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { DEFAULT_FILTERS, useSavedFilters } from "../hooks/use-saved-filters";
-import { usePicks } from "../hooks/use-picks";
+import { usePicks, useRescan } from "../hooks/use-picks";
 import { BUCKETS, type Bucket, type Pick, type PickFilters } from "../schemas/picks";
 
 const BUCKET_LABEL: Record<Bucket, string> = {
@@ -16,6 +16,22 @@ const BUCKET_LABEL: Record<Bucket, string> = {
   watch: "Watch",
   avoid: "Avoid for now",
 };
+
+function useNow(everyMs = 1000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), everyMs);
+    return () => clearInterval(t);
+  }, [everyMs]);
+  return now;
+}
+
+function ago(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s ago`;
+  return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
+}
 
 function ScoreBar({ v, label }: { v: number; label: string }) {
   const color = v >= 65 ? "var(--up)" : v >= 45 ? "#d97706" : "var(--dn)";
@@ -103,6 +119,8 @@ export function PicksPage() {
   const [shown, setShown] = useState<Bucket | "all">("all");
   const rows = useMemo(() => (q.data?.data ?? []).filter((r) => shown === "all" || r.bucket === shown), [q.data, shown]);
   const meta = q.data?.meta;
+  const rescan = useRescan(meta?.universe_version);
+  const now = useNow();
   const addAll = () => {
     for (const r of rows.filter((x) => x.bucket === "buy_zone").slice(0, 15)) if (!w.has(r.symbol)) w.add(r.symbol);
   };
@@ -125,7 +143,7 @@ export function PicksPage() {
           </select>
           <input className="inp" style={{ width: 170 }} inputMode="decimal" placeholder="Min turnover (mn Tk)" aria-label="Minimum turnover today, million Tk" value={f.minValueMn} onChange={(e) => setF({ ...f, minValueMn: e.target.value.replace(/[^\d.]/g, "") })} />
           <button type="button" className="btn ghost small" onClick={() => setF(DEFAULT_FILTERS)}>Reset filters</button>
-          {meta ? <span className="small mute">{meta.live ? "Live session" : "Last close"}{meta.trade_time ? ` · ${meta.trade_time}` : ""} · {meta.count} shares</span> : null}
+          {meta ? <span className="small mute">{meta.live ? "Live session" : "Last close"}{meta.trade_time ? ` · market ${meta.trade_time}` : ""} · {meta.count} shares</span> : null}
         </div>
       </Card>
       <Card label="Picks">
@@ -138,7 +156,18 @@ export function PicksPage() {
               </button>
             ))}
           </div>
-          <button type="button" className="btn small" onClick={addAll} title="Adds the top 15 shares in the buy zone to your watchlist">+ Watch top buy-zone picks</button>
+          <div className="row">
+            {meta ? (
+              <span className="small mute" title={`Analysed ${new Date(meta.built_at_ms).toLocaleString()} (took ${meta.build_ms} ms). Refreshes automatically.`}>
+                Updated {ago(now - meta.built_at_ms)}
+              </span>
+            ) : null}
+            {rescan.isError ? <span className="small" style={{ color: "var(--dn)" }}>Rescan failed</span> : null}
+            <button type="button" className="btn ghost small" disabled={rescan.isPending} onClick={() => rescan.mutate()} title="Pull fresh data from DSE and re-score every share">
+              {rescan.isPending ? "Rescanning…" : "Rescan now"}
+            </button>
+            <button type="button" className="btn small" onClick={addAll} title="Adds the top 15 shares in the buy zone to your watchlist">+ Watch top buy-zone picks</button>
+          </div>
         </div>
         {q.isPending ? <Loading what="Scoring every share" /> : null}
         {q.isError ? <ErrorNotice error={q.error} /> : null}

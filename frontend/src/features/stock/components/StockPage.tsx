@@ -15,6 +15,7 @@ import { TradePlanCard } from "./TradePlanCard";
 import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
+import { PriceTableCard, SeasonalityCards } from "./HistoryCards";
 import { StockChart } from "./StockChart";
 
 const REFRESH_EVERY_MS = 20_000;
@@ -22,6 +23,8 @@ const REFRESH_EVERY_MS = 20_000;
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "technicals", label: "Technicals" },
+  { key: "prices", label: "Price table" },
+  { key: "seasonality", label: "Seasonality" },
   { key: "company", label: "Company" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -107,6 +110,8 @@ export function StockPage({ symbol }: { symbol: string }) {
           </>
         )}
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
+        {tab === "prices" && <PriceTableCard symbol={code} />}
+        {tab === "seasonality" && <SeasonalityCards symbol={code} />}
         {tab === "company" && (
           <>
             <ValuationCard analysis={a} />

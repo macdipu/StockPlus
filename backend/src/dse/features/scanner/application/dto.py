@@ -49,3 +49,8 @@ class UniverseStatusDto(BaseModel):
     session_day: date | None
     trade_time: str | None
     errors: dict[str, str]
+
+
+class RescanDto(BaseModel):
+    accepted: bool  # False: a rescan was requested moments ago, so this one was folded into it
+    version: int | None  # the universe version at request time; a higher one means the rescan landed

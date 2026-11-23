@@ -16,11 +16,13 @@ from dse.features.analysis.application.facade import UniverseInput, build_univer
 from dse.features.scanner.application.dto import (
     FieldsDto,
     PresetDto,
+    RescanDto,
     RuleDto,
     ScanResultDto,
     UniverseStatusDto,
 )
 from dse.features.scanner.application.ports import (
+    RescanChannel,
     StoredUniverse,
     UniverseNotifier,
     UniverseSource,
@@ -61,10 +63,11 @@ class MaterialiseUniverse:
         self._last_key: Hashable = None
         self._last_rows: Any = None
 
-    async def __call__(self) -> BuildReport:
+    async def __call__(self, force: bool = False) -> BuildReport:
+        """`force` (a manual rescan) reloads history and rebuilds both views even if nothing looks changed."""
         t0 = time.perf_counter()
         signature = await self._source.history_signature()
-        if self._history is None or signature != self._signature:
+        if force or self._history is None or signature != self._signature:
             self._history, self._signature, self._last_key = (
                 await self._source.load_history(),
                 signature,
@@ -123,9 +126,11 @@ class UniverseRefresher:
         self._last_check = monotonic()
         self._task: asyncio.Task[None] | None = None
         self._pending = False
+        self._force = False
         self.built_once = False
 
-    def trigger(self) -> None:
+    def trigger(self, *, force: bool = False) -> None:
+        self._force = self._force or force
         if self._task is not None and not self._task.done():
             self._pending = True
             return
@@ -147,8 +152,9 @@ class UniverseRefresher:
     async def _run(self) -> None:
         while True:
             self._pending = False
+            force, self._force = self._force, False
             try:
-                await self._build()
+                await self._build(force)
                 self.built_once = True
             except Exception:
                 log.exception("universe build failed")
@@ -299,6 +305,8 @@ class GetPicks(_Analytics):
             "counts": counts,
             "sectors": list(picks.sector_names(frame)),
             "universe_version": u.version,
+            "built_at_ms": u.built_at_ms,
+            "build_ms": u.build_ms,
             "trade_time": u.trade_time,
             "live": live,
             "method": picks.__doc__,
@@ -332,3 +340,15 @@ class GetUniverseStatus:
             trade_time=u.trade_time,
             errors=u.errors,
         )
+
+
+class RequestRescan:
+    """Ask the worker to rebuild the universe now. Rate-limited so the button can't hammer the worker."""
+
+    def __init__(self, view: UniverseView, channel: RescanChannel) -> None:
+        self._view, self._channel = view, channel
+
+    async def __call__(self) -> RescanDto:
+        u = await self._view.peek()
+        accepted = await self._channel.request()
+        return RescanDto(accepted=accepted, version=u.version if u else None)

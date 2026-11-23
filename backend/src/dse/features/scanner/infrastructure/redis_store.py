@@ -7,6 +7,7 @@ Payload and version are replaced in one MULTI/EXEC, so a reader never sees a hal
 """
 
 import json
+from collections.abc import AsyncIterator
 from datetime import date
 from typing import Any, cast
 
@@ -62,3 +63,26 @@ class RedisUniverseStore:
             p.set(VERSION, version)
             await p.execute()
         return version
+
+
+RESCAN_CHANNEL, RESCAN_THROTTLE = "scanner:rescan", "scanner:rescan:throttle"
+
+
+class RedisRescanChannel:
+    """API → worker rescan requests over Redis pub/sub, throttled to one per `throttle_s`."""
+
+    def __init__(self, redis: "Redis", throttle_s: int = 10) -> None:
+        self._r, self._throttle_s = redis, throttle_s
+
+    async def request(self) -> bool:
+        if not await self._r.set(RESCAN_THROTTLE, 1, nx=True, ex=self._throttle_s):
+            return False
+        await self._r.publish(RESCAN_CHANNEL, "1")
+        return True
+
+    async def requests(self) -> AsyncIterator[None]:
+        async with self._r.pubsub() as ps:
+            await ps.subscribe(RESCAN_CHANNEL)
+            async for m in ps.listen():
+                if m["type"] == "message":
+                    yield

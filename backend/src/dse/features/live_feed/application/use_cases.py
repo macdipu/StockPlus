@@ -62,6 +62,11 @@ class PollSnapshot:
         self._previous: LiveSnapshot | None = None
         self._counters = FeedCounters()
         self._loaded = False
+        self._force = False
+
+    def force_full_fetch(self) -> None:
+        """The next poll drops the stored ETag, so upstream sends the full snapshot (a manual rescan)."""
+        self._force = True
 
     async def _load(self) -> None:
         # Resume after a restart: diff against what replicas already serve, keep counters and the ETag.
@@ -73,6 +78,8 @@ class PollSnapshot:
         if not self._loaded:
             await self._load()
         c = self._counters
+        if self._force:
+            self._force, c.etag = False, None
         c.polls += 1
         c.last_poll_ms = epoch_ms(self._clock)
         try:

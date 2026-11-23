@@ -40,6 +40,8 @@ export const picksResponseSchema = z.object({
     counts: z.record(z.string(), z.number()),
     sectors: z.array(z.string()),
     universe_version: z.number(),
+    built_at_ms: z.number(),
+    build_ms: z.number(),
     trade_time: z.string().nullable(),
     live: z.boolean(),
   }),
@@ -52,3 +54,5 @@ export interface PickFilters {
   minValueMn: string;
   buckets: Bucket[];
 }
+
+export const rescanSchema = z.object({ data: z.object({ accepted: z.boolean(), version: z.number().nullable() }), meta: metaSchema });

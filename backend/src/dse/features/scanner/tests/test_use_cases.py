@@ -71,6 +71,15 @@ async def test_history_and_last_close_are_cached_until_they_could_change(source:
     assert (await m()).rebuilt_last_close
 
 
+async def test_forced_rescan_reloads_history_even_when_nothing_changed(source: FakeSource) -> None:
+    m = materialiser(source, MemoryStore(), Notifier())
+    await m()
+    assert (await m()).rebuilt_last_close is False
+    report = await m(force=True)
+    assert report.rebuilt_last_close
+    assert source.load_calls == 2
+
+
 async def test_notification_failure_does_not_undo_the_build(source: FakeSource) -> None:
     store = MemoryStore()
     report = await materialiser(source, store, Notifier(fail=True))()
@@ -105,7 +114,7 @@ async def test_refresher_collapses_triggers_into_one_extra_build() -> None:
     gate, calls = asyncio.Event(), []
 
     class SlowBuild:
-        async def __call__(self) -> None:
+        async def __call__(self, force: bool = False) -> None:
             calls.append(1)
             await gate.wait()
 
@@ -127,7 +136,7 @@ async def test_refresher_survives_a_failing_build_and_closes_cleanly() -> None:
     n = 0
 
     class Flaky:
-        async def __call__(self) -> None:
+        async def __call__(self, force: bool = False) -> None:
             nonlocal n
             n += 1
             if n == 1:
@@ -144,7 +153,7 @@ async def test_refresher_survives_a_failing_build_and_closes_cleanly() -> None:
     block = asyncio.Event()
 
     class Hang:
-        async def __call__(self) -> None:
+        async def __call__(self, force: bool = False) -> None:
             await block.wait()
 
     h = UniverseRefresher(Hang())
@@ -267,7 +276,7 @@ async def test_on_poll_rebuilds_only_when_something_happened() -> None:
     builds = 0
 
     class Count:
-        async def __call__(self) -> None:
+        async def __call__(self, force: bool = False) -> None:
             nonlocal builds
             builds += 1
 

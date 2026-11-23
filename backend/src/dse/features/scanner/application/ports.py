@@ -1,6 +1,6 @@
 """Ports of the scanner application. Infrastructure implements them; tests fake them."""
 
-from collections.abc import Hashable
+from collections.abc import AsyncIterator, Hashable
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol
@@ -55,3 +55,13 @@ class UniverseStore(Protocol):
 
 class UniverseNotifier(Protocol):
     async def built(self, version: int, rows: int, build_ms: int) -> None: ...
+
+
+class RescanChannel(Protocol):
+    async def request(self) -> bool:
+        """Ask the worker for a forced rebuild. False when throttled (one was just requested)."""
+        ...
+
+    def requests(self) -> AsyncIterator[None]:
+        """Worker side: yields once per accepted request."""
+        ...

@@ -20,6 +20,7 @@ from dse.core.clock import SystemClock
 from dse.core.config import Settings, get_settings
 from dse.core.db import Database
 from dse.core.logging import configure_logging
+from dse.core.tasks import cancel_and_wait
 from dse.features.live_feed.application.dto import PollOutcome
 from dse.features.live_feed.application.facade import LiveFeedFacade
 from dse.features.live_feed.application.use_cases import (
@@ -43,7 +44,7 @@ from dse.features.market_data.infrastructure.dse_source import DseHttpSource
 from dse.features.market_data.presentation.dependencies import MarketDataContainer
 from dse.features.scanner.application.use_cases import MaterialiseUniverse, UniverseRefresher
 from dse.features.scanner.infrastructure.gateways import FacadeUniverseSource, LiveFeedUniverseNotifier
-from dse.features.scanner.infrastructure.redis_store import RedisUniverseStore
+from dse.features.scanner.infrastructure.redis_store import RedisRescanChannel, RedisUniverseStore
 
 log = logging.getLogger("dse.worker")
 
@@ -94,7 +95,34 @@ async def run(settings: Settings) -> None:
         return report
 
     end_of_day = EndOfDayTrigger(end_of_day_then_rebuild, RedisOnceGuard(redis), clock)
-    loop = RunFeed(poll, policy, hooks=[end_of_day, rebuild_universe])
+    poll_lock = asyncio.Lock()  # the loop and a manual rescan must never poll concurrently
+
+    async def locked_poll() -> PollOutcome:
+        async with poll_lock:
+            return await poll()
+
+    loop = RunFeed(locked_poll, policy, hooks=[end_of_day, rebuild_universe])
+
+    rescans = RedisRescanChannel(redis)
+
+    async def serve_rescans() -> None:
+        while True:  # a Redis hiccup must not kill rescans for the life of the worker
+            try:
+                async for _ in rescans.requests():
+                    log.info("manual rescan requested")
+                    poll.force_full_fetch()
+                    try:
+                        await locked_poll()  # fresh DSE pull now, not at the next interval
+                    except Exception:
+                        log.exception("rescan poll failed; rebuilding from the data we have")
+                    universe.trigger(force=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("rescan listener failed; retrying")
+                await asyncio.sleep(2)
+
+    rescan_task = asyncio.create_task(serve_rescans(), name="rescan-listener")
 
     stop = asyncio.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):
@@ -105,6 +133,7 @@ async def run(settings: Settings) -> None:
         await loop.run(stop)
     finally:
         log.info("worker stopping")
+        await cancel_and_wait(rescan_task)
         await universe.aclose()
         await feed.aclose()
         await source.aclose()

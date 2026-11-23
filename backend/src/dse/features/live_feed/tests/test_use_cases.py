@@ -56,6 +56,16 @@ async def test_first_poll_stores_everything_and_publishes_nothing(snapshot: Live
     assert store.counters.symbols == 398
 
 
+async def test_forced_full_fetch_drops_the_etag_once(snapshot: LiveSnapshot) -> None:
+    feed = FakeFeed(FetchResult(snapshot, '"v1"'), FetchResult(snapshot, '"v1"'), FetchResult(None, '"v1"'))
+    poll = poller(feed, MemoryStore(), MemoryBus(), TickLog())
+    await poll()
+    poll.force_full_fetch()
+    await poll()  # rescan: no If-None-Match, so upstream cannot answer 304
+    await poll()  # back to conditional GETs
+    assert feed.etags == [None, None, '"v1"']
+
+
 async def test_change_publishes_only_the_delta_and_sends_etag(snapshot: LiveSnapshot) -> None:
     store, bus, ticks = MemoryStore(), MemoryBus(), TickLog()
     nxt = with_trade_time(with_quote(snapshot, "GP", ltp=999.0, volume=10**7), "11:41")
