@@ -57,6 +57,23 @@ async def get_vpa(
     )
 
 
+@router.get(
+    "/stocks/{symbol}/chart-patterns",
+    summary="Possible chart patterns on the daily chart (double top/bottom, head and shoulders, triangles)",
+    description=(
+        "Rule-based and approximate: each item is a possible shape with its key points and lines, a status "
+        "(forming or confirmed) and a confidence for how cleanly the bars fit it. Not a trading signal."
+    ),
+)
+async def get_chart_patterns(symbol: SymbolPath, c: Container) -> dict[str, Any]:
+    found = await c.chart_patterns(Symbol(symbol).value)
+    return envelope(
+        [f.model_dump(mode="json") for f in found],
+        count=len(found),
+        note="Found by fixed rules on swing highs and lows. Possible shapes, not signals.",
+    )
+
+
 @router.get("/screener", summary="Rank symbols by setup score, then risk/reward")
 async def screener(
     c: Container, symbols: Annotated[str, Query(description="Comma-separated codes", examples=["GP,BATBC"])]

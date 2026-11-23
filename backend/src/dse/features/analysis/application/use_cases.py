@@ -5,11 +5,15 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from dse.features.analysis.application.brief import render_brief
 from dse.features.analysis.application.dto import (
     AnalysisDto,
+    ChartLineDto,
+    ChartPatternDto,
+    ChartPointDto,
     CorrelationDto,
     IntradayBarDto,
     ReturnDto,
@@ -20,7 +24,7 @@ from dse.features.analysis.application.dto import (
 )
 from dse.features.analysis.application.knowledge import build, clean, day, num, technical_bars
 from dse.features.analysis.application.ports import AnalysisInputs, HistorySource
-from dse.features.analysis.domain import tools, vpa
+from dse.features.analysis.domain import chart_patterns, tools, vpa
 from dse.features.analysis.domain.frames import merge_live, to_frame
 from dse.shared_kernel.errors import DomainError, NotFoundError, ValidationFailedError
 
@@ -174,4 +178,43 @@ class GetIntraday:
                 vpa=label if isinstance(label, str) else None,
             )
             for m, label in zip(minutes, labels, strict=True)
+        ]
+
+
+class GetChartPatterns:
+    """Possible chart patterns (double top/bottom, head and shoulders, triangles, channels, wedges, ranges)
+    on the latest daily bars. Rule-based and approximate; the CPU work runs in a thread."""
+
+    BARS = 300
+
+    def __init__(self, history: HistorySource) -> None:
+        self._history = history
+
+    async def __call__(self, symbol: str) -> list[ChartPatternDto]:
+        bars = await self._history.bars(symbol, self.BARS)
+        if len(bars) < 40:
+            return []
+        days = [b.day for b in bars]
+        high = np.array([b.high for b in bars], dtype=float)
+        low = np.array([b.low for b in bars], dtype=float)
+        close = np.array([b.close for b in bars], dtype=float)
+        found = await asyncio.to_thread(chart_patterns.detect, days, high, low, close)
+
+        def point(p: chart_patterns.Point) -> ChartPointDto:
+            return ChartPointDto(day=p.day, price=round(p.price, 2), label=p.label)
+
+        return [
+            ChartPatternDto(
+                kind=f.kind,
+                name=f.name,
+                direction=f.direction,
+                status=f.status,
+                confidence=f.confidence,
+                start=f.start,
+                end=f.end,
+                points=[point(p) for p in f.points],
+                lines=[ChartLineDto(role=ln.role, a=point(ln.a), b=point(ln.b)) for ln in f.lines],
+                summary=f.summary,
+            )
+            for f in found
         ]

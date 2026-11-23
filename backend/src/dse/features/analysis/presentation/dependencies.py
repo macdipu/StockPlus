@@ -11,6 +11,7 @@ from dse.features.analysis.application.use_cases import (
     CalculateReturn,
     ComputeCorrelation,
     GetBrief,
+    GetChartPatterns,
     GetIntraday,
     GetTechnicals,
     GetVpa,
@@ -50,6 +51,10 @@ class AnalysisContainer:
     @property
     def correlation(self) -> ComputeCorrelation:
         return ComputeCorrelation(self.history)
+
+    @property
+    def chart_patterns(self) -> GetChartPatterns:
+        return GetChartPatterns(self.history)
 
     @property
     def intraday(self) -> GetIntraday:
