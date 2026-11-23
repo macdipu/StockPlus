@@ -267,3 +267,4 @@ ol.plain { margin: 0; padding-left: 18px; }
 .tileevidence .ink { color: var(--ink); }
 .howrated { margin: 0 0 18px; } .howrated summary { cursor: pointer; }
 .warn { color: var(--decide); }
+.spark { display: grid; gap: 2px; }

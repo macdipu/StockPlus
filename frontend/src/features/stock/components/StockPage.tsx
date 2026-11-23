@@ -8,7 +8,7 @@ import { useLiveSymbols, useMarket, useQuote } from "@/features/live";
 import { Card } from "@/shared/ui/Card";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { TabBar } from "@/shared/ui/TabBar";
-import { analysisKey, useAnalysis, usePeContext } from "../hooks/use-stock-queries";
+import { analysisKey, useAnalysis, usePeContext, useRelativeStrength } from "../hooks/use-stock-queries";
 import { pushRecent } from "../store/recent-store";
 import { buildSummary } from "../utils/summary";
 import { AnalysisCards } from "./AnalysisSections";
@@ -57,7 +57,8 @@ export function StockPage({ symbol }: { symbol: string }) {
   const quote = useQuote(code);
   const company = useCompany(code);
   const pe = usePeContext(analysis.data?.fundamentals.sector ?? null);
-  const summary = useMemo(() => (analysis.data ? buildSummary(analysis.data, company.data, pe) : null), [analysis.data, company.data, pe]);
+  const strength = useRelativeStrength(code);
+  const summary = useMemo(() => (analysis.data ? buildSummary(analysis.data, company.data, pe, strength) : null), [analysis.data, company.data, pe, strength]);
   const sessionDay = useMarket()?.session.day ?? null;
   const tab = useHashTab();
   const known = analysis.isSuccess;

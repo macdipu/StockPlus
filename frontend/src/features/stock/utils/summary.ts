@@ -2,6 +2,7 @@ import type { Company } from "@/features/company";
 import { num, pct } from "@/shared/lib/format";
 import type { Analysis } from "../schemas/analysis";
 import { actionSentence, dividendYield, fairValueReading } from "./reading";
+import type { Relative } from "./strength";
 
 /**
  * The analyst's one-page reading of a share, as plain data. Every rating is the sum of small rules; each rule that
@@ -26,6 +27,12 @@ export interface PeContext {
   sector: { name: string; companies: number; median: number | null } | null;
 }
 
+/** How the share did against the DSEX index over the last month and three months. */
+export interface RelativeStrength {
+  m1: Relative | null;
+  m3: Relative | null;
+}
+
 export interface Fact {
   label: string;
   value: string;
@@ -38,6 +45,8 @@ export interface TileReading {
   tone: Tone;
   evidence: Evidence[];
   facts: Fact[];
+  /** A short series to draw beside the facts (earnings per share by year), oldest first. */
+  trend?: { label: string; values: number[]; first: string; last: string };
 }
 
 export interface Summary {
@@ -76,7 +85,7 @@ export function avgTurnoverMn(a: Analysis): number | null {
   return vol != null && a.price.ltp != null ? (vol * a.price.ltp) / 1_000_000 : null;
 }
 
-export function evidence(a: Analysis, c: Company | undefined, pe: PeContext | null): Evidence[] {
+export function evidence(a: Analysis, c: Company | undefined, pe: PeContext | null, rs: RelativeStrength | null = null): Evidence[] {
   const out: Evidence[] = [];
   const add = (tile: TileKey, points: number, text: string) => out.push({ tile, points, text });
   const sector = a.fundamentals.sector ?? "";
@@ -169,6 +178,13 @@ export function evidence(a: Analysis, c: Company | undefined, pe: PeContext | nu
     if (month >= 3) add("timing", 1, `Up ${num(month, 1)}% in a month.`);
     else if (month <= -5) add("timing", -1, `Down ${num(Math.abs(month), 1)}% in a month.`);
   }
+  const m3 = rs?.m3;
+  if (m3) {
+    const said = `${pct(m3.stockPct, 1)} in 3 months against ${pct(m3.indexPct, 1)} for the DSEX index`;
+    if (m3.diffPts >= 5) add("timing", 1, `Beating the market: ${said}.`);
+    else if (m3.diffPts <= -5) add("timing", -1, `Lagging the market: ${said}.`);
+    else add("timing", 0, `Moving with the market: ${said}.`);
+  }
   const where = a.candle_story?.where;
   if (where === "inside_buy_zone") add("timing", 1, "Price is inside its buy zone.");
   else if (where === "below_stop") add("timing", -2, "Price is below its stop level.");
@@ -205,7 +221,7 @@ function rate(tile: TileKey, e: readonly Evidence[]): { rating: string; tone: To
   return s >= 3 ? { rating: "Favourable", tone: "up" } : s >= 1 ? { rating: "Leaning positive", tone: "up" } : s === 0 ? { rating: "Neutral", tone: "mute" } : s >= -2 ? { rating: "Leaning negative", tone: "warn" } : { rating: "Unfavourable", tone: "dn" };
 }
 
-function facts(tile: TileKey, a: Analysis, c: Company | undefined, pe: PeContext | null): Fact[] {
+function facts(tile: TileKey, a: Analysis, c: Company | undefined, pe: PeContext | null, rs: RelativeStrength | null): Fact[] {
   const f = (label: string, v: string | null): Fact[] => (v == null ? [] : [{ label, value: v }]);
   const n = (v: number | null | undefined, d = 1, unit = "") => (v == null ? null : `${num(v, d)}${unit}`);
   if (tile === "quality") {
@@ -220,10 +236,18 @@ function facts(tile: TileKey, a: Analysis, c: Company | undefined, pe: PeContext
   }
   if (tile === "timing") {
     const vs = a.trend.vs_ma["SMA200"];
-    return [...f("Vs 200-day average", vs ? pct(vs.pct, 1) : null), ...f("RSI (14)", n(ind(a, "rsi14"), 0)), ...f("1 month", a.trend.changes["1M"] == null ? null : pct(a.trend.changes["1M"], 1)), ...f("Timing checks passed", `${a.setup.score} of ${a.setup.max}`)];
+    return [...f("Vs 200-day average", vs ? pct(vs.pct, 1) : null), ...f("RSI (14)", n(ind(a, "rsi14"), 0)), ...f("1 month", a.trend.changes["1M"] == null ? null : pct(a.trend.changes["1M"], 1)), ...f("Vs DSEX, 3 months", rs?.m3 ? `${rs.m3.diffPts >= 0 ? "+" : "−"}${num(Math.abs(rs.m3.diffPts), 1)} pts` : null), ...f("Timing checks passed", `${a.setup.score} of ${a.setup.max}`)];
   }
   const atr = ind(a, "atr14");
   return [...f("Free float", n(a.fundamentals.free_float_pct, 0, "%")), ...f("Daily turnover", (avgTurnoverMn(a) == null ? null : `Tk ${num(avgTurnoverMn(a), 1)} mn`)), ...f("Typical daily swing", atr != null && a.price.ltp ? n((atr / a.price.ltp) * 100, 1, "%") : null), ...f("Credit rating", c?.profile.credit_rating?.long_term ?? null)];
+}
+
+/** Earnings per share by year, oldest first, last eight years: the trend a one-year growth figure hides. */
+export function epsTrend(c: Company | undefined): TileReading["trend"] {
+  const rows = (c?.per_share_history ?? []).filter((r) => r.eps != null).sort((x, y) => (x.period_end < y.period_end ? -1 : 1)).slice(-8);
+  if (rows.length < 3) return undefined;
+  const values = rows.map((r) => r.eps as number);
+  return { label: "Earnings per share by year", values, first: rows[0]?.period_end.slice(0, 4) ?? "", last: rows.at(-1)?.period_end.slice(0, 4) ?? "" };
 }
 
 const TITLES: Record<TileKey, string> = { quality: "Business quality", value: "Value", timing: "Timing", risk: "Risk" };
@@ -262,14 +286,15 @@ function actionLine(a: Analysis): string {
   }
 }
 
-export function buildSummary(a: Analysis, c: Company | undefined, pe: PeContext | null): Summary {
-  const e = evidence(a, c, pe);
+export function buildSummary(a: Analysis, c: Company | undefined, pe: PeContext | null, rs: RelativeStrength | null = null): Summary {
+  const e = evidence(a, c, pe, rs);
   const tiles: TileReading[] = (["quality", "value", "timing", "risk"] as const).map((key) => ({
     key,
     title: TITLES[key],
     ...rate(key, e),
-    evidence: e.filter((x) => x.tile === key && (x.points !== 0 || key === "value")),
-    facts: facts(key, a, c, pe),
+    evidence: e.filter((x) => x.tile === key),
+    facts: facts(key, a, c, pe, rs),
+    ...(key === "quality" ? { trend: epsTrend(c) } : {}),
   }));
   const pro = e.filter((x) => x.points > 0).sort((x, y) => y.points - x.points);
   const con = e.filter((x) => x.points < 0).sort((x, y) => x.points - y.points);
@@ -287,7 +312,7 @@ export const HOW_RATED: readonly string[] = [
   "Each rating adds up small rules, shown as the ✓ and ✗ lines on each tile. Nothing else goes into it.",
   "Business quality: return on equity, net margin, borrowing (not for banks and financials), earnings growth, dividend record and credit rating.",
   "Value: median fair value against the price, P/E against the sector median (or the market median when the sector has fewer than 5 companies; a share also has to be at or below the size-weighted market P/E to count as cheap on P/E), and dividend yield.",
-  "Timing: price against the 50 and 200-day averages, RSI, how many of the six setup checks pass, the last month's move and whether price is in its buy zone.",
+  "Timing: price against the 50 and 200-day averages, RSI, how many of the six setup checks pass, the last month's move, whether it is beating or lagging the DSEX index over 3 months (by 5 points or more), and whether price is in its buy zone.",
   "Risk: free float under 15%, thin trading, large daily swings, heavy borrowing, falling earnings, losses and Z category. One or two flags read as Moderate, three or more as High.",
   "These are rules of thumb for orientation. They have not been tested on past prices the way the Picks buckets have, and they are not advice.",
 ];

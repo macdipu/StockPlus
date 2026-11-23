@@ -212,3 +212,14 @@ Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 p
 - Risk reads High only with three points of risk; one or two flags on a blue chip read Moderate.
 - The tile rules are rules of thumb. They have not been back-tested the way the Picks buckets were; the page says so.
 - Not yet: strength against the index (phase C), a what-changed note (phase F), the Valuation tab (phase E).
+
+**Phase C done:**
+- **Strength against the market.** The share's last month and three months are compared with the DSEX index over the same
+  dates (the index read on or before each date). The Timing tile gets a "Vs DSEX, 3 months" fact and one sentence with both
+  returns ("Beating the market" or "Lagging the market" at 5 points or more either way, otherwise "Moving with the market").
+  It counts one point for or against timing, and the rating note lists it.
+- **Earnings trend.** The Business quality tile draws earnings per share for the last eight years as a small line, with the
+  first and last year and value written beside it, so a single "EPS fell 19%" has its context.
+- Liquidity and free float were already in the Risk tile and the at-a-glance facts.
+- Note: the 5-point threshold is a judgement, not a tested cut-off; a share down 7.5% while the index is down 2.9% reads
+  "Moving with the market" because the gap is 4.6 points. Revisit if that reads too kind.

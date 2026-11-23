@@ -3,6 +3,7 @@ import { envelope, metaSchema, request } from "@/shared/api";
 import { candlesSchema } from "../schemas/candles";
 import { depthSchema } from "../schemas/depth";
 import { peContextSchema } from "../schemas/pe-context";
+import { indexChartSchema } from "../schemas/index-chart";
 import { chartPatternsSchema } from "../schemas/chart-patterns";
 import {
   analysisSchema,
@@ -21,6 +22,7 @@ export const stockApi = {
   technicals: (symbol: string, limit = 260) =>
     request(`/stocks/${sym(symbol)}/technicals`, { query: { limit }, schema: envelope(z.array(technicalBarSchema)) }),
   directory: () => request("/market/directory", { schema: envelope(z.array(directoryRow)) }),
+  indexCloses: () => request("/charts/DSEX", { query: { resolution: "D", indicators: "", pages: 1 }, schema: indexChartSchema }),
   peContext: () => request("/market/pe", { schema: peContextSchema }),
   depth: (symbol: string) => request(`/quotes/${sym(symbol)}/depth`, { schema: depthSchema }),
   chartPatterns: (symbol: string) => request(`/stocks/${sym(symbol)}/chart-patterns`, { schema: chartPatternsSchema }),

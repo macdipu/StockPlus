@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ApiError } from "@/shared/api";
 import { stockApi } from "../services/stock-api";
-import type { PeContext } from "../utils/summary";
+import type { PeContext, RelativeStrength } from "../utils/summary";
+import { indexCloses, relativeStrength } from "../utils/strength";
 
 const key = (symbol: string, part: string, ...rest: unknown[]) => ["stock", symbol.toUpperCase(), part, ...rest] as const;
 
@@ -61,4 +62,19 @@ export function usePeContext(sector: string | null): PeContext | null {
     const s = sector ? q.data.by_sector[sector] : undefined;
     return { marketMedian: q.data.market.median_pe, marketWeighted: q.data.market.weighted_pe, sector: sector && s ? { name: sector, companies: s.instruments, median: s.median_pe } : null };
   }, [q.data, sector]);
+}
+
+const SESSIONS_1M = 21;
+const SESSIONS_3M = 63;
+
+/** How the share has done against the DSEX index over the last month and three months. */
+export function useRelativeStrength(symbol: string): RelativeStrength | null {
+  const candles = useCandles(symbol).data;
+  const index = useQuery({ queryKey: ["market", "dsex-closes"], queryFn: async () => (await stockApi.indexCloses()).data.candles, staleTime: 30 * 60_000 });
+  return useMemo(() => {
+    if (!candles || !index.data) return null;
+    const idx = indexCloses(index.data.time, index.data.close);
+    const stock = candles.map((c) => ({ day: c.day, close: c.close }));
+    return { m1: relativeStrength(stock, idx, SESSIONS_1M), m3: relativeStrength(stock, idx, SESSIONS_3M) };
+  }, [candles, index.data]);
 }

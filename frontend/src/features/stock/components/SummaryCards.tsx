@@ -4,6 +4,7 @@ import { Card } from "@/shared/ui/Card";
 import { SignalPill } from "@/shared/ui/Pill";
 import type { Analysis } from "../schemas/analysis";
 import { dividendYield, edgeReading } from "../utils/reading";
+import { sparkPoints } from "../utils/strength";
 import { avgTurnoverMn, buyZone, HOW_RATED, type Summary, type TileReading, type Tone } from "../utils/summary";
 
 const TONE_CLASS: Record<Tone, string> = { up: "up", dn: "dn", warn: "warn", mute: "mute" };
@@ -87,6 +88,25 @@ export function VerdictCard({ analysis: a, summary }: { analysis: Analysis; summ
   );
 }
 
+/** A tiny trend line: the shape of earnings over the years, with the last point marked. */
+function Spark({ trend }: { trend: NonNullable<TileReading["trend"]> }) {
+  const W = 220;
+  const H = 36;
+  const pts = sparkPoints(trend.values, W, H);
+  const last = pts.split(" ").at(-1)?.split(",") ?? [];
+  const first = trend.values[0];
+  const end = trend.values.at(-1);
+  return (
+    <div className="spark">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`${trend.label}, ${trend.first} to ${trend.last}: ${num(first)} to ${num(end)}`}>
+        <polyline points={pts} fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx={last[0]} cy={last[1]} r="3.5" fill="var(--brand)" />
+      </svg>
+      <span className="small mute">{trend.label}, {trend.first} to {trend.last}: {num(first)} → {num(end)}</span>
+    </div>
+  );
+}
+
 function Tile({ t }: { t: TileReading }) {
   return (
     <section className="card tile" aria-label={t.title}>
@@ -101,6 +121,7 @@ function Tile({ t }: { t: TileReading }) {
           ))}
         </dl>
       ) : null}
+      {t.trend ? <Spark trend={t.trend} /> : null}
       {t.evidence.length ? (
         <ul className="plain small tileevidence">
           {t.evidence.map((e) => (

@@ -3,7 +3,7 @@ import { companySchema, type Company } from "@/features/company";
 import analysisFixture from "@/shared/api/__fixtures__/analysis.json";
 import companyFixture from "@/shared/api/__fixtures__/company.json";
 import { analysisSchema, type Analysis } from "../schemas/analysis";
-import { avgTurnoverMn, buildSummary, buyZone, evidence, type PeContext } from "./summary";
+import { avgTurnoverMn, buildSummary, buyZone, epsTrend, evidence, type PeContext, type RelativeStrength } from "./summary";
 
 const base = analysisSchema.parse((analysisFixture as { data: unknown }).data);
 const company = companySchema.parse((companyFixture as { data: unknown }).data);
@@ -164,5 +164,42 @@ describe("tile facts", () => {
     const labels = (a: Analysis) => tile(a, withRatios({ roe: 12, debt_to_equity: 0.9 }), "quality")?.facts.map((f) => f.label) ?? [];
     expect(labels(bank)).not.toContain("Debt / equity");
     expect(labels({ ...base, fundamentals: { ...base.fundamentals, sector: "Textile" } })).toContain("Debt / equity");
+  });
+});
+
+describe("strength against the market", () => {
+  const rel = (stockPct: number, indexPct: number) => ({ stockPct, indexPct, diffPts: stockPct - indexPct, from: "2026-08-01", to: "2026-11-01" });
+  const rs = (m3: ReturnType<typeof rel> | null): RelativeStrength => ({ m1: null, m3 });
+  const timing = (r: RelativeStrength | null) => evidence(base, undefined, null, r).filter((x) => x.tile === "timing" && /market/i.test(x.text));
+  it("counts beating the index by 5 points or more in the share's favour, in plain words with both numbers", () => {
+    const [e] = timing(rs(rel(8, 1)));
+    expect(e?.points).toBe(1);
+    expect(e?.text).toBe("Beating the market: +8.0% in 3 months against +1.0% for the DSEX index.");
+  });
+  it("counts lagging it against the share, and moving with it as neutral", () => {
+    expect(timing(rs(rel(-7, 1)))[0]?.points).toBe(-1);
+    expect(timing(rs(rel(2, 0)))[0]).toMatchObject({ points: 0, text: expect.stringContaining("Moving with the market") });
+  });
+  it("adds nothing without the index", () => {
+    expect(timing(null)).toHaveLength(0);
+    expect(timing(rs(null))).toHaveLength(0);
+  });
+  it("shows the gap as a fact on the Timing tile", () => {
+    const t = buildSummary(base, undefined, null, rs(rel(8, 1))).tiles.find((x) => x.key === "timing");
+    expect(t?.facts).toContainEqual({ label: "Vs DSEX, 3 months", value: "+7.0 pts" });
+  });
+});
+
+describe("epsTrend", () => {
+  const years = (eps: Array<number | null>): Company => ({ ...company, per_share_history: eps.map((e, i) => ({ period_end: `${2018 + i}-12-31`, eps: e })) });
+  it("is the last eight years of earnings per share, oldest first", () => {
+    const t = epsTrend(years([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+    expect(t?.values).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect([t?.first, t?.last]).toEqual(["2020", "2027"]);
+  });
+  it("skips years without a figure and needs at least three", () => {
+    expect(epsTrend(years([1, null, 3, null, 5]))?.values).toEqual([1, 3, 5]);
+    expect(epsTrend(years([1, 2]))).toBeUndefined();
+    expect(epsTrend(undefined)).toBeUndefined();
   });
 });
