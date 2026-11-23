@@ -145,6 +145,7 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
   const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void; sync: () => void; cancel: () => void; deleteSelected: () => void } | null>(null);
   const latest = useRef({ candles, layers });
   const draw = useRef({ tool, magnet, drawings, onDrawings });
+  const shapes = useRef<readonly Drawing[]>(layers.shapes);
   const [legend, setLegend] = useState("");
   useEffect(() => {
     latest.current = { candles, layers };
@@ -250,7 +251,7 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       let pending: DrawPoint | null = null;
       let preview: Drawing | null = null;
       let selected: string | null = null;
-      const sync = () => layer.set({ drawings: draw.current.drawings, selected, preview });
+      const sync = () => layer.set({ drawings: draw.current.drawings, selected, preview, shapes: shapes.current });
       // The library swallows the second of two quick clicks (it reads them as a double-click), so clicks are read from
       // the element itself. A drag (pan) is not a click. The point snaps to the candle under the pointer.
       const pointAt = (x: number, y: number): DrawPoint | null => {
@@ -343,6 +344,8 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
   }, [candles]);
   useEffect(() => {
     api.current?.drawLayers(layers);
+    shapes.current = layers.shapes;
+    api.current?.sync();
   }, [layers]);
   useEffect(() => {
     draw.current = { tool, magnet, drawings, onDrawings };

@@ -25,7 +25,7 @@ const SOURCE_NOTE: Record<string, string> = {
   "dse-index": "Index values published by the Dhaka Stock Exchange. They are closing values only, so there are no candles or volume.",
   "recorded-ticks": "Intraday candles are built from prices this app recorded from the exchange's live feed. History starts when the app first ran.",
 };
-const NO_LAYERS = { overlays: [], panes: [], priceLines: [], markers: [], bands: [] };
+const NO_LAYERS = { overlays: [], panes: [], priceLines: [], markers: [], bands: [], shapes: [] };
 
 export interface PriceChartProps {
   symbol: string;

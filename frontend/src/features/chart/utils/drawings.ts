@@ -25,6 +25,14 @@ export interface Drawing {
   a: DrawPoint;
   /** Absent for a horizontal line. */
   b?: DrawPoint;
+  /** Styling for shapes the app draws itself (chart patterns); the user's own drawings leave these out. */
+  color?: string;
+  dashed?: boolean;
+  width?: number;
+  /** A tag drawn at the first point. */
+  label?: string;
+  /** Small circles on key points (the swing highs and lows of a pattern). */
+  dots?: readonly DrawPoint[];
 }
 
 export const needsTwoPoints = (k: DrawKind): boolean => k !== "hline";

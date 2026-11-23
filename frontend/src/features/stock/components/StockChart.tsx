@@ -4,7 +4,9 @@ import { useCallback, useMemo } from "react";
 import { PriceChart, type Annotations, type LiveBar, type Resolution } from "@/features/chart";
 import type { Analysis } from "../schemas/analysis";
 import { CLEAN, LAYERS, TRADER, useLayers, type Layer } from "../store/chart-prefs";
-import { dedupeLines, nearestLevels, patternMarkers, recentPatterns } from "../utils/chart-model";
+import { useChartPatterns } from "../hooks/use-stock-queries";
+import type { ChartPattern } from "../schemas/chart-patterns";
+import { dedupeLines, nearestLevels, patternMarkers, patternShapes, recentPatterns } from "../utils/chart-model";
 
 /** Indicators each layer adds, by timeframe (the same specs the chart's indicator picker uses). */
 const SPECS: Record<Extract<Layer, "averages" | "bands" | "rsi" | "macd">, { daily: readonly string[]; intraday: readonly string[] }> = {
@@ -24,7 +26,7 @@ type Line = NonNullable<Annotations["priceLines"]>[number];
 
 /** The plan and the nearest levels, as annotations for the generic chart. The plan comes first, so where a level and a
  * plan line coincide the plan's tag wins. */
-function annotate(a: Analysis, layers: ReadonlySet<Layer>, ctx: { resolution: Resolution; dates: ReadonlySet<string> }): Annotations | undefined {
+function annotate(a: Analysis, layers: ReadonlySet<Layer>, shapes: readonly ChartPattern[], ctx: { resolution: Resolution; dates: ReadonlySet<string> }): Annotations | undefined {
   if (layers.size === 0) return undefined;
   const up = css("--up");
   const down = css("--dn");
@@ -51,7 +53,8 @@ function annotate(a: Analysis, layers: ReadonlySet<Layer>, ctx: { resolution: Re
     // arrows only: the names are listed under the chart, where they cannot sit on top of candles
     markers.push(...patternMarkers(recentPatterns(a.candles.patterns, ctx.dates, MAX_PATTERNS), { up, down, neutral: "#94a3b8" }, ctx.dates).map((m) => ({ ...m, text: "" })));
   }
-  return { priceLines: dedupeLines(lines, MIN_GAP), markers, bands };
+  const drawn = layers.has("shapes") && ctx.resolution === "D" ? patternShapes(shapes, { up, down, neutral: "#6d7cff" }) : [];
+  return { priceLines: dedupeLines(lines, MIN_GAP), markers, bands, shapes: drawn };
 }
 
 function note(layers: ReadonlySet<Layer>): string {
@@ -88,7 +91,9 @@ export function StockChart({ symbol, analysis, live }: { symbol: string; analysi
     (r: Resolution) => (["averages", "bands", "rsi", "macd"] as const).filter((k) => layers.has(k)).flatMap((k) => SPECS[k][r === "D" ? "daily" : "intraday"]),
     [layers],
   );
-  const annotations = useCallback((ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }) => annotate(analysis, layers, ctx), [analysis, layers]);
+  const found = useChartPatterns(symbol, layers.has("shapes")).data;
+  const shapes = useMemo(() => found ?? [], [found]);
+  const annotations = useCallback((ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }) => annotate(analysis, layers, shapes, ctx), [analysis, layers, shapes]);
   const noteFor = useCallback(() => note(layers), [layers]);
   const extras = useMemo(() => <LayersMenu layers={layers} onChange={setLayers} />, [layers, setLayers]);
   const story = analysis.candle_story;
@@ -110,6 +115,23 @@ export function StockChart({ symbol, analysis, live }: { symbol: string; analysi
               </span>
             ))}
           </p>
+        ) : null}
+        {layers.has("shapes") ? (
+          <div className="shapelist" aria-label="Possible chart patterns">
+            {shapes.length === 0 ? (
+              <p className="small mute">No clear chart pattern on the daily chart right now.</p>
+            ) : (
+              <ul className="plain small">
+                {shapes.map((p) => (
+                  <li key={`${p.kind}-${p.end}`}>
+                    <b className={p.direction === "bullish" ? "up" : p.direction === "bearish" ? "dn" : ""}>{p.name}</b>{" "}
+                    <span className="mute">({p.status}, fit {p.confidence}%)</span> {p.summary}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="small mute">Possible shapes found by fixed rules on swing highs and lows. They are not signals.</p>
+          </div>
         ) : null}
       </div>
       {showPlan ? (

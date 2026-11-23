@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { dedupeLines, levelLines, minuteToTimestamp, nearestLevels, patternMarkers, recentPatterns } from "./chart-model";
+import type { ChartPattern } from "../schemas/chart-patterns";
+import { dedupeLines, levelLines, minuteToTimestamp, nearestLevels, patternMarkers, patternShapes, recentPatterns } from "./chart-model";
 
 describe("patternMarkers", () => {
   const colors = { up: "u", down: "d", neutral: "n" };
@@ -52,5 +53,30 @@ describe("recentPatterns", () => {
 describe("minuteToTimestamp", () => {
   it("builds UTC seconds so the axis shows exchange time unchanged", () => {
     expect(minuteToTimestamp("2026-01-05", "10:05")).toBe(Date.UTC(2026, 0, 5, 10, 5) / 1000);
+  });
+});
+
+describe("patternShapes", () => {
+  const pt = (day: string, price: number) => ({ day, price, label: "" });
+  const pattern: ChartPattern = {
+    kind: "double_top", name: "Double top", direction: "bearish", status: "forming", confidence: 70, start: "2026-01-01", end: "2026-01-20",
+    points: [pt("2026-01-20", 99), pt("2026-01-01", 100), pt("2026-01-10", 88)],
+    lines: [{ role: "neckline", a: pt("2026-01-10", 88), b: pt("2026-01-25", 88) }],
+    summary: "",
+  };
+  const colors = { up: "u", down: "d", neutral: "n" };
+
+  it("joins the swing points in time order and adds the rule line with the name tag", () => {
+    const shapes = patternShapes([pattern], colors);
+    const zig = shapes.filter((s) => s.id.includes(":z"));
+    expect(zig.map((s) => [s.a.time, s.b?.time])).toEqual([["2026-01-01", "2026-01-10"], ["2026-01-10", "2026-01-20"]]);
+    const [line] = shapes.filter((s) => s.id.includes(":l"));
+    expect(line).toMatchObject({ color: "d", width: 2, dashed: true, label: "Double top (forming)" });
+    expect(line?.dots).toHaveLength(3);
+  });
+
+  it("draws a confirmed pattern's line solid and colours by direction", () => {
+    const [line] = patternShapes([{ ...pattern, direction: "bullish", status: "confirmed" }], colors).filter((s) => s.id.includes(":l"));
+    expect(line).toMatchObject({ color: "u", dashed: false });
   });
 });

@@ -10,6 +10,8 @@ export interface LayerState {
   selected: string | null;
   /** The shape being drawn: the first point is placed and the second follows the pointer. */
   preview: Drawing | null;
+  /** Shapes the app draws itself (chart patterns): painted under the user's drawings, never selectable. */
+  shapes: readonly Drawing[];
 }
 
 export interface LayerColors {
@@ -25,7 +27,7 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<SeriesType> | null = null;
   private redraw: (() => void) | null = null;
-  private state: LayerState = { drawings: [], selected: null, preview: null };
+  private state: LayerState = { drawings: [], selected: null, preview: null, shapes: [] };
   private width = 0;
 
   constructor(
@@ -68,7 +70,8 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
             target.useMediaCoordinateSpace(({ context: c, mediaSize }) => {
               this.width = mediaSize.width;
               const k = this.colors();
-              const all = this.state.preview ? [...this.state.drawings, this.state.preview] : this.state.drawings;
+              const own = this.state.preview ? [...this.state.drawings, this.state.preview] : this.state.drawings;
+              const all = [...this.state.shapes, ...own];
               for (const d of all) this.paint(c, d, k, mediaSize.width, d === this.state.preview, d.id === this.state.selected);
             }),
         }),
@@ -93,9 +96,9 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
     const segs = segments(d, this.at, width);
     if (segs.length === 0) return;
     c.save();
-    c.strokeStyle = k.line;
-    c.lineWidth = selected ? 2.5 : 1.5;
-    c.setLineDash(preview ? [5, 4] : []);
+    c.strokeStyle = d.color ?? k.line;
+    c.lineWidth = selected ? 2.5 : (d.width ?? 1.5);
+    c.setLineDash(preview || d.dashed ? [5, 4] : []);
     if (d.kind === "rect" && d.b) {
       const a = this.at(d.a);
       const b = this.at(d.b);
@@ -125,6 +128,20 @@ export class DrawingsLayer implements ISeriesPrimitive<Time> {
       const a = this.at(d.a);
       const b = this.at(d.b);
       if (a && b) this.tag(c, measureText(d.a, d.b, this.barsBetween(d.a, d.b)), (a.x + b.x) / 2 - 60, (a.y + b.y) / 2 - 18, k);
+    }
+    if (d.dots?.length) {
+      c.fillStyle = d.color ?? k.line;
+      for (const pt of d.dots) {
+        const xy = this.at(pt);
+        if (!xy) continue;
+        c.beginPath();
+        c.arc(xy.x, xy.y, 3.5, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+    if (d.label) {
+      const a = this.at(d.a);
+      if (a) this.tag(c, d.label, a.x + 6, a.y - 12, k);
     }
     if (selected) {
       c.fillStyle = k.line;

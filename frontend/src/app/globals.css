@@ -224,3 +224,6 @@ ol.plain { margin: 0; padding-left: 18px; }
 .ptag { white-space: nowrap; }
 .drawbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; }
 .drawbar .seg { max-width: 100%; overflow-x: auto; }
+.shapelist { margin-top: 10px; }
+.shapelist ul { margin: 0 0 6px; }
+.shapelist li { margin-bottom: 4px; }

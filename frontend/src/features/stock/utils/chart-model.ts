@@ -1,4 +1,6 @@
+import type { Drawing } from "@/features/chart";
 import type { Analysis } from "../schemas/analysis";
+import type { ChartPattern } from "../schemas/chart-patterns";
 
 /** Chart annotations derived from an analysis. Pure: no DOM, no chart library. */
 
@@ -70,3 +72,32 @@ export function minuteToTimestamp(day: string, hhmm: string): number {
   const [h = 0, mi = 0] = hhmm.split(":").map(Number);
   return Date.UTC(y, mo - 1, d, h, mi) / 1000;
 }
+
+/** Chart patterns as shapes for the chart: the swing points joined by a thin zig-zag, and each rule line (neckline,
+ * upper/lower trendline) on top, dashed while the pattern is only forming. The first line carries the name tag. */
+export function patternShapes(patterns: readonly ChartPattern[], colors: { up: string; down: string; neutral: string }): Drawing[] {
+  const out: Drawing[] = [];
+  patterns.forEach((p, n) => {
+    const color = p.direction === "bullish" ? colors.up : p.direction === "bearish" ? colors.down : colors.neutral;
+    const id = `auto:${p.kind}:${p.end}:${n}`;
+    const pts = [...p.points].sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+    pts.slice(1).forEach((to, i) => {
+      const from = pts[i];
+      if (from) out.push({ id: `${id}:z${i}`, kind: "trend", a: { time: from.day, price: from.price }, b: { time: to.day, price: to.price }, color, width: 1, dashed: true });
+    });
+    p.lines.forEach((l, i) =>
+      out.push({
+        id: `${id}:l${i}`,
+        kind: "trend",
+        a: { time: l.a.day, price: l.a.price },
+        b: { time: l.b.day, price: l.b.price },
+        color,
+        width: 2,
+        dashed: p.status === "forming",
+        ...(i === 0 ? { label: `${p.name} (${p.status})`, dots: pts.map((q) => ({ time: q.day, price: q.price })) } : {}),
+      }),
+    );
+  });
+  return out;
+}
+

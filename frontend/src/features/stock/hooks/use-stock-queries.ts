@@ -42,3 +42,7 @@ export const useNames = () =>
     queryFn: async () => new Map((await stockApi.directory()).data.flatMap((r) => (r.name ? [[r.symbol, r.name] as const] : []))),
     staleTime: 6 * 60 * 60_000,
   });
+
+/** Possible chart patterns on the daily chart. They only change when a new bar closes. */
+export const useChartPatterns = (symbol: string, enabled = true) =>
+  useQuery({ queryKey: key(symbol, "chart-patterns"), queryFn: async () => (await stockApi.chartPatterns(symbol)).data, staleTime: 5 * 60_000, enabled });

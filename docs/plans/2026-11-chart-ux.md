@@ -86,3 +86,16 @@ Clicks are read from the chart element, because the library swallows the second 
 Left for later: dragging handles to edit a drawing, line colour/width, account storage, a drawings list.
 Side fix: the "Notifications" state was decided during render, which made every page log a React hydration error;
 it now reads the browser permission through `useSyncExternalStore`.
+
+## Phase 3 status
+Built: `analysis/domain/chart_patterns.py` finds swing highs and lows (3 bars either side, swings under 3% ignored)
+and, on the last 120 bars, double top/bottom, head and shoulders (and inverse), and triangles, wedges, channels and
+ranges fitted to the latest 3 or 4 pivots of each side. Output: name, direction, status (forming or confirmed, by a close
+through the neckline or trendline), a 0-100 "fit" (how cleanly the bars match, not a probability), key points and rule
+lines. Only patterns that ended within 30 bars show, overlapping duplicates of one kind keep the best, at most 3.
+Endpoint `GET /stocks/{symbol}/chart-patterns`. The chart draws a thin zig-zag through the swing points, the rule lines
+(dashed while forming, solid once confirmed), dots on the points and a name tag, and lists each pattern with a plain
+sentence under the chart. New layer "Chart patterns" (off by default; "Everything" includes it).
+
+Not done: flags and pennants, cup and handle; measured-move targets are stated in the text but not drawn; patterns are
+daily only; no back-test of how often these shapes work out (roadmap item 7 covers scoring, not this).
