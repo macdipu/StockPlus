@@ -9,12 +9,15 @@ import {
   vpaRowSchema,
 } from "../schemas/analysis";
 
+const directoryRow = z.object({ symbol: z.string(), name: z.string().nullable() });
+
 const sym = (s: string) => encodeURIComponent(s.toUpperCase());
 
 export const stockApi = {
   analysis: (symbol: string) => request(`/stocks/${sym(symbol)}/analysis`, { schema: envelope(analysisSchema) }),
   technicals: (symbol: string, limit = 260) =>
     request(`/stocks/${sym(symbol)}/technicals`, { query: { limit }, schema: envelope(z.array(technicalBarSchema)) }),
+  directory: () => request("/market/directory", { schema: envelope(z.array(directoryRow)) }),
   candles: (symbol: string, limit = 2000) => request(`/stocks/${sym(symbol)}/candles`, { query: { limit }, schema: candlesSchema }),
   vpa: (symbol: string, days = 20) =>
     request(`/stocks/${sym(symbol)}/vpa`, {

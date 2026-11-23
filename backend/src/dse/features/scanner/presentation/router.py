@@ -155,6 +155,16 @@ async def market_sectors(c: Container) -> dict[str, Any]:
 
 
 @router.get(
+    "/market/directory",
+    tags=["market"],
+    summary="Code, company name, sector and category of every instrument (for search)",
+)
+async def market_directory(c: Container) -> dict[str, Any]:
+    rows = await c.directory()
+    return envelope(rows, count=len(rows))
+
+
+@router.get(
     "/market/pe", tags=["market"], summary="Market, sector and category P/E (median and cap-weighted)"
 )
 async def market_pe(c: Container) -> dict[str, Any]:

@@ -34,3 +34,11 @@ export const useIntraday = (symbol: string) =>
 /** Full daily history (oldest first) for the price table and seasonality; it only changes after the close. */
 export const useCandles = (symbol: string) =>
   useQuery({ queryKey: key(symbol, "candles"), queryFn: async () => (await stockApi.candles(symbol)).data, staleTime: 5 * 60_000 });
+
+/** Code → company name for every instrument, so search works on names. Changes rarely. */
+export const useNames = () =>
+  useQuery({
+    queryKey: ["stock", "directory"],
+    queryFn: async () => new Map((await stockApi.directory()).data.flatMap((r) => (r.name ? [[r.symbol, r.name] as const] : []))),
+    staleTime: 6 * 60 * 60_000,
+  });

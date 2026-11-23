@@ -9,29 +9,18 @@ import { num, pct, tone } from "@/shared/lib/format";
 import { routes } from "@/shared/lib/navigation";
 import type { Quote } from "@/shared/api";
 import { Card } from "@/shared/ui/Card";
+import { useNames } from "../hooks/use-stock-queries";
+import { matchSymbols } from "../utils/search";
 import { clearRecent, getRecent, getServerRecent, subscribeRecent } from "../store/recent-store";
 
-const SUGGESTIONS = 8;
 const LIST_SIZE = 6;
+const NO_NAMES: ReadonlyMap<string, string> = new Map();
 
-/** Rank symbols for a typed query: exact code, then code prefix, then code contains, then sector contains. */
-export function matchSymbols(quotes: readonly Quote[], query: string, limit = SUGGESTIONS): Quote[] {
-  const q = query.trim().toUpperCase();
-  if (!q) return [];
-  const scored: Array<[number, Quote]> = [];
-  for (const quote of quotes) {
-    const code = quote.symbol.toUpperCase();
-    const score = code === q ? 0 : code.startsWith(q) ? 1 : code.includes(q) ? 2 : (quote.sector ?? "").toUpperCase().includes(q) ? 3 : -1;
-    if (score >= 0) scored.push([score, quote]);
-  }
-  return scored.sort((a, b) => a[0] - b[0] || b[1].volume - a[1].volume).slice(0, limit).map(([, quote]) => quote);
-}
-
-function SymbolRow({ quote }: { quote: Quote | undefined }) {
+function SymbolRow({ quote, name }: { quote: Quote | undefined; name?: string }) {
   if (!quote) return null;
   return (
     <li>
-      <Link href={routes.stock(quote.symbol)}><b>{quote.symbol}</b> <span className="mute small">{quote.sector ?? ""}</span></Link>
+      <Link href={routes.stock(quote.symbol)}><b>{quote.symbol}</b> <span className="mute small">{name ?? quote.sector ?? ""}</span></Link>
       <span className={tone(quote.percent)}>{num(quote.ltp)} · {pct(quote.percent, 2)}</span>
     </li>
   );
@@ -51,11 +40,12 @@ export function StockLauncher() {
   const quotes = useAllQuotes();
   const watchlist = useWatchlist();
   const recent = useSyncExternalStore(subscribeRecent, getRecent, getServerRecent);
+  const names = useNames().data ?? NO_NAMES;
   const [value, setValue] = useState("");
 
   const all = useMemo(() => (quotes.data ?? []).filter((q) => q.ltp != null && q.ltp > 0), [quotes.data]);
   const bySymbol = useMemo(() => new Map(all.map((q) => [q.symbol, q])), [all]);
-  const matches = useMemo(() => matchSymbols(all, value), [all, value]);
+  const matches = useMemo(() => matchSymbols(all, value, names), [all, value, names]);
   const active = useMemo(() => [...all].sort((a, b) => b.volume - a.volume).slice(0, LIST_SIZE), [all]);
   const gainers = useMemo(() => [...all].filter((q) => q.volume > 0).sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0)).slice(0, LIST_SIZE), [all]);
 
@@ -73,11 +63,11 @@ export function StockLauncher() {
     <>
       <Card title="Look up a stock">
         <form onSubmit={submit} role="search" className="launcher">
-          <label className="sr-only" htmlFor="stock-lookup">Trading code or sector</label>
+          <label className="sr-only" htmlFor="stock-lookup">Trading code, company or sector</label>
           <input
             id="stock-lookup"
             className="inp launcher-input"
-            placeholder="Type a trading code or sector, e.g. GP, BRAC, pharma"
+            placeholder="Type a trading code, company or sector, e.g. GP, Grameenphone, pharma"
             autoComplete="off"
             autoFocus
             value={value}
@@ -87,7 +77,7 @@ export function StockLauncher() {
         </form>
         {value.trim() ? (
           matches.length > 0 ? (
-            <ul className="watch" aria-label="Matching symbols">{matches.map((q) => <SymbolRow key={q.symbol} quote={q} />)}</ul>
+            <ul className="watch" aria-label="Matching symbols">{matches.map((q) => <SymbolRow key={q.symbol} quote={q} name={names.get(q.symbol)} />)}</ul>
           ) : (
             <p className="mute small">{quotes.isPending ? "Loading symbols…" : `No symbol or sector matches “${value.trim()}”. Press Open to try it anyway.`}</p>
           )

@@ -277,6 +277,16 @@ class GetRange52w(_Analytics):
         return analytics.to_records(analytics.range_52w(frame, near, limit), self.COLUMNS)
 
 
+class GetDirectory(_Analytics):
+    """Code, company name, sector and category of every instrument: what search needs."""
+
+    COLUMNS = ("symbol", "name", "sector", "category")
+
+    async def __call__(self) -> list[dict[str, Any]]:
+        frame = (await self._view.current()).frame()
+        return analytics.to_records(frame.sort_values("symbol"), self.COLUMNS)
+
+
 class GetTable(_Analytics):
     """A per-instrument table over chosen columns (TA values, fundamentals/valuation matrix)."""
 

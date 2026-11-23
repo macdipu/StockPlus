@@ -9,6 +9,7 @@ import pytest
 
 from dse.features.analysis.application.facade import QuoteInput, UniverseInput
 from dse.features.scanner.application.use_cases import (
+    GetDirectory,
     GetPe,
     GetRange52w,
     GetSectors,
@@ -270,6 +271,16 @@ async def test_market_analytics_over_the_published_universe(
     banks = await GetTable(view)(["symbol", "sector"], "Bank")
     assert banks
     assert {b["sector"] for b in banks} == {"Bank"}
+
+
+async def test_directory_lists_code_name_sector_for_search(
+    published: tuple[MemoryStore, UniverseView],
+) -> None:
+    _, view = published
+    rows = await GetDirectory(view)()
+    assert [r["symbol"] for r in rows] == sorted(r["symbol"] for r in rows)
+    assert set(rows[0]) <= {"symbol", "name", "sector", "category"}
+    assert {"symbol", "sector"} <= set(rows[0])
 
 
 async def test_on_poll_rebuilds_only_when_something_happened() -> None:
