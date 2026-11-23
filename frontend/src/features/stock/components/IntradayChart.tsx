@@ -7,7 +7,7 @@ import { minuteToTimestamp } from "../utils/chart-model";
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-/** 1-minute candles with volume. `day` is the exchange date the minute labels belong to. */
+/** The last price minute by minute, with volume. `day` is the exchange date the minute labels belong to. */
 export function IntradayChart({ bars, day }: { bars: readonly IntradayBar[]; day: string }) {
   const host = useRef<HTMLDivElement>(null);
 
@@ -25,14 +25,17 @@ export function IntradayChart({ bars, day }: { bars: readonly IntradayBar[]; day
         timeScale: { timeVisible: true, secondsVisible: false, borderColor: css("--line") },
         rightPriceScale: { borderColor: css("--line") },
       });
-      const candle = chart.addSeries(lib.CandlestickSeries, { upColor: up, downColor: down, borderVisible: false, wickUpColor: up, wickDownColor: down });
-      candle.priceScale().applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
+      // Minute bars on a thinly traded share are mostly flat single prints, which candles draw as dashes: a stepped line
+      // of the last price reads as what it is, a price that holds until the next trade.
+      const line = chart.addSeries(lib.LineSeries, { color: css("--brand"), lineWidth: 2, lineType: lib.LineType.WithSteps, pointMarkersVisible: true, pointMarkersRadius: 2, priceLineVisible: true });
+      line.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.3 } });
       const volume = chart.addSeries(lib.HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "volume", lastValueVisible: false });
       chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
       const t = (b: IntradayBar) => minuteToTimestamp(day, b.time) as UTCTimestamp;
-      candle.setData(bars.map((b) => ({ time: t(b), open: b.open, high: b.high, low: b.low, close: b.close })));
+      line.setData(bars.map((b) => ({ time: t(b), value: b.close })));
       volume.setData(bars.map((b) => ({ time: t(b), value: b.volume, color: b.close >= b.open ? up : down })));
-      chart.timeScale().fitContent();
+      // a little empty space either side, so the first time label is not cut off at the edge
+      chart.timeScale().setVisibleLogicalRange({ from: -7, to: bars.length + 2 });
       cleanup = () => chart.remove();
     });
     return () => {
@@ -41,5 +44,5 @@ export function IntradayChart({ bars, day }: { bars: readonly IntradayBar[]; day
     };
   }, [bars, day]);
 
-  return <div ref={host} className="chart short" role="img" aria-label="Intraday one-minute chart" data-testid="intraday-chart" />;
+  return <div ref={host} className="chart short" role="img" aria-label="Intraday price, minute by minute" data-testid="intraday-chart" />;
 }

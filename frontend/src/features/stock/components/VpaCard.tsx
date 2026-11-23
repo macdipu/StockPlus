@@ -28,9 +28,12 @@ export function VpaCard({ symbol }: { symbol: string }) {
                 ))}
               </tbody>
             </table>
-            <p className="small mute">
-              {Object.entries(meta.legend).map(([k, v]) => <span key={k}><b>{k}</b>: {v.meaning} · </span>)}
-            </p>
+            <details className="small">
+              <summary className="mute">What these labels mean</summary>
+              <ul className="plain">
+                {Object.entries(meta.legend).map(([k, v]) => <li key={k}><b>{k}</b>: {v.meaning}</li>)}
+              </ul>
+            </details>
           </>
         );
       })()}

@@ -238,3 +238,18 @@ Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 p
   same fit-based median, so the two always agree.
 - The rules are judgement and unit-tested on a high-return company, a bank, a loss-maker, a non-payer and a patchy payer.
   They are not back-tested. Reverse-DCF and the original notes are kept under the table.
+
+**Phase G done (the Technicals tab):**
+- **A technical reading first.** One headline ("Trend down, momentum weak, volume light.") and one plain line each for trend,
+  momentum, volume, typical daily swing and the nearest support and resistance with their distance from the price.
+- **Indicators say what they mean.** The table now has a "What it says" column (for example "Weak: sellers have the upper
+  hand", "Above its signal line: momentum improving", "Price is above 0 of the 3 averages", "Inside the bands, 39% of the way up").
+- Support and resistance show how far each level is from the price; the repeated text Summary is gone from this tab (it is
+  still in the API); the volume-price legend is collapsed under "What these labels mean".
+- **Intraday chart fixed.** Minute candles on a thinly traded share were flat dashes. It is now a stepped line of the last
+  price with volume, with room at the left edge; with fewer than 8 recorded minutes it says so instead of drawing a dot.
+- The reading is built from the same numbers shown below it (pure, unit-tested); thresholds (RSI zones, volume 0.7x and 1.5x,
+  the 50 and 200-day averages) are conventional, not back-tested.
+
+**Review status:** A, B, C, E and G are done. Left from the plan: D (more on events and news; the Overview already shows
+dividend, record date, AGM and news), F (what changed since yesterday, needs a stored previous analysis).

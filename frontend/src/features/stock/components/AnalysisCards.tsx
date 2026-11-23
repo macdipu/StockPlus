@@ -1,7 +1,7 @@
 import { num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
-import { KeyValueTable } from "@/shared/ui/Stat";
 import type { Analysis } from "../schemas/analysis";
+import { distance, indicatorRows, technicalReading } from "../utils/technicals";
 
 export function ChecklistCard({ analysis }: { analysis: Analysis }) {
   return (
@@ -26,10 +26,10 @@ export function LevelsCard({ analysis }: { analysis: Analysis }) {
     <Card title="Support / resistance">
       <table>
         <tbody>
-          {[...l.above].reverse().map((x) => <tr key={`r${x}`}><th className="dn">R</th><td>{num(x)}</td></tr>)}
+          {[...l.above].reverse().map((x) => <tr key={`r${x}`}><th className="dn">Resistance</th><td>{num(x)} <span className="small mute">{distance(l.price, x)}</span></td></tr>)}
           <tr><th>Price</th><td><b>{num(l.price)}</b></td></tr>
-          {l.below.map((x) => <tr key={`s${x}`}><th className="up">S</th><td>{num(x)}</td></tr>)}
-          <tr><th>52w</th><td>{num(l.low_52w)} – {num(l.high_52w)}</td></tr>
+          {l.below.map((x) => <tr key={`s${x}`}><th className="up">Support</th><td>{num(x)} <span className="small mute">{distance(l.price, x)}</span></td></tr>)}
+          <tr><th>52-week range</th><td>{num(l.low_52w)} – {num(l.high_52w)}</td></tr>
         </tbody>
       </table>
     </Card>
@@ -56,21 +56,42 @@ export function TrendCard({ analysis }: { analysis: Analysis }) {
 }
 
 export function IndicatorsCard({ analysis }: { analysis: Analysis }) {
-  const i = analysis.indicators;
-  const get = (k: string) => i[k] ?? null;
+  const rows = indicatorRows(analysis);
   return (
     <Card title="Indicators">
-      <KeyValueTable
-        rows={[
-          ["RSI(14)", num(get("rsi14"), 1)],
-          ["MACD / signal / hist", `${num(get("macd"))} / ${num(get("macd_signal"))} / ${num(get("macd_hist"))}`],
-          ["EMA 9 / 21", `${num(get("ema9"))} / ${num(get("ema21"))}`],
-          ["SMA 20 / 50 / 200", `${num(get("sma20"))} / ${num(get("sma50"))} / ${num(get("sma200"))}`],
-          ["Bollinger (20,2)", `${num(get("bb_lower"))} – ${num(get("bb_upper"))}`],
-          ["ATR(14)", num(get("atr14"))],
-          ["Volume vs 20d avg", `${num(get("vol_ratio"))}×`],
-        ]}
-      />
+      <div style={{ overflowX: "auto" }}>
+        <table className="small">
+          <thead><tr><th>Indicator</th><th className="r">Value</th><th>What it says</th></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label}>
+                <th scope="row">{r.label}</th>
+                <td className="r num">{r.value}</td>
+                <td className={r.tone === "mute" ? "" : r.tone}>{r.reading}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+/** The technical picture in plain words: a headline and one line each for trend, momentum, volume, swing and levels. */
+export function TechnicalReadingCard({ analysis }: { analysis: Analysis }) {
+  const r = technicalReading(analysis);
+  if (!r) return null;
+  return (
+    <Card title="Technical reading">
+      <p style={{ margin: "0 0 8px", fontSize: 16 }}><b>{r.headline}</b></p>
+      <ul className="plain readinglines">
+        {r.lines.map((l) => (
+          <li key={l.topic}>
+            <b className={l.tone === "mute" ? "" : l.tone}>{l.topic}.</b> {l.text}
+          </li>
+        ))}
+      </ul>
+      <p className="small mute" style={{ marginBottom: 0 }}>{analysis.disclaimer}</p>
     </Card>
   );
 }
@@ -95,15 +116,6 @@ export function PatternsCard({ analysis }: { analysis: Analysis }) {
           )}
         </tbody>
       </table>
-    </Card>
-  );
-}
-
-export function SummaryCard({ analysis }: { analysis: Analysis }) {
-  return (
-    <Card title="Summary">
-      <ul className="plain">{analysis.summary.map((s) => <li key={s}>{s}</li>)}</ul>
-      <p className="small mute">{analysis.disclaimer}</p>
     </Card>
   );
 }
