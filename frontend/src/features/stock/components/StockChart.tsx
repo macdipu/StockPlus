@@ -3,84 +3,137 @@
 import { useCallback, useMemo } from "react";
 import { PriceChart, type Annotations, type LiveBar, type Resolution } from "@/features/chart";
 import type { Analysis } from "../schemas/analysis";
-import { ANALYSIS_LEVELS, useAnalysisLevel, type AnalysisLevel } from "../store/chart-prefs";
-import { levelLines, patternMarkers } from "../utils/chart-model";
+import { CLEAN, LAYERS, TRADER, useLayers, type Layer } from "../store/chart-prefs";
+import { useChartPatterns } from "../hooks/use-stock-queries";
+import type { ChartPattern } from "../schemas/chart-patterns";
+import { dedupeLines, nearestLevels, patternMarkers, patternShapes, recentPatterns } from "../utils/chart-model";
 
-/** Indicators each analysis level draws, by timeframe (the same specs the chart's indicator picker uses). */
-const PRESETS: Record<Exclude<AnalysisLevel, "off">, { daily: readonly string[]; intraday: readonly string[] }> = {
-  basic: { daily: ["sma(20)", "sma(50)", "sma(200)", "ema(9)", "ema(21)"], intraday: ["ema(9)", "ema(21)"] },
-  full: { daily: ["sma(20)", "sma(50)", "sma(200)", "ema(21)", "bbands(20,2)", "rsi(14)", "macd(12,26,9)"], intraday: ["ema(9)", "ema(21)", "rsi(14)"] },
+/** Indicators each layer adds, by timeframe (the same specs the chart's indicator picker uses). */
+const SPECS: Record<Extract<Layer, "averages" | "bands" | "rsi" | "macd">, { daily: readonly string[]; intraday: readonly string[] }> = {
+  averages: { daily: ["sma(20)", "sma(50)", "sma(200)"], intraday: ["ema(9)", "ema(21)"] },
+  bands: { daily: ["bbands(20,2)"], intraday: [] },
+  rsi: { daily: ["rsi(14)"], intraday: ["rsi(14)"] },
+  macd: { daily: ["macd(12,26,9)"], intraday: [] },
 };
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const ZONE = "#d97706";
 const WATCH = "#7c3aed";
+const MAX_PATTERNS = 5;
+/** Two lines closer than this share of the price would stack their tags, so the less important one is dropped. */
+const MIN_GAP = 0.02;
 
-/** The trade plan and support/resistance, as annotations for the generic chart. */
-function annotate(a: Analysis, level: AnalysisLevel, ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }): Annotations | undefined {
-  if (level === "off") return undefined;
+type Line = NonNullable<Annotations["priceLines"]>[number];
+
+/** The plan and the nearest levels, as annotations for the generic chart. The plan comes first, so where a level and a
+ * plan line coincide the plan's tag wins. */
+function annotate(a: Analysis, layers: ReadonlySet<Layer>, shapes: readonly ChartPattern[], ctx: { resolution: Resolution; dates: ReadonlySet<string> }): Annotations | undefined {
+  if (layers.size === 0) return undefined;
   const up = css("--up");
   const down = css("--dn");
+  const zone = css("--decide");
   const story = a.candle_story;
-  const out: { priceLines: NonNullable<Annotations["priceLines"]>; markers: NonNullable<Annotations["markers"]>; bands: NonNullable<Annotations["bands"]> } = { priceLines: [], markers: [], bands: [] };
-  const priceLines = out.priceLines as Array<NonNullable<Annotations["priceLines"]>[number]>;
-  const bands = out.bands as Array<NonNullable<Annotations["bands"]>[number]>;
-  const markers = out.markers as Array<NonNullable<Annotations["markers"]>[number]>;
-  if (level === "full" && story) {
+  const lines: Line[] = [];
+  let targets = 0;
+  const bands: NonNullable<Annotations["bands"]>[number][] = [];
+  if (layers.has("plan") && story) {
     for (const x of story.annotations) {
       if (x.kind === "entry") {
-        priceLines.push({ price: x.price, color: ZONE, title: x.label, style: "solid", width: 2 });
-        if (x.price_to != null) {
-          priceLines.push({ price: x.price_to, color: ZONE, title: "", style: "solid", width: 2 });
-          bands.push({ from: x.price_to, to: x.price, color: "rgba(217,119,6,0.13)" });
-        }
-      } else if (x.kind === "stop") priceLines.push({ price: x.price, color: down, title: x.label, style: "solid", width: 2 });
-      else if (x.kind === "target") priceLines.push({ price: x.price, color: up, title: x.label, style: "dashed", width: 2 });
-      else priceLines.push({ price: x.price, color: WATCH, title: x.label, style: "dotted" });
-    }
-  } else if (ctx.resolution === "D") {
-    for (const l of levelLines(a.levels)) priceLines.push({ price: l.price, color: l.kind === "resistance" ? down : up, title: l.title, style: "dashed" });
-  }
-  if (ctx.resolution === "D") {
-    markers.push(...patternMarkers(a.candles.patterns, { up, down, neutral: "#94a3b8" }, ctx.dates));
-    if (level === "full" && story && ctx.lastDate) {
-      const text = { inside_buy_zone: "IN BUY ZONE", above_buy_zone: "ABOVE ZONE: wait", below_buy_zone: "BELOW ZONE: wait", below_stop: "BELOW STOP: exit" }[story.where];
-      markers.push({ time: ctx.lastDate, position: "aboveBar", shape: "circle", color: story.where === "inside_buy_zone" ? ZONE : story.where === "below_stop" ? down : css("--mute"), text });
+        lines.push({ price: x.price, color: zone, title: "Buy zone", style: "solid", width: 2 });
+        if (x.price_to != null) bands.push({ from: x.price_to, to: x.price, color: css("--decide-soft") }); // the band shows the lower edge
+      } else if (x.kind === "stop") lines.push({ price: x.price, color: down, title: "Stop", style: "dashed", width: 2 });
+      else if (x.kind === "target") lines.push({ price: x.price, color: up, title: `Target ${++targets}`, style: "dashed", width: 2 });
+      else lines.push({ price: x.price, color: WATCH, title: "Watch", style: "dotted" });
     }
   }
-  return out;
+  if (layers.has("levels") && ctx.resolution === "D") {
+    for (const l of nearestLevels(a.levels, a.price.ltp ?? a.levels.price)) lines.push({ price: l.price, color: l.kind === "resistance" ? down : up, title: l.title, style: "dotted" });
+  }
+  const markers: NonNullable<Annotations["markers"]>[number][] = [];
+  if (layers.has("patterns") && ctx.resolution === "D") {
+    // arrows only: the names are listed under the chart, where they cannot sit on top of candles
+    markers.push(...patternMarkers(recentPatterns(a.candles.patterns, ctx.dates, MAX_PATTERNS), { up, down, neutral: "#94a3b8" }, ctx.dates).map((m) => ({ ...m, text: "" })));
+  }
+  const drawn = layers.has("shapes") && ctx.resolution === "D" ? patternShapes(shapes, { up, down, neutral: "#6d7cff" }) : [];
+  return { priceLines: dedupeLines(lines, MIN_GAP), markers, bands, shapes: drawn };
 }
 
-function note(level: AnalysisLevel, resolution: Resolution): string {
-  if (level === "off") return "Prices and volume only.";
-  if (resolution !== "D") return `Times in Dhaka (UTC+6). EMA 9 / 21${level === "full" ? ", RSI and the plan levels" : ""}.`;
-  return level === "full" ? "Buy zone shaded, stop, targets, watch levels, patterns, Bollinger bands, RSI, MACD." : "SMA 20/50/200, EMA 9/21, support and resistance, candle patterns.";
+function note(layers: ReadonlySet<Layer>): string {
+  if (layers.size === 0) return "Candles and volume only. Use Layers to add levels, the trade plan, patterns or indicators.";
+  const bits = [layers.has("levels") ? "nearest support and resistance" : null, layers.has("plan") ? "buy zone, stop and targets" : null].filter(Boolean);
+  return bits.length ? `On the chart: ${bits.join(", ")}.` : "";
 }
 
-/** The stock page's chart: the generic chart plus this stock's analysis drawn on it at the chosen level. */
-export function StockChart({ symbol, analysis, live }: { symbol: string; analysis: Analysis; live: LiveBar | null }) {
-  const [level, setLevel] = useAnalysisLevel();
-  const presets = useCallback((r: Resolution) => (level === "off" ? [] : PRESETS[level][r === "D" ? "daily" : "intraday"]), [level]);
-  const annotations = useCallback((ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }) => annotate(analysis, level, ctx), [analysis, level]);
-  const noteFor = useCallback((r: Resolution) => note(level, r), [level]);
-  const extras = useMemo(
-    () => (
-      <div className="seg" role="group" aria-label="Analysis on the chart">
-        <span className="seg-label small mute">Analysis</span>
-        {ANALYSIS_LEVELS.map((l) => (
-          <button key={l.key} type="button" aria-pressed={level === l.key} title={l.title} className={level === l.key ? "on" : ""} onClick={() => setLevel(l.key)}>
-            {l.label}
-          </button>
+/** One checkbox per layer, plus two shortcuts. A native <details> keeps it keyboard and screen-reader friendly. */
+function LayersMenu({ layers, onChange }: { layers: ReadonlySet<Layer>; onChange: (next: readonly Layer[]) => void }) {
+  const toggle = (k: Layer) => onChange(LAYERS.map((l) => l.key).filter((x) => (x === k ? !layers.has(k) : layers.has(x))));
+  return (
+    <details className="layers">
+      <summary className="btn ghost small">Layers{layers.size ? ` (${layers.size})` : ""}</summary>
+      <div className="layers-panel" role="group" aria-label="Chart layers">
+        <div className="row">
+          <button type="button" className="btn ghost small" onClick={() => onChange(CLEAN)}>Clean</button>
+          <button type="button" className="btn ghost small" onClick={() => onChange(TRADER)}>Everything</button>
+        </div>
+        {LAYERS.map((l) => (
+          <label key={l.key} title={l.title} className="layer-opt">
+            <input type="checkbox" checked={layers.has(l.key)} onChange={() => toggle(l.key)} /> {l.label}
+          </label>
         ))}
       </div>
-    ),
-    [level, setLevel],
+    </details>
   );
+}
+
+/** The stock page's chart: the generic chart plus this stock's analysis, one layer at a time. */
+export function StockChart({ symbol, analysis, live }: { symbol: string; analysis: Analysis; live: LiveBar | null }) {
+  const [layers, setLayers] = useLayers();
+  const presets = useCallback(
+    (r: Resolution) => (["averages", "bands", "rsi", "macd"] as const).filter((k) => layers.has(k)).flatMap((k) => SPECS[k][r === "D" ? "daily" : "intraday"]),
+    [layers],
+  );
+  const found = useChartPatterns(symbol, layers.has("shapes")).data;
+  const shapes = useMemo(() => found ?? [], [found]);
+  const annotations = useCallback((ctx: { resolution: Resolution; dates: ReadonlySet<string>; lastDate: string | null }) => annotate(analysis, layers, shapes, ctx), [analysis, layers, shapes]);
+  const noteFor = useCallback(() => note(layers), [layers]);
+  const extras = useMemo(() => <LayersMenu layers={layers} onChange={setLayers} />, [layers, setLayers]);
   const story = analysis.candle_story;
-  const showPlan = level === "full" && story;
+  const showPlan = layers.has("plan") && story;
+  const patterns = useMemo(
+    () => (layers.has("patterns") ? [...analysis.candles.patterns].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, MAX_PATTERNS) : []),
+    [layers, analysis.candles.patterns],
+  );
   return (
     <div className={showPlan ? "advgrid" : undefined}>
-      <PriceChart symbol={symbol} scope="stock" presets={presets} annotations={annotations} live={live} toolbarExtras={extras} note={noteFor} />
+      <div>
+        <PriceChart symbol={symbol} scope="stock" presets={presets} annotations={annotations} live={live} toolbarExtras={extras} note={noteFor} />
+        {patterns.length ? (
+          <p className="small patternlist" aria-label="Recent candle patterns">
+            <span className="mute">Recent patterns:</span>{" "}
+            {patterns.map((p) => (
+              <span key={`${p.date}-${p.pattern}`} className={`ptag ${p.direction === "bullish" ? "up" : p.direction === "bearish" ? "dn" : "mute"}`}>
+                {p.direction === "bullish" ? "▲" : p.direction === "bearish" ? "▼" : "●"} {p.pattern} <span className="mute">{p.date.slice(5)}</span>
+              </span>
+            ))}
+          </p>
+        ) : null}
+        {layers.has("shapes") ? (
+          <div className="shapelist" aria-label="Possible chart patterns">
+            {shapes.length === 0 ? (
+              <p className="small mute">No clear chart pattern on the daily chart right now.</p>
+            ) : (
+              <ul className="plain small">
+                {shapes.map((p) => (
+                  <li key={`${p.kind}-${p.end}`}>
+                    <b className={p.direction === "bullish" ? "up" : p.direction === "bearish" ? "dn" : ""}>{p.name}</b>{" "}
+                    <span className="mute">({p.status}, fit {p.confidence}%)</span> {p.summary}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="small mute">Possible shapes found by fixed rules on swing highs and lows. They are not signals.</p>
+          </div>
+        ) : null}
+      </div>
       {showPlan ? (
         <aside className="advnote" aria-label="Trade plan drawn on the chart" data-agent="trade-plan">
           <p className={`where ${story.where}`}><b>{story.headline}</b></p>
@@ -90,7 +143,7 @@ export function StockChart({ symbol, analysis, live }: { symbol: string; analysi
             ))}
           </ol>
           <ul className="plain small legendkeys">
-            <li><i className="sw" style={{ background: ZONE }} /> Buy zone</li>
+            <li><i className="sw" style={{ background: "var(--decide)" }} /> Buy zone</li>
             <li><i className="sw" style={{ background: "var(--dn)" }} /> Stop: exit below</li>
             <li><i className="sw" style={{ background: "var(--up)" }} /> Take-profit targets</li>
             <li><i className="sw" style={{ background: WATCH }} /> Watch levels</li>

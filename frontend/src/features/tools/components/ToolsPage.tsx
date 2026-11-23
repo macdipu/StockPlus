@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { useWatchlist } from "@/features/watchlist";
 import { int, num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
@@ -9,6 +9,17 @@ import { ErrorNotice } from "@/shared/ui/Notice";
 import { KeyValueTable } from "@/shared/ui/Stat";
 import { toolsApi } from "../services/tools-api";
 import { heatColor, parseSymbols } from "../utils/heat";
+
+/** A visible label above its control, so a row of boxes is never a row of mysteries. */
+function Field({ label, children }: { label: string; children: (id: string) => ReactNode }) {
+  const id = useId();
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      {children(id)}
+    </div>
+  );
+}
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
 
@@ -26,12 +37,22 @@ function ReturnCalculator({ defaultSymbol }: { defaultSymbol: string }) {
   const d = m.data?.data;
   return (
     <Card title="Return calculator">
-      <form className="row" onSubmit={go}>
-        <input className="inp" aria-label="Symbol" style={{ width: 110 }} value={symbol} onChange={(e) => setSymbol(e.target.value)} required />
-        <input className="inp" aria-label="Buy date" type="date" value={buy} onChange={(e) => setBuy(e.target.value)} required />
-        <input className="inp" aria-label="Sell date (blank = today)" type="date" value={sell} onChange={(e) => setSell(e.target.value)} />
-        <input className="inp" aria-label="Quantity" type="number" min="1" step="1" style={{ width: 90 }} value={qty} onChange={(e) => setQty(e.target.value)} />
-        <input className="inp" aria-label="Fee % per leg" type="number" min="0" max="5" step="0.05" style={{ width: 80 }} value={fee} onChange={(e) => setFee(e.target.value)} />
+      <form className="row" style={{ alignItems: "flex-end" }} onSubmit={go}>
+        <Field label="Symbol">
+          {(id) => <input id={id} className="inp" placeholder="e.g. GP" style={{ width: 110 }} value={symbol} onChange={(e) => setSymbol(e.target.value)} required />}
+        </Field>
+        <Field label="Buy date">
+          {(id) => <input id={id} className="inp" type="date" value={buy} onChange={(e) => setBuy(e.target.value)} required />}
+        </Field>
+        <Field label="Sell date (blank = today)">
+          {(id) => <input id={id} className="inp" type="date" value={sell} onChange={(e) => setSell(e.target.value)} />}
+        </Field>
+        <Field label="Quantity">
+          {(id) => <input id={id} className="inp" type="number" min="1" step="1" style={{ width: 90 }} value={qty} onChange={(e) => setQty(e.target.value)} />}
+        </Field>
+        <Field label="Fee % per leg">
+          {(id) => <input id={id} className="inp" type="number" min="0" max="5" step="0.05" style={{ width: 80 }} value={fee} onChange={(e) => setFee(e.target.value)} />}
+        </Field>
         <button className="btn" type="submit" disabled={m.isPending}>Calculate</button>
       </form>
       {m.isError ? <ErrorNotice error={m.error} /> : null}
@@ -60,8 +81,10 @@ function CsvDownload({ defaultSymbol }: { defaultSymbol: string }) {
   const code = symbol.trim();
   return (
     <Card title="Data download">
-      <div className="row">
-        <input className="inp" aria-label="Symbol to download" style={{ width: 110 }} value={symbol} onChange={(e) => setSymbol(e.target.value)} />
+      <div className="row" style={{ alignItems: "flex-end" }}>
+        <Field label="Symbol to download">
+          {(id) => <input id={id} className="inp" placeholder="e.g. GP" style={{ width: 110 }} value={symbol} onChange={(e) => setSymbol(e.target.value)} />}
+        </Field>
         <a className="btn" href={code ? toolsApi.csvUrl(code) : undefined} aria-disabled={!code} download data-testid="csv-link">
           Download daily OHLCV (CSV)
         </a>
@@ -82,11 +105,19 @@ function CorrelationTool({ defaults }: { defaults: string }) {
   const c = m.data?.data;
   return (
     <Card title="Correlation of daily returns">
-      <form className="row" onSubmit={go}>
-        <input className="inp" aria-label="Symbols (comma separated)" style={{ flex: 1, minWidth: 260 }} value={symbols} onChange={(e) => setSymbols(e.target.value)} />
-        <select className="sel" aria-label="Window (sessions)" value={days} onChange={(e) => setDays(e.target.value)}>
-          {["60", "120", "250"].map((d) => <option key={d}>{d}</option>)}
-        </select>
+      <form className="row" style={{ alignItems: "flex-end" }} onSubmit={go}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <Field label="Symbols (comma separated)">
+            {(id) => <input id={id} className="inp" placeholder="e.g. GP, BRACBANK, SQURPHARMA" style={{ width: "100%" }} value={symbols} onChange={(e) => setSymbols(e.target.value)} />}
+          </Field>
+        </div>
+        <Field label="Window (sessions)">
+          {(id) => (
+            <select id={id} className="sel" value={days} onChange={(e) => setDays(e.target.value)}>
+              {["60", "120", "250"].map((d) => <option key={d}>{d}</option>)}
+            </select>
+          )}
+        </Field>
         <button className="btn" type="submit" disabled={m.isPending}>Compute</button>
       </form>
       {m.isError ? <ErrorNotice error={m.error} /> : null}

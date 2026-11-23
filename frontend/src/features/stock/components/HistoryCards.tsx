@@ -5,7 +5,7 @@ import { int, num, pct, tone } from "@/shared/lib/format";
 import { Card } from "@/shared/ui/Card";
 import { Empty, ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { useCandles } from "../hooks/use-stock-queries";
-import { monthlySeasonality, priceTable, weekdaySeasonality, type SeasonStat } from "../utils/history";
+import { monthlySeasonality, priceTable, weekdaySeasonality, withToday, type SeasonStat, type TodayBar } from "../utils/history";
 
 const WINDOWS = [30, 60, 90, 180, 250] as const;
 
@@ -19,10 +19,10 @@ function Stat({ label, value, cls = "" }: { label: string; value: string; cls?: 
 }
 
 /** Last N working days of daily history with summary stats. */
-export function PriceTableCard({ symbol }: { symbol: string }) {
+export function PriceTableCard({ symbol, live }: { symbol: string; live?: TodayBar | null }) {
   const q = useCandles(symbol);
   const [days, setDays] = useState<number>(90);
-  const t = q.data ? priceTable(q.data, days) : null;
+  const t = q.data ? priceTable(withToday(q.data, live), days) : null;
   return (
     <Card title="Price table">
       <div className="row">

@@ -36,21 +36,24 @@ test.describe("Stock tab", () => {
     await expect(page.getByRole("heading", { name: "Setup checklist", level: 3 })).toBeVisible();
   });
 
-  test("the chart's Analysis level and style can be changed, and are remembered", async ({ page }) => {
+  test("the chart's layers and style can be changed, and are remembered", async ({ page }) => {
     await page.goto(`/stock/${SYNCED[0]}`);
     const chart = () => page.getByTestId("price-chart").locator("canvas").first();
     await expect(chart()).toBeVisible();
-    const level = (name: string) => page.getByRole("group", { name: "Analysis on the chart" }).getByRole("button", { name });
+    const layers = page.getByRole("group", { name: "Chart layers" });
+    const layer = (name: string) => layers.getByRole("checkbox", { name });
     const plan = page.getByRole("complementary", { name: "Trade plan drawn on the chart" });
-    await expect(level("Basic")).toHaveAttribute("aria-pressed", "true"); // default
+    await page.getByText(/^Layers/).click();
+    await expect(layer("Support and resistance")).toBeChecked(); // default: candles plus the nearest levels
+    await expect(layer("Trade plan")).not.toBeChecked();
     await expect(plan).toHaveCount(0);
-    await expect(page.getByRole("tab", { name: "Advanced" })).toHaveCount(0); // one control, not two
 
-    await level("Full").click(); // the trade plan is drawn on the chart and written beside it
+    await layer("Trade plan").check(); // the trade plan is drawn on the chart and written beside it
     await expect(plan).toBeVisible();
-    await level("Off").click(); // clean chart: no plan text, prices and volume only
+    await layers.getByRole("button", { name: "Clean" }).click(); // candles and volume only
     await expect(plan).toHaveCount(0);
-    await expect(page.getByText("Prices and volume only.")).toBeVisible();
+    await expect(page.getByText(/^Candles and volume only/)).toBeVisible();
+    await page.getByText(/^Layers/).click();
 
     const styles = ["Hollow candles", "Bars", "HLC bars", "Line", "Line with markers", "Step line", "Area", "HLC area", "Baseline", "Columns", "High-low", "Heikin Ashi"];
     for (const style of styles) {
@@ -62,10 +65,39 @@ test.describe("Stock tab", () => {
     await expect(chart()).toBeVisible();
 
     await page.reload(); // both choices are remembered in this browser
-    await expect(level("Off")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText(/^Candles and volume only/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Chart style" })).toContainText("Heikin Ashi");
-    await level("Full").click();
+    await page.getByText(/^Layers/).click();
+    await layers.getByRole("button", { name: "Everything" }).click();
     await expect(plan).toBeVisible();
+  });
+
+  test("drawings can be placed, are remembered, and can be undone", async ({ page }) => {
+    await page.goto(`/stock/${SYNCED[0]}`);
+    const canvas = page.getByTestId("price-chart");
+    await expect(canvas.locator("canvas").first()).toBeVisible();
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("no chart");
+    const tool = (name: string) => page.getByRole("group", { name: "Tool" }).getByRole("button", { name, exact: true });
+    const at = async (fx: number, fy: number) => {
+      await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy, { steps: 3 });
+      await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    };
+
+    await tool("Trend line").click();
+    await at(0.4, 0.6);
+    await at(0.7, 0.3); // two quick clicks: both must register
+    await tool("Horizontal line").click();
+    await at(0.5, 0.5);
+    await expect(page.getByRole("button", { name: /^Clear all \(2\)/ })).toBeVisible();
+
+    await page.reload(); // kept per stock and timeframe in this browser
+    await expect(page.getByRole("button", { name: /^Clear all \(2\)/ })).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByRole("button", { name: /^Clear all \(1\)/ })).toBeVisible();
+    await page.getByRole("button", { name: /^Clear all/ }).click();
+    await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
   });
 
   test("indicators can be searched, added with settings, and removed", async ({ page }) => {

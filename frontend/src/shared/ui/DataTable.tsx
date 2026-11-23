@@ -13,6 +13,8 @@ export interface Column<R> {
   value?: (row: R) => Cell;
   render?: (row: R) => ReactNode;
   sortable?: boolean;
+  /** Drop this column on phone widths (secondary detail); the rest stay. */
+  hideNarrow?: boolean;
 }
 
 interface Props<R> {
@@ -52,7 +54,7 @@ export function DataTable<R>({ rows, columns, rowKey, caption, defaultSort, rowH
                 <th
                   key={c.key}
                   scope="col"
-                  className={`${sortable ? "sortable" : ""} ${c.align === "right" ? "r" : ""}`}
+                  className={`${sortable ? "sortable" : ""} ${c.align === "right" ? "r" : ""} ${c.hideNarrow ? "hide-sm" : ""}`}
                   aria-sort={active ? (sort.desc ? "descending" : "ascending") : sortable ? "none" : undefined}
                 >
                   {sortable ? (
@@ -85,7 +87,7 @@ export function DataTable<R>({ rows, columns, rowKey, caption, defaultSort, rowH
                   tabIndex={href ? 0 : undefined}
                 >
                   {columns.map((c) => (
-                    <td key={c.key} className={c.align === "right" ? "r num" : undefined}>
+                    <td key={c.key} className={`${c.align === "right" ? "r num" : ""} ${c.hideNarrow ? "hide-sm" : ""}`.trim() || undefined}>
                       {c.render ? c.render(row) : String((row as Record<string, unknown>)[c.key] ?? "–")}
                     </td>
                   ))}

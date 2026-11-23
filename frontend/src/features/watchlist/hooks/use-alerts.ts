@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { companyApi, type StockAlert } from "@/features/company";
 import { createLocalStore } from "@/shared/lib/local-store";
 
@@ -28,6 +28,11 @@ function write(key: string, v: unknown) {
 
 export type NotifyState = "off" | "on" | "blocked" | "unsupported";
 
+type Permission = NotificationPermission | "unsupported";
+const noSubscription = () => () => {};
+const readPermission = (): Permission => ("Notification" in window ? Notification.permission : "unsupported");
+const serverPermission = (): Permission => "unsupported"; // the server cannot know; React re-reads in the browser after hydrating
+
 /**
  * Watchlist notifications. When switched on (and the browser allows it), the watched symbols are checked every
  * two minutes; each new alert (buy zone with a bullish candle, stop broken, target hit, breakout, bearish candle)
@@ -36,14 +41,15 @@ export type NotifyState = "off" | "on" | "blocked" | "unsupported";
 export function useWatchlistAlerts(symbols: readonly string[]) {
   const router = useRouter();
   const enabled = useSyncExternalStore(enabledStore.subscribe, enabledStore.get, enabledStore.getServer);
-  const supported = typeof window !== "undefined" && "Notification" in window;
-  const permission = supported ? Notification.permission : "default";
-  const state: NotifyState = !supported ? "unsupported" : permission === "denied" ? "blocked" : enabled && permission === "granted" ? "on" : "off";
+  const [, refresh] = useState(0); // the browser has no change event worth listening to; re-read after we ask
+  const permission = useSyncExternalStore(noSubscription, readPermission, serverPermission);
+  const state: NotifyState = permission === "unsupported" ? "unsupported" : permission === "denied" ? "blocked" : enabled && permission === "granted" ? "on" : "off";
 
   const enable = useCallback(async () => {
     if (!("Notification" in window)) return;
     const p = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
     enabledStore.set(p === "granted");
+    refresh((n) => n + 1);
     if (p === "granted") {
       new Notification("Watchlist alerts are on", { body: "You will get a notice when a watched share enters its buy zone, breaks its stop or hits its target." });
     }

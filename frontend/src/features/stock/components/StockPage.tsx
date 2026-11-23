@@ -23,12 +23,13 @@ const REFRESH_EVERY_MS = 20_000;
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "technicals", label: "Technicals" },
-  { key: "prices", label: "Price table" },
-  { key: "seasonality", label: "Seasonality" },
+  { key: "history", label: "History" },
   { key: "company", label: "Company" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 const isTab = (v: string): v is TabKey => TABS.some((t) => t.key === v);
+/** Links made while Price table and Seasonality were separate tabs still land on the History tab. */
+const LEGACY_TABS: Record<string, TabKey> = { prices: "history", seasonality: "history" };
 
 /** The chosen tab lives in the URL hash, so a link or reload lands on the same view. The server snapshot is
  * "overview", which keeps server and client markup identical during hydration. */
@@ -41,7 +42,7 @@ function useHashTab(): TabKey {
     () => window.location.hash.slice(1),
     () => "",
   );
-  return isTab(hash) ? hash : "overview";
+  return isTab(hash) ? hash : (LEGACY_TABS[hash] ?? "overview");
 }
 
 export function StockPage({ symbol }: { symbol: string }) {
@@ -110,8 +111,12 @@ export function StockPage({ symbol }: { symbol: string }) {
           </>
         )}
         {tab === "technicals" && <AnalysisCards analysis={a} symbol={code} day={sessionDay ?? a.price.last_bar_date} />}
-        {tab === "prices" && <PriceTableCard symbol={code} />}
-        {tab === "seasonality" && <SeasonalityCards symbol={code} />}
+        {tab === "history" && (
+          <>
+            <PriceTableCard symbol={code} live={live} />
+            <SeasonalityCards symbol={code} />
+          </>
+        )}
         {tab === "company" && (
           <>
             <ValuationCard analysis={a} />

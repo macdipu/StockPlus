@@ -1,4 +1,5 @@
 import type { Time } from "lightweight-charts";
+import type { Drawing } from "./drawings";
 import type { ChartData, IndicatorSeries, Resolution } from "../schemas/chart";
 
 /** Everything the canvas draws, as plain data. Built from the server's response; no chart library in here. */
@@ -62,6 +63,8 @@ export interface Annotations {
   priceLines?: readonly PriceLineSpec[];
   markers?: readonly MarkerSpec[];
   bands?: readonly BandSpec[];
+  /** Shapes drawn on the price pane (chart patterns), in candle time and price. */
+  shapes?: readonly Drawing[];
 }
 
 /** Today's live candle, merged into a daily chart. `day` is the exchange date, YYYY-MM-DD. */
@@ -120,6 +123,7 @@ export interface Layers {
   priceLines: PriceLineSpec[];
   markers: MarkerSpec[];
   bands: BandSpec[];
+  shapes: Drawing[];
 }
 
 /** The candles, with today's live candle merged into a daily chart. This is what changes on every price tick. */
@@ -148,5 +152,5 @@ export function buildLayers({ data, resolution, specs, annotations }: LayerInput
     if (ind.placement === "overlay") overlays.push(...series.filter((s) => s.kind !== "histogram"));
     else panes.push({ key: ind.key, title: ind.key.toUpperCase(), series, scale: ind.scale, levels: ind.levels });
   }
-  return { overlays, panes, priceLines: [...(annotations?.priceLines ?? [])], markers: [...(annotations?.markers ?? [])], bands: [...(annotations?.bands ?? [])] };
+  return { overlays, panes, priceLines: [...(annotations?.priceLines ?? [])], markers: [...(annotations?.markers ?? [])], bands: [...(annotations?.bands ?? [])], shapes: [...(annotations?.shapes ?? [])] };
 }

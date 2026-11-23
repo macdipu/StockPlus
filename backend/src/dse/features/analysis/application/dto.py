@@ -1,6 +1,7 @@
 """Application-boundary DTOs. Shapes follow the legacy `/analysis` contract (snake_case already)."""
 
-from typing import Any
+from datetime import date
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -158,3 +159,28 @@ class IntradayBarDto(BaseModel):
     close: float
     volume: float
     vpa: str | None = None
+
+
+class ChartPointDto(BaseModel):
+    day: date
+    price: float
+    label: str = ""
+
+
+class ChartLineDto(BaseModel):
+    role: str  # neckline, upper, lower
+    a: ChartPointDto
+    b: ChartPointDto
+
+
+class ChartPatternDto(BaseModel):
+    kind: str
+    name: str
+    direction: Literal["bullish", "bearish", "neutral"]
+    status: Literal["forming", "confirmed"]
+    confidence: int
+    start: date
+    end: date
+    points: list[ChartPointDto]
+    lines: list[ChartLineDto]
+    summary: str

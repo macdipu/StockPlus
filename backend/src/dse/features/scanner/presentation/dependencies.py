@@ -6,6 +6,7 @@ from fastapi import Request
 
 from dse.features.scanner.application.ports import RescanChannel
 from dse.features.scanner.application.use_cases import (
+    GetDirectory,
     GetPe,
     GetPicks,
     GetRange52w,
@@ -53,6 +54,10 @@ class ScannerContainer:
     @property
     def range_52w(self) -> GetRange52w:
         return GetRange52w(self.view)
+
+    @property
+    def directory(self) -> GetDirectory:
+        return GetDirectory(self.view)
 
     @property
     def table(self) -> GetTable:

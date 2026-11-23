@@ -1,5 +1,5 @@
 import { request } from "@/shared/api";
-import { picksResponseSchema, rescanSchema, type PickFilters } from "../schemas/picks";
+import { picksResponseSchema, type PickFilters } from "../schemas/picks";
 
 export const picksApi = {
   picks: (f: PickFilters, limit = 300) =>
@@ -14,5 +14,4 @@ export const picksApi = {
       },
       schema: picksResponseSchema,
     }),
-  rescan: () => request("/scanner/rescan", { method: "POST", schema: rescanSchema }),
 };

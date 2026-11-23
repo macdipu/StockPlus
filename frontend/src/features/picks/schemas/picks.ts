@@ -55,4 +55,3 @@ export interface PickFilters {
   buckets: Bucket[];
 }
 
-export const rescanSchema = z.object({ data: z.object({ accepted: z.boolean(), version: z.number().nullable() }), meta: metaSchema });

@@ -2,14 +2,19 @@
 
 import type * as LightweightCharts from "lightweight-charts";
 import type { IChartApi, ISeriesApi, SeriesType } from "lightweight-charts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { num } from "@/shared/lib/format";
 import type { Candle, Layers } from "../utils/model";
+import { DrawingsLayer } from "../utils/drawings-layer";
+import { dragDrawing, hitTest, needsTwoPoints, newId, snapPrice, type Drawing, type DragMode, type DrawPoint, type Tool } from "../utils/drawings";
+import { RayLine } from "../utils/ray-line";
 import { baselineValue, toHeikinAshi, type ChartStyle } from "../utils/styles";
 
 type Lib = typeof LightweightCharts;
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const SUBPANE_HEIGHT = 110;
+/** Levels are drawn from this many candles back, so they never cross the older history. */
+const RAY_BARS = 40;
 
 function colors() {
   return { up: css("--up"), down: css("--dn"), accent: css("--brand"), mute: css("--mute"), ink: css("--ink"), line: css("--line") };
@@ -126,14 +131,21 @@ interface Props {
   style: ChartStyle;
   label: string;
   height: number;
+  /** What a click does: select a drawing, or place one of the drawing tools. */
+  tool: Tool;
+  magnet: boolean;
+  drawings: readonly Drawing[];
+  onDrawings: (next: readonly Drawing[]) => void;
 }
 
 /** Draws candles, indicator lines and panels, annotations and shaded bands. Pure drawing: it fetches nothing. */
-export function ChartCanvas({ candles, layers, style, label, height }: Props) {
+export function ChartCanvas({ candles, layers, style, label, height, tool, magnet, drawings, onDrawings }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const bandHost = useRef<HTMLDivElement>(null);
-  const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void } | null>(null);
+  const api = useRef<{ drawCandles: (c: readonly Candle[]) => void; drawLayers: (l: Layers) => void; sync: () => void; cancel: () => void; deleteSelected: () => void } | null>(null);
   const latest = useRef({ candles, layers });
+  const draw = useRef({ tool, magnet, drawings, onDrawings });
+  const shapes = useRef<readonly Drawing[]>(layers.shapes);
   const [legend, setLegend] = useState("");
   useEffect(() => {
     latest.current = { candles, layers };
@@ -146,13 +158,12 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
       if (disposed || !host.current) return;
       const chart = lib.createChart(host.current, { autoSize: true, ...themeOptions(lib), timeScale: { timeVisible: true, secondsVisible: false, borderColor: css("--line") } });
       const main = createMain(lib, chart, style);
-      main.series.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.24 } });
+      main.series.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.2 } });
       const volume = chart.addSeries(lib.HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "volume", lastValueVisible: false, priceLineVisible: false });
-      chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.86, bottom: 0 } });
       const markers = lib.createSeriesMarkers(main.series, []);
-      const STYLE = { solid: lib.LineStyle.Solid, dashed: lib.LineStyle.Dashed, dotted: lib.LineStyle.Dotted };
       let extra: Array<ISeriesApi<SeriesType>> = [];
-      let lines: Array<ReturnType<typeof main.series.createPriceLine>> = [];
+      let rays: RayLine[] = [];
       let drawn = 0;
 
       const drawBands = (l: Layers) => {
@@ -188,7 +199,7 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
         for (const s of extra) chart.removeSeries(s);
         extra = [];
         for (const o of l.overlays) {
-          const s = chart.addSeries(lib.LineSeries, { color: o.color, lineWidth: 1, lineVisible: o.kind !== "dots", pointMarkersVisible: o.kind === "dots", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+          const s = chart.addSeries(lib.LineSeries, { autoscaleInfoProvider: () => null, color: o.color, lineWidth: 1, lineVisible: o.kind !== "dots", pointMarkersVisible: o.kind === "dots", priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
           s.setData(o.points);
           extra.push(s);
         }
@@ -213,8 +224,10 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
           for (const level of pane.levels) made[0]?.createPriceLine({ price: level, color: k.mute, lineWidth: 1, lineStyle: lib.LineStyle.Dotted, axisLabelVisible: false, title: "" });
           chart.panes()[i + 1]?.setHeight(SUBPANE_HEIGHT);
         });
-        for (const pl of lines) main.series.removePriceLine(pl);
-        lines = l.priceLines.map((p) => main.series.createPriceLine({ price: p.price, color: p.color, lineWidth: p.width ?? 1, lineStyle: STYLE[p.style], axisLabelVisible: true, title: p.title }));
+        for (const r of rays) main.series.detachPrimitive(r);
+        const from = latest.current.candles[Math.max(0, latest.current.candles.length - RAY_BARS)]?.time;
+        rays = l.priceLines.map((p) => new RayLine({ price: p.price, color: p.color, tag: p.title, style: p.style, width: p.width ?? 1, tagBackground: css("--card"), tagColor: css("--ink") }, from));
+        for (const r of rays) main.series.attachPrimitive(r);
         markers.setMarkers([...l.markers].sort((a, b) => (String(a.time) < String(b.time) ? -1 : String(a.time) > String(b.time) ? 1 : 0)));
         requestAnimationFrame(() => drawBands(l));
       };
@@ -228,7 +241,130 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
       });
       chart.timeScale().subscribeVisibleLogicalRangeChange(() => drawBands(latest.current.layers));
 
-      api.current = { drawCandles, drawLayers };
+      // ---- the user's drawings: placed by clicks, painted by one primitive, kept as candle time + price
+      const indexOf = (p: DrawPoint) => latest.current.candles.findIndex((c) => String(c.time) === String(p.time));
+      const layer = new DrawingsLayer(
+        () => ({ line: "#6d7cff", fill: "rgba(109,124,255,0.12)", text: css("--ink"), textBackground: css("--card") }),
+        (a, b) => Math.abs(indexOf(b) - indexOf(a)),
+      );
+      main.series.attachPrimitive(layer);
+      let pending: DrawPoint | null = null;
+      let preview: Drawing | null = null;
+      let selected: string | null = null;
+      let override: Drawing | null = null; // the drawing being dragged, until the mouse is released
+      const current = () => (override ? draw.current.drawings.map((d) => (d.id === override?.id ? override : d)) : draw.current.drawings);
+      const sync = () => layer.set({ drawings: current(), selected, preview, shapes: shapes.current });
+      // The library swallows the second of two quick clicks (it reads them as a double-click), so clicks are read from
+      // the element itself. A drag (pan) is not a click. The point snaps to the candle under the pointer.
+      const pointAt = (x: number, y: number): DrawPoint | null => {
+        const logical = chart.timeScale().coordinateToLogical(x);
+        const price = main.series.coordinateToPrice(y);
+        const candle = logical == null ? undefined : latest.current.candles[Math.round(logical)];
+        if (!candle || price == null) return null; // the empty space after the last candle has no time
+        return { time: candle.time as string | number, price: draw.current.magnet ? snapPrice(price, candle) : price };
+      };
+      const local = (e: MouseEvent) => {
+        const r = (host.current as HTMLDivElement).getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      };
+      let down: { x: number; y: number } | null = null;
+      const onDown = (e: MouseEvent) => {
+        down = { x: e.clientX, y: e.clientY };
+      };
+      const onClick = (e: MouseEvent) => {
+        if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) return; // a drag
+        const { tool: t, drawings: list, onDrawings: commit } = draw.current;
+        const at = local(e);
+        if (t === "cursor") {
+          selected = hitTest(list, at, layer.at, layer.paneWidth());
+          sync();
+          return;
+        }
+        const here = pointAt(at.x, at.y);
+        if (!here) return;
+        if (!needsTwoPoints(t)) return commit([...list, { id: newId(), kind: t, a: here }]);
+        if (!pending) {
+          pending = here;
+          return;
+        }
+        commit([...list, { id: newId(), kind: t, a: pending, b: here }]);
+        pending = null;
+        preview = null;
+        sync();
+      };
+      // ---- edit: drag a selected drawing's handle to reshape it, or its line to move it. Runs first (capture) and
+      // stops the event so the chart does not also pan.
+      let drag: { mode: DragMode; from: DrawPoint; orig: Drawing } | null = null;
+      const onDragMove = (e: MouseEvent) => {
+        if (!drag) return;
+        const at = local(e);
+        const here = pointAt(at.x, at.y);
+        if (!here) return;
+        override = dragDrawing(drag.orig, drag.mode, drag.from, here, latest.current.candles.map((c) => c.time as string | number));
+        sync();
+      };
+      const onDragEnd = () => {
+        window.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("mouseup", onDragEnd);
+        const done = override;
+        drag = null;
+        if (done) draw.current.onDrawings(current());
+        override = null;
+        sync();
+      };
+      const onDragStart = (e: MouseEvent) => {
+        if (draw.current.tool !== "cursor" || e.button !== 0) return;
+        const at = local(e);
+        const list = draw.current.drawings;
+        let target = list.find((d) => d.id === selected);
+        let mode: DragMode | null = null;
+        for (const m of ["a", "b"] as const) {
+          const pt = target?.[m];
+          const xy = pt ? layer.at(pt) : null;
+          if (xy && Math.hypot(xy.x - at.x, xy.y - at.y) <= 9) mode = m;
+        }
+        if (!mode) {
+          const hit = hitTest(list, at, layer.at, layer.paneWidth());
+          if (!hit) return;
+          selected = hit;
+          target = list.find((d) => d.id === hit);
+          mode = "move";
+          sync();
+        }
+        const from = pointAt(at.x, at.y);
+        if (!target || !from) return;
+        drag = { mode, from, orig: target };
+        down = { x: e.clientX, y: e.clientY }; // the click that follows a drag is not a click
+        e.stopPropagation();
+        window.addEventListener("mousemove", onDragMove);
+        window.addEventListener("mouseup", onDragEnd);
+      };
+      const el = host.current;
+      el.addEventListener("mousedown", onDragStart, true);
+      el.addEventListener("mousedown", onDown);
+      el.addEventListener("click", onClick);
+      chart.subscribeCrosshairMove((p) => {
+        const t = draw.current.tool;
+        if (!pending || t === "cursor" || !p.point) return;
+        const here = pointAt(p.point.x, p.point.y);
+        if (!here) return;
+        preview = { id: "preview", kind: t, a: pending, b: here };
+        sync();
+      });
+      const cancel = () => {
+        pending = null;
+        preview = null;
+        sync();
+      };
+      const deleteSelected = () => {
+        if (!selected) return;
+        const gone = selected;
+        selected = null;
+        draw.current.onDrawings(draw.current.drawings.filter((d) => d.id !== gone));
+      };
+
+      api.current = { drawCandles, drawLayers, sync, cancel, deleteSelected };
+      sync();
       drawCandles(latest.current.candles);
       drawLayers(latest.current.layers);
 
@@ -240,6 +376,11 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
       };
       scheme.addEventListener("change", onScheme);
       cleanup = () => {
+        el.removeEventListener("mousedown", onDragStart, true);
+        window.removeEventListener("mousemove", onDragMove);
+        window.removeEventListener("mouseup", onDragEnd);
+        el.removeEventListener("mousedown", onDown);
+        el.removeEventListener("click", onClick);
         scheme.removeEventListener("change", onScheme);
         chart.remove();
         api.current = null;
@@ -256,10 +397,24 @@ export function ChartCanvas({ candles, layers, style, label, height }: Props) {
   }, [candles]);
   useEffect(() => {
     api.current?.drawLayers(layers);
+    shapes.current = layers.shapes;
+    api.current?.sync();
   }, [layers]);
+  useEffect(() => {
+    draw.current = { tool, magnet, drawings, onDrawings };
+    api.current?.sync();
+  }, [tool, magnet, drawings, onDrawings]);
+  useEffect(() => {
+    api.current?.cancel(); // switching tools abandons a half-drawn shape
+  }, [tool]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") api.current?.cancel();
+    else if (e.key === "Delete" || e.key === "Backspace") api.current?.deleteSelected();
+  };
 
   return (
-    <div className="chartwrap" style={{ height }}>
+    <div className="chartwrap" style={{ height }} tabIndex={0} onKeyDown={onKeyDown} role="group" aria-label={`${label}: click to select a drawing, Delete removes it`}>
       <div ref={host} className="chartbox" role="img" aria-label={label} data-testid="price-chart" />
       <div ref={bandHost} className="bands" aria-hidden="true" />
       {legend ? <div className="chartlegend small num">{legend}</div> : null}
