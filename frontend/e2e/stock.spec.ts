@@ -72,6 +72,34 @@ test.describe("Stock tab", () => {
     await expect(plan).toBeVisible();
   });
 
+  test("drawings can be placed, are remembered, and can be undone", async ({ page }) => {
+    await page.goto(`/stock/${SYNCED[0]}`);
+    const canvas = page.getByTestId("price-chart");
+    await expect(canvas.locator("canvas").first()).toBeVisible();
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("no chart");
+    const tool = (name: string) => page.getByRole("group", { name: "Tool" }).getByRole("button", { name, exact: true });
+    const at = async (fx: number, fy: number) => {
+      await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy, { steps: 3 });
+      await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    };
+
+    await tool("Trend line").click();
+    await at(0.4, 0.6);
+    await at(0.7, 0.3); // two quick clicks: both must register
+    await tool("Horizontal line").click();
+    await at(0.5, 0.5);
+    await expect(page.getByRole("button", { name: /^Clear all \(2\)/ })).toBeVisible();
+
+    await page.reload(); // kept per stock and timeframe in this browser
+    await expect(page.getByRole("button", { name: /^Clear all \(2\)/ })).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByRole("button", { name: /^Clear all \(1\)/ })).toBeVisible();
+    await page.getByRole("button", { name: /^Clear all/ }).click();
+    await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+  });
+
   test("indicators can be searched, added with settings, and removed", async ({ page }) => {
     await page.goto(`/stock/${SYNCED[0]}`);
     await expect(page.getByTestId("price-chart").locator("canvas").first()).toBeVisible();

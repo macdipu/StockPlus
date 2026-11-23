@@ -6,10 +6,13 @@ import { num } from "@/shared/lib/format";
 import { ErrorNotice, Loading } from "@/shared/ui/Notice";
 import { useChartData } from "../hooks/use-chart-data";
 import { RESOLUTIONS, RESOLUTION_LABEL, type Resolution } from "../schemas/chart";
+import { useDrawings } from "../store/drawings-store";
 import { useChartSpec } from "../store/chart-spec";
+import type { Tool } from "../utils/drawings";
 import { buildCandles, buildLayers, paletteColor, toChartTime, type Annotations, type LiveBar } from "../utils/model";
 import { needsOhlc } from "../utils/styles";
 import { ChartCanvas } from "./ChartCanvas";
+import { DrawToolbar } from "./DrawToolbar";
 import { StylePicker } from "./StylePicker";
 
 /** The API accepts this many indicators per chart. */
@@ -61,6 +64,8 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
   const [spec, setSpec] = useChartSpec(scope);
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [tool, setTool] = useState<Tool>("cursor");
+  const [magnet, setMagnet] = useState(false);
   const catalog = useCatalog();
 
   const presetSpecs = useMemo(() => presets?.(resolution) ?? [], [presets, resolution]);
@@ -90,6 +95,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
     const lastDate = [...dates].sort().at(-1) ?? null;
     return buildLayers({ data, resolution: dataResolution, specs, annotations: annotations?.({ resolution: dataResolution, dates, lastDate }) });
   }, [data, dataResolution, specs, annotations, dates]);
+  const [drawings, setDrawings] = useDrawings(`${scope}:${symbol}:${dataResolution}`);
   const entries = useMemo(() => new Map((catalog.data?.indicators ?? []).map((e) => [e.id, e])), [catalog.data]);
   const entryOf = (s: string): CatalogEntry | undefined => entries.get(parseSpec(s)?.id ?? "");
 
@@ -144,6 +150,9 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
       {data ? <p className="small mute" style={{ margin: "0 0 6px" }}>{SOURCE_NOTE[data.source] ?? ""}</p> : null}
       {data && data.warnings.length ? <p className="small dn" role="status" style={{ margin: "0 0 6px" }}>{data.warnings.join(". ")}.</p> : null}
 
+      {data ? (
+        <DrawToolbar tool={tool} onTool={setTool} magnet={magnet} onMagnet={setMagnet} count={drawings.length} canDelete={drawings.length > 0} onUndo={() => setDrawings(drawings.slice(0, -1))} onClear={() => setDrawings([])} />
+      ) : null}
       {q.isPending ? <Loading what="Loading chart" /> : null}
       {q.isError && !data ? <ErrorNotice error={q.error} /> : null}
       {data ? (
@@ -154,6 +163,10 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
           style={style}
           height={BASE_HEIGHT + PANE_HEIGHT * layers.panes.length}
           label={`${symbol} ${RESOLUTION_LABEL[dataResolution]} chart`}
+          tool={tool}
+          magnet={magnet}
+          drawings={drawings}
+          onDrawings={setDrawings}
         />
       ) : null}
 

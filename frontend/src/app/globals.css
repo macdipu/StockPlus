@@ -222,3 +222,5 @@ ol.plain { margin: 0; padding-left: 18px; }
 .layer-opt { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .patternlist { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; }
 .ptag { white-space: nowrap; }
+.drawbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; }
+.drawbar .seg { max-width: 100%; overflow-x: auto; }

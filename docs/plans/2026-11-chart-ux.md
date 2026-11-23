@@ -74,3 +74,15 @@ newest five are listed under the chart; moving-average overlays no longer stretc
 
 Left for later: collapsible RSI/MACD panes, a hover card with the pattern name on the chart, click-to-jump from the
 pattern list, a bottom sheet for Layers on phones (the dropdown fits at 390px today).
+
+## Phase 2 status
+Built: drawing toolbar (Select, Trend line, Ray, Horizontal line, Rectangle, Fibonacci, Measure) with Snap to candle,
+Undo and Clear all; drawings are stored as candle time + price per scope, symbol and timeframe in the browser, painted
+by one series primitive (`chart/utils/drawings-layer.ts`), so they stay on the same candles when panning and zooming.
+Click a drawing with Select and press Delete to remove it; Esc cancels a half-drawn shape. Geometry, hit-testing,
+Fibonacci levels, measure text and stored-data validation are pure and unit-tested (`chart/utils/drawings.ts`).
+Clicks are read from the chart element, because the library swallows the second of two quick clicks.
+
+Left for later: dragging handles to edit a drawing, line colour/width, account storage, a drawings list.
+Side fix: the "Notifications" state was decided during render, which made every page log a React hydration error;
+it now reads the browser permission through `useSyncExternalStore`.
