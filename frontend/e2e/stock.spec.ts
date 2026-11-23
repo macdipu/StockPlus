@@ -15,8 +15,10 @@ test.describe("Stock tab", () => {
       await expect(page.getByRole("heading", { name: title, level: 3 })).toBeVisible();
     }
     await expect(page.getByRole("heading", { name: "Volume-price analysis (daily)" })).toBeVisible();
+    await page.getByRole("tab", { name: "Valuation" }).click();
+    await expect(page.getByRole("heading", { name: "Fair value", level: 3 })).toBeVisible();
     await page.getByRole("tab", { name: "Company" }).click();
-    for (const title of ["Fair value", "Fundamentals", "Financial health", "Company profile"]) {
+    for (const title of ["Fundamentals", "Financial health", "Company profile"]) {
       await expect(page.getByRole("heading", { name: title, level: 3 })).toBeVisible();
     }
     await expect(page).toHaveTitle(new RegExp(`${SYNCED[0]}`));
@@ -30,7 +32,7 @@ test.describe("Stock tab", () => {
     await expect(page).toHaveURL(/#company$/);
     await expect(page.getByRole("heading", { name: "Trade plan", level: 3 })).toHaveCount(0);
     await page.getByRole("tab", { name: "Company" }).press("ArrowLeft");
-    await expect(page.getByRole("tab", { name: "Technicals" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: "History" })).toHaveAttribute("aria-selected", "true"); // tab order: ... Market depth, History, Company
     await page.goto(`/stock/${SYNCED[0]}#technicals`);
     await expect(page.getByRole("tab", { name: "Technicals" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("heading", { name: "Setup checklist", level: 3 })).toBeVisible();

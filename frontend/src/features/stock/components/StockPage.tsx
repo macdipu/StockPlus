@@ -13,7 +13,7 @@ import { pushRecent } from "../store/recent-store";
 import { buildSummary } from "../utils/summary";
 import { AnalysisCards } from "./AnalysisSections";
 import { TradePlanCard } from "./TradePlanCard";
-import { FundamentalsCard, ValuationCard } from "./FundamentalsCards";
+import { FundamentalsCard, MarketComparisonCard, ValuationCard } from "./FundamentalsCards";
 import { SignalCard } from "./SignalCard";
 import { StockHero } from "./StockHero";
 import { DepthCard } from "./DepthCard";
@@ -25,6 +25,7 @@ const REFRESH_EVERY_MS = 20_000;
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "valuation", label: "Valuation" },
   { key: "technicals", label: "Technicals" },
   { key: "depth", label: "Market depth" },
   { key: "history", label: "History" },
@@ -141,9 +142,14 @@ export function StockPage({ symbol }: { symbol: string }) {
             <SeasonalityCards symbol={code} />
           </>
         )}
+        {tab === "valuation" && (
+          <>
+            <ValuationCard analysis={a} company={company.data} />
+            <MarketComparisonCard analysis={a} pe={pe} />
+          </>
+        )}
         {tab === "company" && (
           <>
-            <ValuationCard analysis={a} />
             <FundamentalsCard analysis={a} />
             <CompanyDetails symbol={code} />
           </>

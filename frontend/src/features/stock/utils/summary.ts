@@ -1,7 +1,9 @@
 import type { Company } from "@/features/company";
 import { num, pct } from "@/shared/lib/format";
 import type { Analysis } from "../schemas/analysis";
+import { dividendRecord, FINANCIAL, ratio } from "./company-facts";
 import { actionSentence, dividendYield, fairValueReading } from "./reading";
+import { fitReading } from "./valuation";
 import type { Relative } from "./strength";
 
 /**
@@ -57,19 +59,9 @@ export interface Summary {
   reasonsAgainst: string[];
 }
 
-const FINANCIAL = /bank|financial|insurance|leasing|nbfi/i;
 const MIN_SECTOR_GROUP = 5; // a sector with fewer companies is too small a group to call a norm
 
-const ratio = (c: Company | undefined, key: string): number | null => c?.ratios.find((r) => r.key === key)?.value ?? null;
 const ind = (a: Analysis, key: string): number | null => a.indicators[key] ?? null;
-
-function dividendRecord(c: Company | undefined): { paid: number; of: number } | null {
-  for (const f of c?.flags ?? []) {
-    const m = /paid a cash dividend in (\d+) of the last (\d+) years/i.exec(f.text);
-    if (m) return { paid: Number(m[1]), of: Number(m[2]) };
-  }
-  return null;
-}
 
 /** The buy zone the page shows everywhere: the one the trade plan writes out and the chart draws (from nearby support).
  * The setup plan's own entry zone is a different, tighter range around today's price, so it is only a fallback. */
@@ -130,15 +122,17 @@ export function evidence(a: Analysis, c: Company | undefined, pe: PeContext | nu
   }
 
   // ---- value
-  const fair = fairValueReading(a);
+  const fit = fitReading(a, c);
+  const fair = fit ?? fairValueReading(a);
   if (fair && fair.gapPct != null) {
     const g = fair.gapPct;
+    const which = fit ? ` (of the ${fit.count} methods that fit this share)` : "";
     const where = `${num(Math.abs(g), 0)}% ${g >= 0 ? "above" : "below"} the price`;
-    if (g >= 20) add("value", 2, `Median fair value ${num(fair.median)} is ${where}.`);
-    else if (g >= 5) add("value", 1, `Median fair value ${num(fair.median)} is ${where}.`);
-    else if (g <= -30) add("value", -2, `Median fair value ${num(fair.median)} is ${where}.`);
-    else if (g <= -10) add("value", -1, `Median fair value ${num(fair.median)} is ${where}.`);
-    else add("value", 0, `Priced close to its median fair value (${num(fair.median)}).`);
+    if (g >= 20) add("value", 2, `Median fair value ${num(fair.median)}${which} is ${where}.`);
+    else if (g >= 5) add("value", 1, `Median fair value ${num(fair.median)}${which} is ${where}.`);
+    else if (g <= -30) add("value", -2, `Median fair value ${num(fair.median)}${which} is ${where}.`);
+    else if (g <= -10) add("value", -1, `Median fair value ${num(fair.median)}${which} is ${where}.`);
+    else add("value", 0, `Priced close to its median fair value (${num(fair.median)})${which}.`);
   }
   const p = a.fundamentals.pe;
   if (p != null && p > 0) {
@@ -230,7 +224,7 @@ function facts(tile: TileKey, a: Analysis, c: Company | undefined, pe: PeContext
     return [...f("Return on equity", n(ratio(c, "roe"), 1, "%")), ...f("Net margin", n(ratio(c, "net_margin"), 1, "%")), ...(financial ? [] : f("Debt / equity", n(ratio(c, "debt_to_equity") ?? ratio(c, "loan_to_equity"), 2, "×"))), ...f("EPS last year", g == null ? null : pct(g, 0))];
   }
   if (tile === "value") {
-    const fair = fairValueReading(a);
+    const fair = fitReading(a, c) ?? fairValueReading(a);
     const dy = dividendYield(a).value;
     return [...f("P/E", n(a.fundamentals.pe, 1)), ...f("Market median P/E", n(pe?.marketMedian, 1)), ...f("Market P/E, size-weighted", n(pe?.marketWeighted, 1)), ...f("Price / book", n(ratio(c, "pb"), 2, "×")), ...f("Dividend yield", n(dy, 1, "%")), ...f("Median fair value", fair ? num(fair.median) : null)];
   }
@@ -311,7 +305,7 @@ export function buildSummary(a: Analysis, c: Company | undefined, pe: PeContext 
 export const HOW_RATED: readonly string[] = [
   "Each rating adds up small rules, shown as the ✓ and ✗ lines on each tile. Nothing else goes into it.",
   "Business quality: return on equity, net margin, borrowing (not for banks and financials), earnings growth, dividend record and credit rating.",
-  "Value: median fair value against the price, P/E against the sector median (or the market median when the sector has fewer than 5 companies; a share also has to be at or below the size-weighted market P/E to count as cheap on P/E), and dividend yield.",
+  "Value: median fair value (from the methods that fit this share, see the Valuation tab) against the price, P/E against the sector median (or the market median when the sector has fewer than 5 companies; a share also has to be at or below the size-weighted market P/E to count as cheap on P/E), and dividend yield.",
   "Timing: price against the 50 and 200-day averages, RSI, how many of the six setup checks pass, the last month's move, whether it is beating or lagging the DSEX index over 3 months (by 5 points or more), and whether price is in its buy zone.",
   "Risk: free float under 15%, thin trading, large daily swings, heavy borrowing, falling earnings, losses and Z category. One or two flags read as Moderate, three or more as High.",
   "These are rules of thumb for orientation. They have not been tested on past prices the way the Picks buckets have, and they are not advice.",

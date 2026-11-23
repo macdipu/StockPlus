@@ -223,3 +223,18 @@ Pages are 8 to 15% shorter (Overview 2,344 to 2,008 px, Company 5,018 to 4,651 p
 - Liquidity and free float were already in the Risk tile and the at-a-glance facts.
 - Note: the 5-point threshold is a judgement, not a tested cut-off; a share down 7.5% while the index is down 2.9% reads
   "Moving with the market" because the gap is 4.6 points. Revisit if that reads too kind.
+
+**Phase E done (the Valuation tab):**
+- **Which methods fit this share.** Each fair-value method is marked Fits, Fits partly or Does not fit, with its reason:
+  book-value multiples and the Graham number do not suit a business earning 20% or more on its equity; fixed 15-25x P/E and
+  3x book multiples are too rich for banks and financials; higher P/E multiples need growth; earnings methods need positive
+  earnings; the dividend method needs a dividend and a record. The headline median now comes from the methods that fit
+  (GP: 5 of 11, median 307.27, +35%, against 279.50 and +23% using all), and says how many it used and what it left out.
+- **One shared scale.** Every method's fair value is a marker on the same scale with the price as a line, so the spread is
+  visible at a glance (hidden on phones, where the mark and the numbers carry it).
+- **Against the market.** The share's P/E beside the market median, the size-weighted market P/E and the sector median
+  (labelled when the sector has fewer than 5 companies), with a plain note on what each means.
+- The Fair value card moved from the Company tab to a new Valuation tab (second tab); the Summary's Value rating uses the
+  same fit-based median, so the two always agree.
+- The rules are judgement and unit-tested on a high-return company, a bank, a loss-maker, a non-payer and a patchy payer.
+  They are not back-tested. Reverse-DCF and the original notes are kept under the table.

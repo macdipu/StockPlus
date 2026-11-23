@@ -48,6 +48,8 @@ export function dividendYield(a: Analysis): YieldReading {
 }
 
 export interface FairValueReading {
+  /** How many methods gave a fair value. */
+  total: number;
   median: number;
   gapPct: number | null;
   low: number;
@@ -58,7 +60,7 @@ export interface FairValueReading {
   text: string;
 }
 
-function quantile(sorted: readonly number[], q: number): number {
+export function quantile(sorted: readonly number[], q: number): number {
   const i = (sorted.length - 1) * q;
   const lo = Math.floor(i);
   const hi = Math.ceil(i);
@@ -80,7 +82,7 @@ export function fairValueReading(a: Analysis): FairValueReading | null {
     `The middle half of the ${fair.length} methods lands between ${num(q1)} and ${num(q3)}; all of them between ${num(fair[0])} and ${num(fair[fair.length - 1])}.`,
     wide ? "The methods disagree widely, so treat the median as a rough guide." : "",
   ];
-  return { median, gapPct, low: fair[0] as number, high: fair[fair.length - 1] as number, q1, q3, wide, text: parts.filter(Boolean).join(" ") };
+  return { total: fair.length, median, gapPct, low: fair[0] as number, high: fair[fair.length - 1] as number, q1, q3, wide, text: parts.filter(Boolean).join(" ") };
 }
 
 interface Level {
