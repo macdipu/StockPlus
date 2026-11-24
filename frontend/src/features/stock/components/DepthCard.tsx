@@ -66,8 +66,8 @@ export function DepthCard({ symbol }: { symbol: string }) {
           {q.isFetching ? "Refreshing…" : "Refresh"}
         </button>
       </div>
-      {q.isPending ? <Loading what="Loading market depth" /> : null}
-      {q.isError ? <ErrorNotice error={q.error} /> : null}
+      {q.isPending ? <Loading onRetry={() => void q.refetch()} what="Loading market depth" /> : null}
+      {q.isError ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : null}
       {d ? (
         <>
           {d.market_open === false ? <p className="small mute">The market is closed; this is the last book DSE published.</p> : null}

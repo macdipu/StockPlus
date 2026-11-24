@@ -143,3 +143,37 @@ describe("authenticated retry", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 });
+
+describe("request timeout and connection state", () => {
+  it("reports a request that never answers as timed out, and marks the connection down", async () => {
+    const { connection } = await import("@/shared/lib/connection");
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+        }),
+    );
+    const err = await request("/slow", { schema, timeoutMs: 20 }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).toMatchObject({ status: 0, title: "Timed out" });
+    expect(connection.get()).toBe(true);
+    fetchMock.mockResolvedValueOnce(ok({ data: { n: 1 }, meta: {} }));
+    await request("/fast", { schema });
+    expect(connection.get()).toBe(false); // the next answer clears it
+  });
+  it("does not call a cancelled request an outage", async () => {
+    const { connection } = await import("@/shared/lib/connection");
+    connection.markOnline();
+    const c = new AbortController();
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+    );
+    const p = request("/x", { schema, signal: c.signal }).catch((e: unknown) => e);
+    c.abort();
+    expect(await p).toBeInstanceOf(DOMException);
+    expect(connection.get()).toBe(false);
+  });
+});

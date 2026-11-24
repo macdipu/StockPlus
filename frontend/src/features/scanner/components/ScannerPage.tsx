@@ -47,7 +47,7 @@ export function ScannerPage({ presetKey }: { presetKey: string | null }) {
   };
 
   if (presets.isPending || fields.isPending) return <Card label="Loading"><Loading what="Loading scanners" /></Card>;
-  if (presets.isError || fields.isError) return <Card label="Error"><ErrorNotice error={presets.error ?? fields.error} /></Card>;
+  if (presets.isError || fields.isError) return <Card label="Error"><ErrorNotice error={presets.error ?? fields.error} onRetry={() => { void presets.refetch(); void fields.refetch(); }} /></Card>;
 
   const set = <K extends keyof DraftFilters>(k: K, v: DraftFilters[K]) => setFilters((f) => ({ ...f, [k]: v }));
   return (

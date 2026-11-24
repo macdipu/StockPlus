@@ -11,7 +11,7 @@ export function VpaCard({ symbol }: { symbol: string }) {
   const q = useVpa(symbol);
   return (
     <Card title="Volume-price analysis (daily)">
-      {q.isPending ? <Loading /> : q.isError ? <ErrorNotice error={q.error} /> : (() => {
+      {q.isPending ? <Loading onRetry={() => void q.refetch()} /> : q.isError ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : (() => {
         const { data: rows, meta } = q.data;
         const signals = rows.filter((r) => r.vpa).reverse();
         if (!signals.length) return <Empty>No VPA signals in the last 20 sessions.</Empty>;

@@ -82,8 +82,8 @@ export function IndicatorPicker({ active, onAdd, onClose, limit, unavailable }: 
         />
         {full ? <p className="small dn" style={{ margin: "8px 0 0" }} role="status">A chart can show up to {limit} indicators. Remove one to add another.</p> : null}
         <div className="modal-body">
-          {catalog.isPending ? <Loading what="Loading indicators" /> : null}
-          {catalog.isError ? <ErrorNotice error={catalog.error} /> : null}
+          {catalog.isPending ? <Loading onRetry={() => void catalog.refetch()} what="Loading indicators" /> : null}
+          {catalog.isError ? <ErrorNotice error={catalog.error} onRetry={() => void catalog.refetch()} /> : null}
           {catalog.data && query.trim() ? (
             results.length === 0 ? <p className="mute small">No indicator matches “{query.trim()}”.</p> : <ul className="plain-list">{results.map((e) => row(e, true))}</ul>
           ) : null}

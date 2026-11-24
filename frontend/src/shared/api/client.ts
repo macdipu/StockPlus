@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { connection } from "@/shared/lib/connection";
 import { env } from "@/shared/lib/env";
 import { ApiError, problemFrom } from "./errors";
 import { tokenStore } from "./token";
@@ -20,6 +21,18 @@ export interface RequestOptions<T extends z.ZodType> {
   /** Send the access token and refresh it once on a 401. Default: false (public endpoints). */
   auth?: boolean;
   signal?: AbortSignal;
+  /** Give up and report "took too long" after this long (default 30 s), so a hung server never leaves a page waiting forever. */
+  timeoutMs?: number;
+}
+
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+/** An error's name, without `instanceof` (a DOMException can come from another realm). */
+const errorName = (e: unknown): string | undefined => (typeof e === "object" && e !== null ? (e as { name?: string }).name : undefined);
+
+function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const timeout = AbortSignal.timeout(ms);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 type RefreshHandler = () => Promise<boolean>;
@@ -58,15 +71,21 @@ async function send(path: string, o: Omit<RequestOptions<z.ZodType>, "schema">):
   const token = o.auth ? tokenStore.get() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
-    return await fetch(buildUrl(path, o.query), {
+    const res = await fetch(buildUrl(path, o.query), {
       method: o.method ?? "GET",
       headers,
       body: o.body === undefined ? undefined : JSON.stringify(o.body),
       credentials: "same-origin",
-      signal: o.signal,
+      signal: withTimeout(o.signal, o.timeoutMs ?? REQUEST_TIMEOUT_MS),
     });
+    connection.markOnline(); // any answer, even an error page, means the server is there
+    return res;
   } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") throw e;
+    if (errorName(e) === "AbortError") throw e; // the caller cancelled it
+    connection.markOffline();
+    if (errorName(e) === "TimeoutError") {
+      throw new ApiError(0, "Timed out", "The server took too long to answer. It may be busy: try again in a moment.", null);
+    }
     throw new ApiError(0, "Network error", "Could not reach the server. Check your connection.", null);
   }
 }

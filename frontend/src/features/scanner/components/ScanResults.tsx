@@ -19,7 +19,7 @@ export function ScanResults({ title, description, query, fields, idle }: Props) 
   return (
     <Card title={title}>
       {description ? <p className="small mute">{description}</p> : null}
-      {query.isPending && idle ? <p className="notice">{idle}</p> : query.isPending ? <Loading /> : query.isError ? <ErrorNotice error={query.error} /> : (() => {
+      {query.isPending && idle ? <p className="notice">{idle}</p> : query.isPending ? <Loading onRetry={() => void query.refetch()} /> : query.isError ? <ErrorNotice error={query.error} onRetry={() => void query.refetch()} /> : (() => {
         const { data, meta } = query.data;
         const columns = columnsFor<ScanRow>(fields?.default_columns ?? ["symbol", "ltp", "change_pct"], data[0]);
         return (

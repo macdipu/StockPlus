@@ -11,7 +11,7 @@ import { useChartSpec } from "../store/chart-spec";
 import type { Tool } from "../utils/drawings";
 import { chartHeight } from "../utils/layout";
 import { buildCandles, buildLayers, paletteColor, toChartTime, type Annotations, type LiveBar } from "../utils/model";
-import { needsOhlc } from "../utils/styles";
+import { drawnAs } from "../utils/styles";
 import { ChartCanvas } from "./ChartCanvas";
 import { DrawToolbar } from "./DrawToolbar";
 import { StylePicker } from "./StylePicker";
@@ -77,7 +77,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
   const dataResolution = (data?.resolution ?? resolution) as Resolution; // keep the previous chart's own time scale while a new one loads
   const closesOnly = data ? !data.ohlc : false;
   // An index has closing values only: show an area chart instead of candles without changing what the user chose.
-  const style = closesOnly && needsOhlc(spec.style) ? "area" : spec.style;
+  const { style, note: styleNote } = drawnAs(spec.style, { closesOnly, resolution: String(dataResolution) });
   const unavailable = useCallback(
     (e: CatalogEntry) => (closesOnly && e.requires.length ? `Needs ${e.requires.join(", ")}, which this series does not have` : null),
     [closesOnly],
@@ -149,6 +149,7 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
         <IndicatorParams entry={entryOf(editing) as CatalogEntry} spec={editing} onApply={(next) => replace(editing, next)} onCancel={() => setEditing(null)} />
       ) : null}
       {data ? <p className="small mute" style={{ margin: "0 0 6px" }}>{SOURCE_NOTE[data.source] ?? ""}</p> : null}
+      {styleNote ? <p className="small mute" style={{ margin: "0 0 6px" }}>{styleNote}</p> : null}
       {data && data.warnings.length ? <p className="small dn" role="status" style={{ margin: "0 0 6px" }}>{data.warnings.join(". ")}.</p> : null}
 
       {data ? (
@@ -170,8 +171,8 @@ export function PriceChart({ symbol, scope, resolutions = RESOLUTIONS, defaultRe
           onDeleteId={(id) => setDrawings(drawings.filter((d) => d.id !== id))}
         />
       ) : null}
-      {q.isPending ? <Loading what="Loading chart" /> : null}
-      {q.isError && !data ? <ErrorNotice error={q.error} /> : null}
+      {q.isPending ? <Loading onRetry={() => void q.refetch()} what="Loading chart" /> : null}
+      {q.isError && !data ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : null}
       {layers.panes.length > 0 ? (
         <div className="panelbar" role="group" aria-label="Indicator panels">
           <span className="small mute">Panels:</span>

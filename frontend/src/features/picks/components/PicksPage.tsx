@@ -146,8 +146,8 @@ export function PicksPage() {
             <button type="button" className="btn small" onClick={addAll} title="Adds the top 15 shares in the buy zone to your watchlist">+ Watch top buy-zone picks</button>
           </div>
         </div>
-        {q.isPending ? <Loading what="Scoring every share" /> : null}
-        {q.isError ? <ErrorNotice error={q.error} /> : null}
+        {q.isPending ? <Loading onRetry={() => void q.refetch()} what="Scoring every share" /> : null}
+        {q.isError ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : null}
         {q.data ? (
           <div className="tablewrap">
             <table data-agent="picks">

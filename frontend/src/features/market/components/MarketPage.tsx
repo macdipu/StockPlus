@@ -15,8 +15,8 @@ import { MarketSummary } from "./MarketSummary";
 import type { Quote } from "@/shared/api";
 
 function Async<T>({ q, children }: { q: UseQueryResult<T>; children: (data: T) => ReactNode }) {
-  if (q.isPending) return <Loading />;
-  if (q.isError) return <ErrorNotice error={q.error} />;
+  if (q.isPending) return <Loading onRetry={() => void q.refetch()} />;
+  if (q.isError) return <ErrorNotice error={q.error} onRetry={() => void q.refetch()} />;
   return <>{children(q.data)}</>;
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AgentFacts, StockPage, loadFacts } from "@/features/stock";
 
 // Same shape the API accepts for a DSE trading code.
@@ -34,7 +35,9 @@ export default async function Page({ params }: { params: Promise<{ symbol: strin
   return (
     <>
       <StockPage symbol={code} />
-      <AgentFacts symbol={code.toUpperCase()} />
+      <Suspense fallback={null}>
+        <AgentFacts symbol={code.toUpperCase()} />
+      </Suspense>
     </>
   );
 }

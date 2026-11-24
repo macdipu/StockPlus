@@ -335,8 +335,8 @@ function News({ c }: { c: Company }) {
 /** Everything about the company beyond price: profile, health, history, statements, owners, news. */
 export function CompanyDetails({ symbol }: { symbol: string }) {
   const q = useCompany(symbol);
-  if (q.isPending) return <Card title="Company"><Loading what={`Loading company details for ${symbol}`} /></Card>;
-  if (q.isError) return <Card title="Company"><ErrorNotice error={q.error} /></Card>;
+  if (q.isPending) return <Card title="Company"><Loading onRetry={() => void q.refetch()} what={`Loading company details for ${symbol}`} /></Card>;
+  if (q.isError) return <Card title="Company"><ErrorNotice error={q.error} onRetry={() => void q.refetch()} /></Card>;
   const c = q.data;
   return (
     <div data-agent="company" data-symbol={c.symbol}>

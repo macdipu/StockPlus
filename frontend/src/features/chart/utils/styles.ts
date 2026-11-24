@@ -24,6 +24,26 @@ export interface StyleOption {
 const NEEDS_OHLC: ReadonlySet<ChartStyle> = new Set(["bars", "candles", "hollow", "hlc_bars", "hlc_area", "columns", "high_low", "heikin"]);
 export const needsOhlc = (s: ChartStyle) => NEEDS_OHLC.has(s);
 
+export interface DrawnAs {
+  style: ChartStyle;
+  /** Why the chosen style was swapped, for a line under the toolbar; null when it was kept. */
+  note: string | null;
+}
+
+/**
+ * The style that is actually drawn. A series with closing values only (an index) cannot draw candles, so it becomes an
+ * area. On 1-minute data most minutes hold only one or two trades, which candles draw as flat dashes, so candle-type
+ * styles become a line there. Line, step and area choices are always kept.
+ */
+export function drawnAs(chosen: ChartStyle, ctx: { closesOnly: boolean; resolution: string }): DrawnAs {
+  if (!needsOhlc(chosen)) return { style: chosen, note: null };
+  if (ctx.closesOnly) return { style: "area", note: null };
+  if (ctx.resolution === "1") {
+    return { style: "line", note: "The 1-minute chart is drawn as a line: most minutes have only a few trades, too few to make a readable candle. Pick Step line or Area in the style menu to change how it looks." };
+  }
+  return { style: chosen, note: null };
+}
+
 export const STYLE_GROUPS: ReadonlyArray<ReadonlyArray<StyleOption>> = [
   [
     { key: "bars", label: "Bars", hint: "Open, high, low and close as a vertical bar with ticks" },

@@ -96,11 +96,11 @@ export function StockPage({ symbol }: { symbol: string }) {
     document.title = ltp != null ? `${code} ${ltp} · DSE Live` : `${code} · DSE Live`;
   }, [code, quote?.ltp, analysis.data?.price.ltp]);
 
-  if (analysis.isPending) return <Card label="Loading"><Loading what={`Loading ${code}`} /></Card>;
+  if (analysis.isPending) return <Card label="Loading"><Loading onRetry={() => void analysis.refetch()} what={`Loading ${code}`} /></Card>;
   if (analysis.isError) {
     return (
       <Card label="Error">
-        <ErrorNotice error={analysis.error} />
+        <ErrorNotice error={analysis.error} onRetry={() => void analysis.refetch()} />
       </Card>
     );
   }

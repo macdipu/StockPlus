@@ -32,7 +32,7 @@ export function PriceTableCard({ symbol, live }: { symbol: string; live?: TodayB
         </select>
         <span className="small">working days</span>
       </div>
-      {q.isPending ? <Loading /> : q.isError ? <ErrorNotice error={q.error} /> : !t ? <Empty>No daily history stored for {symbol}.</Empty> : (
+      {q.isPending ? <Loading onRetry={() => void q.refetch()} /> : q.isError ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : !t ? <Empty>No daily history stored for {symbol}.</Empty> : (
         <>
           <div className="row" style={{ justifyContent: "space-between", margin: "12px 0" }}>
             <Stat label="Avg price" value={num(t.avgPrice, 1)} />
@@ -106,8 +106,8 @@ function SeasonTable({ title, note, rows }: { title: string; note: string; rows:
 /** How the share has tended to move by calendar month and by weekday, from its stored daily history. */
 export function SeasonalityCards({ symbol }: { symbol: string }) {
   const q = useCandles(symbol);
-  if (q.isPending) return <Card title="Seasonality"><Loading /></Card>;
-  if (q.isError) return <Card title="Seasonality"><ErrorNotice error={q.error} /></Card>;
+  if (q.isPending) return <Card title="Seasonality"><Loading onRetry={() => void q.refetch()} /></Card>;
+  if (q.isError) return <Card title="Seasonality"><ErrorNotice error={q.error} onRetry={() => void q.refetch()} /></Card>;
   if (q.data.length < 40) return <Card title="Seasonality"><Empty>Not enough history yet to see a pattern.</Empty></Card>;
   const first = q.data[0]!.day;
   return (

@@ -8,6 +8,8 @@ import { FeedIndicator, MarketStrip } from "@/features/live";
 import { WatchlistCard } from "@/features/watchlist";
 import { buildUrl } from "@/shared/api";
 import { SECTIONS, sectionFor } from "@/shared/lib/navigation";
+import { OfflineBanner } from "./OfflineBanner";
+import { TopProgress } from "./TopProgress";
 
 function currentSymbol(pathname: string): string | null {
   const m = /^\/stock\/([^/]+)/.exec(pathname);
@@ -22,6 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tabs = SECTIONS.map((sec) => ({ ...sec, on: sec.key === active }));
   return (
     <>
+      <TopProgress />
       <header className="topbar">
         <Link href="/" className="brand">DSE Live Analyzer</Link>
         <nav className="tabs" aria-label="Main">
@@ -33,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <MarketStrip />
         <UserMenu />
       </header>
+      <OfflineBanner />
       <div className="layout">
         <aside aria-label="Sidebar">
           <WatchlistCard current={symbol} />

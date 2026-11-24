@@ -44,7 +44,7 @@ export function DataPage() {
           Export CSV
         </button>
       </div>
-      {q.isPending ? <Loading /> : q.isError ? <ErrorNotice error={q.error} /> : (
+      {q.isPending ? <Loading onRetry={() => void q.refetch()} /> : q.isError ? <ErrorNotice error={q.error} onRetry={() => void q.refetch()} /> : (
         <DataTable<Row>
           caption={tab === "matrix" ? "Fundamentals and valuation for every instrument" : "Technical indicator values for every instrument"}
           rows={rows}
