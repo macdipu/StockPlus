@@ -44,10 +44,17 @@ numbering in older notes still means something.
 | 14 | **Test the stock-page ratings** | The four tiles, the Valuation method-fit rules, the technical reading and "what changed" use conventional thresholds that have not been tested on past prices. The page says so. | Extend the back-test machinery: do shares rated Strong/Cheap/Favourable later beat the market? Test the pattern "fit" the same way. Adjust thresholds only on that evidence. | M |
 | 15 | **Better peer groups** | Small sectors (Telecom has 3 companies) are too few to call a norm, so the page falls back to the whole market, whose median P/E is distorted by many small weak shares. | Build peers from size and business similarity, or label and show both. | M |
 | 16 | **Chart patterns: more kinds, honest odds** | Flags, pennants and cup-and-handle are not detected; measured-move targets are written but not drawn; patterns are daily only; nobody has measured how often they work out. | Add the missing shapes, draw targets, back-test the patterns over history. | M |
-| 17 | **Chart drawings saved to the account** | Drawings live in the browser per share and timeframe, so they do not follow the user to another device. | Store them per signed-in user (the saved-scans pattern), keep local storage for guests. | S |
+| 17 | **Chart drawings saved to the account** | Drawings live in the browser per share and timeframe, so they do not follow the user to another device. | Store them per signed-in user (the saved-scans pattern), keep local storage for guests. Also: edit a note's text in place (today delete and re-add), and draw a position box or note past the last candle (a position placed near the right edge is clipped). | S |
 | 18 | **Small chart finishes** | Click a name in "Recent patterns" to jump to that candle; a bottom sheet for Layers on phones; the first intraday time label can still clip. | Do as one pass with a phone check. | S |
 | 19 | **DSE time stamps** | The exchange's depth "as of" text matched our server's UTC clock, six hours behind Dhaka time, while other DSE time text looks like Dhaka time. The depth tab therefore shows only our own fetch time. | Work out which zone each DSE time string uses and show them consistently. | S |
 | 20 | **Block trades** | Dropped for now: no public source that is also allowed was found (the old exchange pages are gone; the third-party site serves it from a private API). | Revisit with a licensed data source (item 1). | M |
+
+## Done in the loaders pass (Nov 2026)
+
+Spinner and slow-load message with retry, skeleton screens between pages, a top progress bar, a 30 s request timeout and an
+offline banner (`shared/ui/Notice.tsx`, `PageSkeleton.tsx`, `app/_components/TopProgress.tsx` and `OfflineBanner.tsx`,
+`shared/lib/connection.ts`). Not yet covered: the live stream's own reconnect state beyond the header dot, and buttons that
+start a long action (only Rescan and the forms show a busy state).
 
 ## Notes
 

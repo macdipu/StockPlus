@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { num } from "@/shared/lib/format";
 import type { Candle, Layers } from "../utils/model";
 import { DrawingsLayer } from "../utils/drawings-layer";
-import { dragDrawing, hitTest, needsTwoPoints, newId, snapPrice, type Drawing, type DragMode, type DrawPoint, type Tool } from "../utils/drawings";
+import { dragDrawing, hitTest, newId, pointsNeeded, snapPrice, type Drawing, type DragMode, type DrawKind, type DrawPoint, type Tool } from "../utils/drawings";
 import { paneHeight } from "../utils/layout";
 import { RayLine } from "../utils/ray-line";
 import { baselineValue, toHeikinAshi, type ChartStyle } from "../utils/styles";
@@ -159,6 +159,7 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
     report.current = onSelect;
   });
   const [legend, setLegend] = useState("");
+  const [note, setNote] = useState<{ x: number; y: number; point: DrawPoint } | null>(null); // a note being typed
   useEffect(() => {
     latest.current = { candles, layers };
   });
@@ -260,11 +261,12 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       // ---- the user's drawings: placed by clicks, painted by one primitive, kept as candle time + price
       const indexOf = (p: DrawPoint) => latest.current.candles.findIndex((c) => String(c.time) === String(p.time));
       const layer = new DrawingsLayer(
-        () => ({ line: "#6d7cff", fill: "rgba(109,124,255,0.12)", text: css("--ink"), textBackground: css("--card") }),
+        () => ({ line: "#6d7cff", fill: "rgba(109,124,255,0.12)", text: css("--ink"), textBackground: css("--card"), up: css("--up"), down: css("--dn") }),
         (a, b) => Math.abs(indexOf(b) - indexOf(a)),
+        () => chart.timeScale().options().barSpacing,
       );
       main.series.attachPrimitive(layer);
-      let pending: DrawPoint | null = null;
+      let pendingPts: DrawPoint[] = []; // the clicks so far of a drawing that needs more than one
       let preview: Drawing | null = null;
       let selected: string | null = null;
       let override: Drawing | null = null; // the drawing being dragged, until the mouse is released
@@ -300,21 +302,33 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
         const { tool: t, drawings: list, onDrawings: commit } = draw.current;
         const at = local(e);
         if (t === "cursor") {
-          selected = hitTest(list, at, layer.at, layer.paneWidth());
+          selected = hitTest(list, at, layer.at, layer.paneWidth(), 7, layer.view());
           sync();
           return;
         }
         const here = pointAt(at.x, at.y);
         if (!here) return;
-        if (!needsTwoPoints(t)) return commit([...list, { id: newId(), kind: t, a: here }]);
-        if (!pending) {
-          pending = here;
+        if (t === "text") {
+          setNote({ x: at.x, y: at.y, point: here }); // the words are typed into a box at the click
           return;
         }
-        commit([...list, { id: newId(), kind: t, a: pending, b: here }]);
-        pending = null;
+        const need = pointsNeeded(t);
+        if (need === 1) return commit([...list, { id: newId(), kind: t, a: here }]);
+        pendingPts.push(here);
+        if (pendingPts.length < need) return;
+        commit([...list, build(t, pendingPts)]);
+        pendingPts = [];
         preview = null;
         sync();
+      };
+      /** A finished or half-finished drawing from its clicks. A position's stop and target sit under its entry's date. */
+      const build = (kind: DrawKind, pts: readonly DrawPoint[], id = newId()): Drawing => {
+        const [a, b, c] = pts as [DrawPoint, DrawPoint | undefined, DrawPoint | undefined];
+        const under = (p: DrawPoint | undefined) => (p ? { time: a.time, price: p.price } : undefined);
+        const position = kind === "long" || kind === "short";
+        const second = position ? under(b) : b;
+        const third = position ? under(c) : c;
+        return { id, kind, a, ...(second ? { b: second } : {}), ...(third ? { c: third } : {}) };
       };
       // ---- edit: drag a selected drawing's handle to reshape it, or its line to move it. Runs first (capture) and
       // stops the event so the chart does not also pan.
@@ -342,13 +356,13 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
         const list = draw.current.drawings;
         let target = list.find((d) => d.id === selected);
         let mode: DragMode | null = null;
-        for (const m of ["a", "b"] as const) {
+        for (const m of ["a", "b", "c"] as const) {
           const pt = target?.[m];
           const xy = pt ? layer.at(pt) : null;
           if (xy && Math.hypot(xy.x - at.x, xy.y - at.y) <= 9) mode = m;
         }
         if (!mode) {
-          const hit = hitTest(list, at, layer.at, layer.paneWidth());
+          const hit = hitTest(list, at, layer.at, layer.paneWidth(), 7, layer.view());
           if (!hit) return;
           selected = hit;
           target = list.find((d) => d.id === hit);
@@ -369,14 +383,14 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
       el.addEventListener("click", onClick);
       chart.subscribeCrosshairMove((p) => {
         const t = draw.current.tool;
-        if (!pending || t === "cursor" || !p.point) return;
+        if (pendingPts.length === 0 || t === "cursor" || t === "text" || !p.point) return;
         const here = pointAt(p.point.x, p.point.y);
         if (!here) return;
-        preview = { id: "preview", kind: t, a: pending, b: here };
+        preview = build(t, [...pendingPts, here], "preview");
         sync();
       });
       const cancel = () => {
-        pending = null;
+        pendingPts = [];
         preview = null;
         sync();
       };
@@ -454,6 +468,25 @@ export function ChartCanvas({ candles, layers, style, label, height, tool, magne
     <div className="chartwrap" style={{ height }} tabIndex={0} onKeyDown={onKeyDown} role="group" aria-label={`${label}: click to select a drawing, Delete removes it`}>
       <div ref={host} className="chartbox" role="img" aria-label={label} data-testid="price-chart" />
       <div ref={bandHost} className="bands" aria-hidden="true" />
+      {note && tool === "text" ? (
+        <input
+          className="inp noteinput"
+          style={{ left: note.x, top: Math.max(0, note.y - 30) }}
+          autoFocus
+          maxLength={120}
+          placeholder="Type a note, press Enter"
+          aria-label="Note text"
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Escape") setNote(null);
+            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+              draw.current.onDrawings([...draw.current.drawings, { id: newId(), kind: "text", a: note.point, text: e.currentTarget.value.trim() }]);
+              setNote(null);
+            }
+          }}
+          onBlur={() => setNote(null)}
+        />
+      ) : null}
       {legend ? <div className="chartlegend small num">{legend}</div> : null}
     </div>
   );

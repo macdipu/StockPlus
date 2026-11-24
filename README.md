@@ -37,6 +37,10 @@ docker compose exec worker python -m dse.cli backfill        # or: sync GP BATBC
 docker compose exec worker python -m dse.cli create-user you@example.com --role admin
 ```
 
+Loading is never silent: a spinner says what is loading and, after 8 s, that it is slow with a Try again button; pages show a
+skeleton at once and a thin bar across the top while loading; requests time out after 30 s; and a banner says when the server
+cannot be reached.
+
 Day to day, `make help` lists the shortcuts (`make up`, `make logs`, `make test`, `make backtest`, ...).
 
 Development without containers: `docker compose up -d db redis`, then `uvicorn dse.main:app --port 8001` and
@@ -67,9 +71,11 @@ If your Docker runtime rejects the API's host port range (`invalid host port 800
     RSI, MACD, and possible chart patterns. Levels are short lines with one tag and one number on the price axis, so the
     candles stay visible; pattern names show in the legend on hover and in a list under the chart; indicator panels
     can be collapsed.
-  - **Drawing tools**: trend line, ray, horizontal line, rectangle, Fibonacci and measure, with snap-to-candle, colours
-    and thickness, drag a handle to reshape or the line to move it, undo, and a list of your drawings. Saved per share
-    and timeframe in the browser.
+  - **Drawing tools**: trend line, ray, horizontal and vertical line, parallel channel, rectangle, Fibonacci, measure,
+    **long and short positions** (click entry, stop and target: it draws the profit and loss zones and shows the
+    reward-to-risk ratio) and text notes, with snap-to-candle, colours and thickness, drag a handle to reshape or the line
+    to move it, undo, and a list of your drawings. Saved per share and timeframe in the browser. The 1-minute chart is drawn
+    as a line, not candles (most minutes have only a few trades).
   - **Chart patterns** (`/api/v1/stocks/{symbol}/chart-patterns`): double top and bottom, head and shoulders (and
     inverse), triangles, wedges, channels and ranges found from swing highs and lows, drawn on the chart and explained
     in a sentence. Rule-based and labelled as possible shapes, not signals.

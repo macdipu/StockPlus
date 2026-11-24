@@ -1,6 +1,8 @@
 "use client";
 
-import { COLORS, TOOLS, WIDTHS, describeDrawing, type Drawing, type Tool } from "../utils/drawings";
+import { COLORS, TOOLS, WIDTHS, describeDrawing, type Drawing, type Tool, type ToolGroup } from "../utils/drawings";
+
+const GROUPS: readonly ToolGroup[] = ["pointer", "lines", "shapes", "trade", "note"];
 
 interface Props {
   tool: Tool;
@@ -27,11 +29,15 @@ export function DrawToolbar({ tool, onTool, magnet, onMagnet, count, canDelete, 
   const hint = TOOLS.find((t) => t.key === tool)?.hint ?? "";
   return (
     <div className="drawbar" role="toolbar" aria-label="Drawing tools">
-      <div className="seg" role="group" aria-label="Tool">
-        {TOOLS.map((t) => (
-          <button key={t.key} type="button" aria-pressed={tool === t.key} title={t.hint} className={tool === t.key ? "on" : ""} onClick={() => onTool(t.key)}>
-            {t.label}
-          </button>
+      <div className="toolgroups" role="group" aria-label="Tool">
+        {GROUPS.map((g) => (
+          <div key={g} className="seg">
+            {TOOLS.filter((t) => t.group === g).map((t) => (
+              <button key={t.key} type="button" aria-pressed={tool === t.key} title={t.hint} className={tool === t.key ? "on" : ""} onClick={() => onTool(t.key)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
       <label className="layer-opt small" title="Snap clicks to the candle's open, high, low or close">

@@ -103,3 +103,11 @@ sentence under the chart. New layer "Chart patterns" (off by default; "Everythin
 
 Not done: flags and pennants, cup and handle; measured-move targets are stated in the text but not drawn; patterns are
 daily only; no back-test of how often these shapes work out (roadmap item 7 covers scoring, not this).
+
+## Phase 2 additions (after the first release)
+Added vertical line, parallel channel, long and short positions and text notes (`chart/utils/drawings.ts` now knows one-, two-
+and three-click kinds). A position is entry, stop and target under the entry's date, drawn as a green profit zone and a red loss
+zone about 15 candles wide with the dollar-free move and percentage on each and the reward-to-risk ratio on the entry; clicking
+anywhere inside it selects it, and dragging the stop or target handle moves only that price. A note is typed into a box at the
+click (Enter saves, Esc cancels). On 1-minute data candle styles are drawn as a line. Pure geometry, hit-testing, drag maths and
+position statistics are unit-tested; all five were drawn, saved and edited in a real browser.

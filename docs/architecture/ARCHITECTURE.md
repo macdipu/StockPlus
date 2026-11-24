@@ -290,6 +290,13 @@ omits the gross-margin ratio when gross profit equals revenue.
 - Stock tabs: Overview (summary, chart, plan), Valuation, Technicals, Market depth, History, Company. The tab is in the URL
   hash; the old `#prices` and `#seasonality` links land on History.
 
+**Loading and failure states (frontend).** `shared/ui/Notice.tsx` (`Loading` with a spinner that says when it is slow and offers a
+retry; `ErrorNotice` with a retry and a connection-problem note), `PageSkeleton` for `app/loading.tsx` and
+`app/stock/[symbol]/loading.tsx` (shown at once while a page is prepared; the machine-readable stock facts stream inside
+`Suspense`), `app/_components/TopProgress.tsx` (a bar for a page change that has not arrived and for first-time loads; background
+refreshes do not flash it) and `OfflineBanner.tsx`. `shared/api/client.ts` gives every request a 30 s timeout and reports whether
+the server answered through `shared/lib/connection.ts`, which the banner reads.
+
 **Decisions.** Pure rule modules over data the backend already serves, rather than new backend fields, for everything that is a
 reading of existing numbers; backend changes only where a number was wrong (gross margin) or missing (changes, patterns, depth,
 directory, track record). The page uses the trade plan's buy zone everywhere (the backend has a second, tighter one: ROADMAP
